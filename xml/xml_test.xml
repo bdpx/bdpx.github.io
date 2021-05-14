@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="Технологии XML: test questions"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css"/>
+<style type="text/css">
+ol.questions {
+   text-indent:0cm;
+   counter-reset: item;
+}
+ol.questions ul {
+   padding-bottom: 15px;
+}
+ol.questions > li {
+   counter-increment: item;
+   margin-bottom: 5px;
+ }
+ol.questions > li:before {
+   margin-right: 10px;
+   content: counter(item);
+   font-weight: bold;
+   font-size: 105%;
+   text-align: center;
+   display: inline-block;
+}
+ul.single li, ul.multiple li {
+  text-indent:1cm;
+}
+ul.single li pre, ul.multiple li pre {
+  margin-left:2cm;
+}
+ul.single li {
+  list-style-type:circle;
+  list-style-position: inside;
+}
+ul.multiple li {
+  list-style-type:square;
+  list-style-position: inside;
+}
+</style>
+<title>Тест XML</title>
+</head>
+<body>
+
+<h1>Тест XML</h1>
+
+<p>Вам предлагается набор вопросов.
+Если в качестве маркера вариантов ответов стоит символ &#9675; (белый кружок), то из всех вариантов необходимо выбрать один правильный,
+если же используется символ &#9632; (черный квадрат), то необходимо выбрать все правильные варианты
+</p>
+
+<ol class="questions">
+<li>XML — это:
+<ul class="single">
+<li>Язык разметки гипертекста</li>
+<li>Расширяемый язык разметки</li>
+<li>Язык преобразования тегов разметки гипертекста в формат RTF</li>
+</ul>
+</li>
+<li>Любой XML документ начинается инструкцией
+<ul class="single">
+<li>&lt;html></li>
+<li>&lt;?xml-stylesheet version=”1.0” ?></li>
+<li>&lt;?xml version=”1.0” ?></li>
+</ul></li>
+<li>Для использования русских символов в XML документе необходимо использовать атрибут
+encode в инструкции:
+<ul class="single">
+<li>&lt;?xml-stylesheet version=”1.0” encoding=”windows-1251”?></li>
+<li>&lt;?xml version=”1.0” encoding=”windows-1251”?></li>
+<li>&lt;?xml version=”1.0” language=”ru”?></li>
+</ul></li>
+<li>Выберете характеристики, которыми обладает язык XML:
+<ul class="multiple">
+<li>XML предлагает метод представления структурированных данных в виде текстового файла</li>
+<li>XML похож на HTML</li>
+<li>XML представляет собой подмножество HTML</li>
+<li>XML понятен человеку и компьютеру</li>
+<li>XML представляет собой семейство нескольких технологий</li>
+<li>XML это самодостаточный язык для описания сложных структурированных данных и их трансляции в другие языки</li>
+<li>XML достаточно гибок</li>
+<li>XML достаточно «новый» язык, но происходит он от давно известного языка SGML</li>
+<li>XML платформенно-независим</li>
+</ul></li>
+<li>Для нормальной работы XML документа в браузере, необходимо:
+<ul class="single">
+<li>Наличие только браузера, любой браузер «понимает» XML и корректно его обрабатывает</li>
+<li>Помимо браузера, необходимо наличие специальной программы XML парсера, которую браузер вызывает для обработки XML документа.</li>
+<li>Помимо браузера необходимо наличие специального скрипта-валидатора, без которого XML документ не будет корректно отображаться,
+а парсер необходим как опциональная возможность для проверки корректности XML документа</li>
+</ul></li>
+<li>Выберете все правильные варианты описания тега &lt;library&gt; в XML:
+<ul class="multiple">
+<li>&lt;Library/></li>
+<li>&lt;Library>&lt;/Library></li>
+<li>&lt;library></li>
+<li>&lt;Library></li>
+<li>&lt;library/></li>
+<li>&lt;library>&lt;/library></li>
+<li>&lt;LIBRARY/></li>
+<li>&lt;LIBRARY>&lt;/LIBRARY></li>
+</ul></li>
+<li>Выберете все варианты правильного описания пустого тега &lt;Book&gt; в XML:
+<ul class="multiple">
+<li>&lt;book></li>
+<li>&lt;book/></li>
+<li>&lt;book>info&lt;/book></li>
+<li>&lt;book/></li>
+<li>&lt;BOOK>&lt;/BOOK></li>
+<li>&lt;BOOK/></li>
+<li>&lt;Book/></li>
+<li>&lt;Book>&lt;/Book></li>
+<li>&lt;Book>info&lt;/Book></li>
+<li>&lt;Book></li>
+<li>&lt;BOOK></li>
+</ul></li>
+<li>Из представленных фрагментов XML кода выберете синтаксически правильный:
+<ul class="single">
+<li>&lt;Book>&lt;author>Иванов&lt;/author>&lt;title>Песнь о вещем Олеге&lt;/title>&lt;/book></li>
+<li>&lt;Book>&lt;author>Иванов&lt;title>Песнь о вещем Олеге&lt;/author>&lt;/title>&lt;/Book></li>
+<li>&lt;Book>&lt;author>Иванов&lt;/author>&lt;title>Песнь о вещем Олеге&lt;/title>&lt;/Book></li>
+<li>&lt;Book>&lt;author>Иванов&lt;title>Песнь о вещем Олеге&lt;/title>&lt;/Author>&lt;/book></li>
+<li>&lt;book>&lt;author>Иванов&lt;title>Песнь о вещем Олеге&lt;/title>&lt;/Author>&lt;/Book></li>
+</ul></li>
+<li>Для добавления комментариев в XML документ необходимо воспользоваться инструкцией:
+<ul class="single">
+<li>// …</li>
+<li>{ … }</li>
+<li>&lt;!-- … --></li>
+<li>`</li>
+<li>Rem</li>
+</ul></li>
+<li>Укажите количество корневых тегов (элементов), которое допускает XML документ:
+<ul class="single">
+<li>0</li>
+<li>1</li>
+<li>2</li>
+<li>3</li>
+<li>256</li>
+<li>65536</li>
+<li>Любое количество</li>
+</ul></li>
+<li>Значения атрибута Percent равное 42 тега &lt;VODKA> в XML можно указать следующим образом:
+<ul class="multiple">
+<li>&lt;VODKA Percent=42></li>
+<li>&lt;VODKA Percent=”42”></li>
+<li>&lt;VODKA>&lt;xsl:attribute name=”Percent”>42&lt;/xsl:attribute>&lt;/VODKA></li>
+<li>&lt;VODKA Percent=’42’></li>
+<li>&lt;VODKA>Percent=42&lt;/VODKA></li>
+<li>&lt;VODKA Percent=’42’/></li>
+</ul></li>
+<li>Выберете названия технологий, которые описывают структуру XML документа:
+<ul class="multiple">
+<li>XSLT</li>
+<li>DOM</li>
+<li>DTD</li>
+<li>XSL-FO</li>
+<li>XSD</li>
+<li>XBase</li>
+</ul></li>
+<li>Вставка DTD описания XML документа с корневым тегом &lt;root> непосредственно в сам
+документ осуществляется с помощью использования инструкции:
+<ul class="single">
+<li>&lt;!ELEMENT “root.dtd” REFERENCES root></li>
+<li>&lt;!DOCTYPE root [ … ]></li>
+<li>&lt;!ENTITY root [ … ]></li>
+</ul></li>
+<li>Вставка DTD описания XML документа с корневым тегом &lt;root> из файла root.dtd в
+документ осуществляется с помощью использования инструкции:
+<ul class="single">
+<li>&lt;!DOCTYPE root SYSTEM "root.dtd"></li>
+<li>&lt;!ELEMENT “root.dtd” REFERENCES root></li>
+<li>&lt;!ENTITY root [root.dtd]></li>
+</ul></li>
+<li>Найдите правильное описание корневого элемента (тега) &lt;library>,
+который может содержать внутри себя один тег &lt;title>,
+за которым могут следовать теги &lt;telephone> и &lt;fax>,
+за которыми следуют один или несколько тегов &lt;book>.
+<ul class="single">
+<li>&lt;!ELEMENT library (title,telephone?,fax?,book+)></li>
+<li>&lt;!ELEMENT library (title*,telephone+,fax*,book+)</li>
+<li>&lt;!ELEMENT library (title?,telephone+,fax+,book*)</li>
+<li>&lt;!ELEMENT library (title,book*)</li>
+</ul></li>
+<li>Укажите правильное описание атрибута type элемента (тега) car, который принимает
+произвольные текстовые значения и является обязательным:
+<ul class="single">
+<li>&lt;!ATTLIST car type CDATA #REQUIRED></li>
+<li>&lt;!ATTLIST car type CDATA #IMPLIED></li>
+<li>&lt;!ATTLIST type car CDATA #REQUIRED></li>
+<li>&lt;!ATTLIST type car #PCDATA #REQUIRED></li>
+<li>&lt;!ATTLIST car type #PCDATA #REQUIRED></li>
+</ul></li>
+<li>Укажите правильное описание ссылки (сущности) &amp;ms;, которая имеет значение «Масяня»:
+<ul class="single">
+<li>&lt;!ENTITY ms “Масяня”></li>
+<li>&lt;!ENTITY ms CDATA “Масяня”></li>
+<li>&lt;!ENTITY ms #PCDATA “Масяня”></li>
+<li>&lt;!ENTITY &amp;ms CDATA “Масяня”></li>
+<li>&lt;!ENTITY &amp;ms #PCDATA “Масяня”></li>
+<li>&lt;!ENTITY &amp;ms “ Масяня ”></li>
+</ul></li>
+
+<li>Основное назначение пространства имен в XML — это:
+<ul class="single">
+<li>Разрешение конфликтов одинаковых имен в документах</li>
+<li>Загрузку из Интернет описаний и схем документов XML</li>
+<li>Определение правил преобразования тегов XML в другие форматы</li>
+</ul></li>
+<li>Корневой тэг документа с XSD схемой должен начинаться:
+<ul class="single">
+<li>&lt;xsd:Schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"></li>
+<li>&lt;xsd:Schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ></li>
+<li>&lt;xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"></li>
+<li>&lt;xsd:schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></li>
+</ul></li>
+<li>Корневой тэг XML документа, который проверяется с помощью XSD схемы, должен
+содержать описание пространства имен:
+<ul class="single">
+<li>xmlns:xsd="http://www.w3.org/2001/XMLSchema"</li>
+<li>xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"</li>
+<li>xmlns:schema="http://www.w3.org/2001/XMLSchema"</li>
+</ul></li>
+<li>Укажите правильную конструкцию XSD, с помощью которой определяется, что тэг с
+фамилией (lastname) автора следует строго после тэга с именем (firstname) автора, который
+в свою очередь определяется тэгом author.
+<ul class="single">
+<li>
+<div class="lang-xml"><![CDATA[
+<xsd:element name="author">
+  <xsd:complexType>
+    <xsd:sequence>
+      <xsd:element ref="lastName"/>
+      <xsd:element ref="firstName"/>
+    </xsd:sequence>
+  </xsd:complexType>
+</xsd:element name="author"></pre>
+]]></div>
+</li>
+<li>
+<div class="lang-xml"><![CDATA[
+<xsd:element name="author">
+  <xsd:complexType>
+    <xsd:all>
+      <xsd:element ref="lastName"/>
+      <xsd:element ref="firstName"/>
+  </xsd:all>
+  </xsd:complexType>
+<xsd:element name="author">
+]]></div>
+</li>
+<li>
+<div class="lang-xml"><![CDATA[
+<xsd:element name="author">
+ <xsd:complexType>
+ <xsd:choise>
+ <xsd:element ref="lastName"/>
+ <xsd:element ref="firstName"/>
+ </xsd: choise >
+ </xsd:complexType>
+<xsd:element name="author">
+]]></div>
+</li>
+</ul></li>
+<li>Укажите правильную конструкцию XSD, с помощью которой определяется, что тэг с
+фамилией (lastname) автора следует в любом порядке (до или после) по отношению к тэгу
+с именем (firstname) автора, который в свою очередь определяется тэгом author
+<ul class="single">
+<li>
+
+<div class="lang-xml"><![CDATA[
+<xsd:element name="author">
+  <xsd:complexType>
+  <xsd:sequence>
+  <xsd:element ref="lastName"/>
+  <xsd:element ref="firstName"/>
+  </xsd:sequence>
+  </xsd:complexType>
+<xsd:element name="author">
+]]></div>
+
+</li>
+<li>
+<div class="lang-xml"><![CDATA[
+<xsd:element name="author">
+  <xsd:complexType>
+    <xsd:all>
+      <xsd:element ref="lastName"/>
+      <xsd:element ref="firstName"/>
+    </xsd:all>
+  </xsd:complexType>
+<xsd:element name="author">
+]]></div>
+</li>
+<li>
+
+<div class="lang-xml"><![CDATA[
+<xsd:element name="author">
+  <xsd:complexType>
+  <xsd:choise>
+  <xsd:element ref="lastName"/>
+  <xsd:element ref="firstName"/>
+  </xsd: choise >
+  </xsd:complexType>
+<xsd:element name="author"></pre>
+]]></div>
+
+</li>
+</ul>
+</li>
+<li>В DOM для получения корневого элемента документа необходимо воспользоваться:
+<ul class="single">
+<li>getRootElement() объекта Document</li>
+<li>getDocumentElement() объекта Document</li>
+<li>getDocument() объекта Document</li>
+</ul></li>
+<li>В DOM для получения «содержимого» конкретного тега необходимо использовать метод
+<ul class="single">
+<li>geRootNodes()</li>
+<li>getChildNodes()</li>
+<li>getChild()</li>
+</ul></li>
+<li>В DOM для получения «содержимого» конкретного тега по его имени, независимо от вложенности, необходимо использовать метод:
+<ul class="single">
+<li>getElements()</li>
+<li>getElementsByTagName()</li>
+<li>getElementsByNodeName()</li>
+</ul></li>
+<li>Для создания в DOM нового элемента необходимо использовать метод:
+<ul class="single">
+<li>createElement()</li>
+<li>createNode()</li>
+<li>createTag()</li>
+</ul></li>
+<li>В DOM для добавления текстового узла TextNode в содержимое элемента TextElement, необходимо воспользоваться конструкцией:
+<ul class="single">
+<li>TextElement.appendChild(TextNode)</li>
+<li>TextNode.appendChild(TextElement)</li>
+<li>TextElement=append(TextNode)</li>
+</ul></li>
+<li>В DOM для вставки узла перед текущим узлом необходимо воспользоваться методом объекта типа Element:
+<ul class="single">
+<li>InsertNode()</li>
+<li>InsertBefore()</li>
+<li>InsertBeforeNode()</li>
+</ul></li>
+<li>В DOM для удаления узла дочернего текущему узлу необходимо воспользоваться методом объекта Element:
+<ul class="single">
+<li>deleteChild()</li>
+<li>removeChild()</li>
+<li>harakiriChild()</li>
+</ul></li>
+<li>В DOM для установления значения «ку-ку» аттрибута «command» элемента «bird», необходимо воспользоваться фрагментом кода:
+<ul class="single">
+<li>bird.Attribute("command").setValue(”ку-ку”)</li>
+<li>bird.Attribute("command")=”ку-ку”</li>
+<li>bird.setAttribute("command",”ку-ку”)</li>
+</ul></li>
+<li>В DOM для получения значения аттрибута «command» элемента «bird», необходимо воспользоваться фрагментом кода
+<ul class="single">
+<li>bird.Attribute("command").Value()</li>
+<li>bird.getAttributeNode("command").getNodeValue()</li>
+<li>bird.AttributeValue("command")</li>
+</ul></li>
+<li>В DOM для удаления атрибута «limit» узла «price»необходимо воспользоваться фрагментом кода:
+<ul class="single">
+<li>price. Attribute("limit").delete</li>
+<li>price.deleteAttribute("limit")</li>
+<li>price.removeAttribute("limit")</li>
+</ul></li>
+<li>В DOM за инкапсуляцию всех возможностей парсера отвечает класс:
+<ul class="single">
+<li>DocumentBuilderFactory</li>
+<li>DocumentBuilder</li>
+<li>Document</li>
+</ul></li>
+<li>Какой уровень DOM позволяет использовать пространства имен:
+<ul class="single">
+<li>1</li>
+<li>2</li>
+<li>1 и 2</li>
+</ul></li>
+<li>Какой уровень DOM позволяет сохранять измененный или созданный документ XML в файле:
+<ul class="single">
+<li>1</li>
+<li>2</li>
+<li>1 и 2</li>
+<li>3</li>
+<li>2 и 3</li>
+<li>Все 3</li>
+</ul></li>
+<li>Какой уровень DOM позволяет использовать средства выборки узлов с помощью языка XPath:
+<ul class="single">
+<li>1</li>
+<li>2</li>
+<li>1 и 2</li>
+<li>3</li>
+<li>2 и 3</li>
+<li>Все 3</li>
+</ul></li>
+
+</ol>
+</body>
+</html>

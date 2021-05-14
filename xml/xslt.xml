@@ -1,0 +1,738 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="Технологии XML: XSLT"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css"/>
+<title>XSLT</title>
+</head>
+<body>
+
+<h1>XSLT</h1>
+
+<p>XSLT - eXtensible Stylesheet Language Transformations</p>
+
+<p>XML ничего сам не делает. Его задача — описывать структуру данных
+Чтобы с этими данными что-то сделать, используются специальные средства
+XSLT: XSL Transformations
+XSLT выполняет преобразования данных
+XSL-FO: XSL Formatting Objects
+XSL-FO форматирует данные для печати
+</p>
+
+<p>Что умеет делать XSL?</p>
+<ul>
+<li>Отбирать (фильтровать) определённые данные из целого документа</li>
+<li>Упорядочивать данные независимо от исходного порядка</li>
+<li>Менять исходную структуру данных</li>
+<li>Преобразовывать XML в другой XML</li>
+<li>в правильный HTML</li>
+<li>в другие текстовые форматы (RTF,PDF,DOC)</li>
+<li>и графические тоже (svg)</li>
+</ul>
+
+<p>В отличие от многих языков программирования (BASIC, Pascal, C, etc), XSL — не процедурный язык, а функционально-декларативный.
+Программа на XSL (transformation, она же stylesheet) сообщает не что нужно делать (последовательность операций), 
+а что должно получиться.
+</p>
+
+<p>Программа на XSL состоит из шаблонов (templates), которые сопоставляются с различными частями дерева XML на входе и выдают некоторый выход.
+</p>
+
+<h1>Примеры XSLT</h1>
+
+<p>XSLT Declaration</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0"?>
+<xsl:stylesheet version="1.0"
+  mlns:xsl="http://www.w3.org/XSL/Transform" >
+...
+</xsl:stylesheet>
+]]></div>
+
+<p>Рабочий пример, версия 1</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0"?>
+<page>
+  <sections>
+    <item href="politics">Политика</item>
+    <item href="world">В мире</item>
+    <item href="economy">Экономика</item>
+    <item href="society">Общество</item>
+  </sections>
+</page>
+]]></div>
+
+<p>Рабочий пример, расширенная версия 1</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0"?>
+<page>
+  <sections>
+    <item href="politics">
+      <name>Политика</name>
+      <item href="russia">В России</item>
+      <item href="foreign">Внешняя политика</item>
+      <item href="senate">Совет Федерации</item>
+    </item>
+    <item href="world">В мире</item>
+    <item href="economy">Экономика</item>
+    <item href="society">Общество</item>
+  </sections>
+</page>
+]]></div>
+
+<p>Рабочий пример, версия 2</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0"?>
+<page>
+  <sections>
+    <item href="politics">
+      <name>Политика</name>
+      <item href="russia">
+        <name>В России</name>
+      </item>
+      <item href="foreign">
+        <name>Внешняя политика</name>
+      </item>
+      <item href="senate">
+        <name>Совет Федерации</name>
+      </item>
+    </item>
+    ...
+  </sections>
+</page>
+]]></div>
+
+<p>Рабочий пример. Вариант 1</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0"?>
+<page>
+  <sections>
+    <item href="politics" name="Политика">
+      <item href="russia" name="В России"/>
+      <item href="foreign" name="Внешняя политика"/>
+      <item href="senate" name="Совет Федерации"/>
+    </item>
+    <item href="world" name="В мире"/>
+    <item href="economy" name="Экономика"/>
+    <item href="society" name="Общество"/>
+  </sections>
+</page>
+]]></div>
+
+<p>Ожидаемый после преобразования результат</p>
+
+<div class="lang-xml"><![CDATA[<ul>
+  <li><a href="/politics/">Политика</a>
+    <ul>
+      <li><a href="/politics/russia/">В России</a></li>
+      <li><a href="/politics/foreign/">Внешняя политика</a></li>
+      <li><a href="/politics/senate/">"Совет Федерации</a></li>
+    </ul>
+  </li>
+  <li><a href="/world/">В мире</a></li>
+  <li><a href="/world/">Экономика</a></li>
+  <li><a href="/society/">Общество</a></li>
+</ul>
+]]></div>
+
+<p>XML + XSLT</p>
+
+<div class="lang-xml"><![CDATA[<page>
+  <sections>
+    <item href="politics" name="Политика">
+      <item href="russia" name="В России"/>
+      <item href="foreign" name="Внешняя политика"/>
+      <item href="senate" name="Совет Федерации"/>
+    </item>
+    <item href="world" name="В мире"/>
+    <item href="economy" name="Экономика"/>
+    <item href="society" name="Общество"/>
+  </sections>
+</page>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0"
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output encoding="UTF-8" indent="yes"/>
+
+  <xsl:template match="/page">
+    <div>
+    <xsl:for-each select="sections/item">
+      <a href="{@href}">
+        <xsl:value-of select="@name"/>
+      </a>
+    </xsl:for-each>
+    </div>
+  </xsl:template>
+</xsl:stylesheet>
+]]></div>
+
+<p>HTML</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<div>
+  <a href="politics">Политика</a>
+  <a href="world">В мире</a>
+  <a href="economy">Экономика</a>
+  <a href="society">Общество</a>
+</div>
+]]></div>
+
+<p>XML + XSLT = HTML</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<div>
+  <a href="politics">Политика</a>
+  <div>
+    <a href="russia">В России</a>
+    <a href="foreign">Внешняя политика</a>
+    <a href="senate">Совет Федерации</a>
+  </div>
+  <a href="world">В мире</a>
+  <a href="economy">Экономика</a>
+  <a href="society">Общество</a>
+</div>
+]]></div>
+
+<p>XSLT</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="item">
+  <a href="/{@href}/">
+    <xsl:if test="parent::item">
+      <xsl:attribute name="href">
+        <xsl:text>/</xsl:text>
+        <xsl:value-of select="../item/@href"/>
+        <xsl:text>/</xsl:text>
+        <xsl:value-of select="@href"/>
+        <xsl:text>/</xsl:text>
+  </xsl:attribute>
+    </xsl:if>
+  <xsl:value-of select="@name"/>
+  </a>
+  ...
+</xsl:template>
+]]></div>
+
+<p>Рабочий пример. Вариант 2</p>
+
+<div class="lang-xml"><![CDATA[<?xml version="1.0"?>
+<page>
+  <sections>
+    <item href="politics" name="Политика"/>
+    <item href="world" name="В мире"/>
+    <item href="economy" name="Экономика"/>
+    <item href="society" name="Общество"/>
+    <item href="russia" name="В России"
+         parent="politics"/>
+    <item href="foreign" name="Внешняя политика"
+         parent="politics"/>
+    <item href="senate" name="Совет Федерации"
+         parent="politics"/>
+  </sections>
+</page>
+]]></div>
+
+<p>XSLT</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="/page">
+  <div>
+    <xsl:apply-templates
+      select="sections/item[not (@parent)]"/>
+  </div>
+</xsl:template>
+]]></div>
+
+<p>XSLT</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="item">
+  <a href="/{@href}/">
+    <xsl:if test="@parent">
+      <xsl:attribute name="href">
+        <xsl:text>/</xsl:text>
+        <xsl:value-of select="@parent"/>
+        <xsl:text>/</xsl:text>
+        <xsl:value-of select="@href"/>
+        <xsl:text>/</xsl:text>
+      </xsl:attribute>
+    </xsl:if>
+    <xsl:value-of select="@name"/>
+  </a>
+  <xsl:if test="../item[@parent = current()/@href]">
+    <div>
+    <xsl:apply-templates
+      select="../item[@parent = current()/@href]"/>
+    </div>
+  </xsl:if>
+</xsl:template>
+]]></div>
+
+<p>XSLT</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="item">
+  <a href="/{@parent}/{@href}/">
+    <xsl:value-of select="@name"/>
+  </a>
+  <xsl:if test="../item[@parent = current()/@href]">
+    <div>
+      <xsl:apply-templates
+        select="../item[@parent = current()/@href]"/>
+    </div>
+  </xsl:if>
+</xsl:template>
+]]></div>
+
+<p>Элементы XSLT</p>
+
+<div class="lang-xml"><![CDATA[<xsl:import href="another.xslt"/>
+<xsl:include href="more.xslt"/>
+<xsl:output
+    method="html" | "xml" | "text"
+    encoding="UTF-8"
+    indent="yes" | "no"
+/>
+<xsl:template match="para">
+</xsl:template>
+<xsl:template name="template-name">
+</xsl:template>
+]]></div>
+
+<p>Последовательность обхода XSLT</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="/">
+</xsl:template>
+
+<xsl:template match="/page">
+</xsl:template>
+
+<xsl:template match="/page/sections">
+</xsl:template>
+
+<xsl:template name="sections/item">
+</xsl:template>
+
+<xsl:template name="item">
+</xsl:template>
+
+<xsl:template match="item[item]"/>
+]]></div>
+
+<p>Обработка узлов, создание дерева</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="/">
+  <html>
+    <head>
+      <xsl:apply-templates select="css"/>
+      <xsl:apply-templates select="js"/>
+    </head>
+    <body>
+      <xsl:apply-templates select="content"/>
+    </body>
+  </html>
+</xsl:template>
+
+<xsl:template match="page">
+  <xsl:apply-templates select="."/>
+</xsl:template>
+]]></div>
+
+<p>Обработка узлов</p>
+
+<div class="lang-xml"><![CDATA[<css>
+  <item>default.css</item>
+  <item>weather.css</item>
+</css>
+
+<xsl:apply-templates select="css"/>
+<xsl:template match="css">
+  <xsl:for-each select="item">
+    <link rel="stylesheet"
+         type="text/css"
+         href="text()" />
+  </xsl:for-each>
+</xsl:template>
+]]></div>
+
+<p>Обработка узлов</p>
+
+<div class="lang-xml"><![CDATA[<js>
+  <item>default.js</item>
+  <item>gwt.js</item>
+</js>
+
+<xsl:apply-templates select="js"/>
+
+<xsl:template match="js">
+  <xsl:apply-templates select="item"/>
+</xsl:template>
+
+<xsl:template match="js/item">
+  <script type="text/javascript" src="text()">
+  </script>
+</xsl:template>
+]]></div>
+
+<p>mode</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="css" mode="header">
+  <xsl:for-each select="item">
+    <link rel="stylesheet" type="text/css"
+         href="{text()}" />
+  </xsl:for-each>
+</xsl:template>
+
+<xsl:template match="css" mode="debug">
+  <ul>
+    <xsl:for-each select="item">
+    <li>
+      <xsl:value-of select="text()"/>
+    </li>
+    </xsl:for-each>
+  </ul>
+</xsl:template>
+]]></div>
+
+<p>mode</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="/">
+  <html>
+    <head>
+      <xsl:apply-templates select="css"
+            mode="header" />
+    </head>
+    <body>
+      <xsl:apply-templates select="css"
+             mode="debug" />
+    </body>
+  </html>
+</xsl:template>
+]]></div>
+
+<p>Шаблон с именем</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template name="copyright">
+  <div id="copyright_id">
+    <xsl:text>&#169; </xsl:text>
+    <xsl:value-of select="/page/manifest/date/@year"/>
+  </div>
+</xsl:template>
+
+<xsl:template match="/">
+  ...
+  <body>
+    <xsl:apply-templates select="content"/>
+    <xsl:call-template name="copyright"/>
+  </body>
+  ...
+</xsl:template>
+]]></div>
+
+<p>Создание элементов</p>
+
+<div class="lang-xml"><![CDATA[<xsl:element name="body">
+  <xsl:copy-of
+    select="/page/content/* | /page/content/text()"/>
+</xsl:element>
+]]></div>
+
+<p>Создание элементов и аттрибутов</p>
+
+<div class="lang-xml"><![CDATA[<xsl:element name="body">
+  <xsl:attribute name="style">
+    <xsl:text>background: white</xsl:text>
+  </xsl:attribute>
+  <xsl:copy-of
+   select="/page/content/* | /page/content/text()"/>
+</xsl:element>
+]]></div>
+
+<p>Создание элементов и аттрибутов</p>
+
+<div class="lang-xml"><![CDATA[<xsl:element name="body">
+  <xsl:attribute name="style">
+    <xsl:text>background: white</xsl:text>
+  </xsl:attribute>
+  <xsl:copy-of
+    select="/page/content/* | /page/content/text()"/>
+</xsl:element>
+
+<body style="background: white">
+  <xsl:apply-templates select="/page/content"/>
+</body>
+]]></div>
+
+<p>Комментарии</p>
+
+<div class="lang-xml"><![CDATA[<!-- xml comment -->
+<xsl:text disable-output-escaping="yes">
+  &amp;lt;!-- strange comment --&amp;gt;
+</xsl:text>
+<xsl:comment>
+  xslt comment
+</xsl:comment>
+]]></div>
+
+<p>Нумерация</p>
+
+<div class="lang-xml"><![CDATA[<xsl:number
+  level="single" | "multiple" | "any"
+  from="sections"
+  count="item"
+  format="A" | "=1:2=" />
+
+<xsl:template match="item">
+  <xsl:number format="multiple"/>
+  <a href="{@href}">
+    <xsl:value-of select="{text()}"/>
+  </a>
+  ...
+</xsl:template>
+
+<div>
+  1<a href="/politics/">Политика</a>
+  <div>
+    1.1<a href="/russia/">В России</a>
+    1.2<a href="/foreign/">Внешняя политика</a>
+    1.3<a href="/senate/">Совет Федерации</a>
+  </div>
+...
+]]></div>
+
+<p>Условия</p>
+
+<div class="lang-xml"><![CDATA[<xsl:if test="@colour = ‘white’">
+  <xsl:apply-templates/>
+</xsl:if>
+
+<xsl:choose>
+  <xsl:when test="@size < 10">
+  ...
+  </xsl:when>
+  <xsl:when test="@size = 10">
+  ...
+  </xsl:when>
+  <xsl:otherwise>
+  ...
+  </xsl:otherwise>
+</xsl:choose>
+]]></div>
+
+<p>Сортировка</p>
+
+<div class="lang-xml"><![CDATA[<xsl:sort
+  select="@href"
+  order="ascending" | "descending"
+  case-order= "upper-first" | "lower-first"
+/>
+
+<xsl:for-each select="item">
+  <xsl:sort select="text()"/>
+  <a href="{@href}">
+    <xsl:value-of select="text()"/>
+  </a>
+</xsl:for-each>
+]]></div>
+
+<p>Переменные</p>
+
+<div class="lang-xml"><![CDATA[<xsl:variable name="year" select="2007"/>
+
+<xsl:value-of select="$year"/>
+
+<xsl:variable name="copywright">
+  <p>
+  <xsl:value-of select="$year"/>
+  </p>
+  <ul>
+  <xsl:for-each select="authors/item">
+    <li>
+      <xsl:value-of select="@name"/>
+    </li>
+  </xsl:for-each>
+  </ul>
+</xsl:variable>
+]]></div>
+
+<p>Переменные</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="item">
+<xsl:param name="class"/>
+<div class="$class">
+...
+</div>
+</xsl:template>
+<xsl:apply-templates select="item">
+  <xsl:with-param name="class"
+         select="’front’"/>
+</xsl:apply-templates>
+]]></div>
+
+<p>Переменные</p>
+
+<div class="lang-xml"><![CDATA[<xsl:template match="item">
+  <xsl:param name="class"/>
+  <div class="$class">
+  ...
+  </div>
+</xsl:template>
+<xsl:apply-templates select="item">
+  <xsl:with-param name="class">front
+  </xsl:with-param>
+</xsl:apply-templates>
+]]></div>
+
+<p>Переменные</p>
+
+<div class="lang-xml"><![CDATA[<xsl:variable
+  name="list"
+  select="document(‘site-structure.xml’)"
+/>
+<xsl:template name="site-menu">
+  <xsl:for-each select="$list/sections/item">
+    <a href="{@href}">
+      <xsl:value-of select="text()"/>
+    </a>
+  </xsl:for-each>
+</xsl:template>
+]]></div>
+
+<p>Переменные</p>
+
+<div class="lang-xml"><![CDATA[
+<xsl:variable
+  name="list"
+  select="document(‘http://example.com/structure.xml’)"
+/>
+<xsl:template name="site-menu">
+  <xsl:for-each select="$list/sections/item">
+    <a href="{@href}">
+      <xsl:value-of select="text()"/>
+    </a>
+  </xsl:for-each>
+</xsl:template>
+]]></div>
+
+<p>Ключи</p>
+
+<div class="lang-xml"><![CDATA[
+<xsl:key
+  name="children"
+  match="/page/sections/item"
+  use="@parent"
+/>
+<xsl:template match="/page/sections">
+  <xsl:for-each select="item[not (@parent)]">
+    <a href="{@href}">
+      <xsl:value-of select="@name"/>
+    </a>
+    <xsl:for-each select="key ('children', @href)">
+      <xsl:value-of select="@name"/>
+      <xsl:if test="position() != last()">,
+      </xsl:if>
+    </xsl:for-each>
+  </xsl:for-each>
+</xsl:template>
+]]></div>
+
+<h1>Преобразование XML в HTML.</h1>
+
+<p><strong>Задание:</strong> Взять в качестве исходного документа XML документ, созданый в лабораторной работе №1.
+Используя Пример, представленый ниже, лекции и теоретические сведения,
+написать командный файл для получения из XML документа, согласно XSL правил (необходимо также создать),
+документа HTML, представляющего в виде гипертекста указаную в первоначальном документе информацию.</p>
+
+<p>Для работы потребуются инструментальные средства: любой текстовый редактор и парсер XSLT шаблонов <dfn>xsltproc</dfn>.</p>
+
+<p>Пусть имеется XML документ:</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0"?>
+<sonnet type="Shakespearean">
+  <author>
+    <lastName>Shakespeare</lastName>
+    <firstName>William</firstName>
+    <nationality>British</nationality>
+    <yearOfBirth>1564</yearOfBirth>
+    <yearOfDeath>1616</yearOfDeath>
+  </author>
+  <title>Sonnet 130</title>
+  <lines>
+    <line>My mistress' eyes are nothing like the sun,</line>
+    <line>Coral is far more red than her lips red.</line>
+    <line>If snow be white, why then her breasts are dun,</line>
+    <line>If hairs be wires, black wires grow on her head.</line>
+    <line>I have seen roses damasked, red and white,</line>
+    <line>But no such roses see I in her cheeks.</line>
+    <line>And in some perfumes is there more delight</line>
+    <line>Than in the breath that from my mistress reeks.</line>
+    <line>I love to hear her speak, yet well I know</line>
+    <line>That music hath a far more pleasing sound.</line>
+    <line>I grant I never saw a goddess go,</line>
+    <line>My mistress when she walks, treads on the ground.</line>
+    <line>And yet, by Heaven, I think my love as rare</line>
+    <line>As any she belied with false compare.</line>
+  </lines>
+</sonnet>
+]]></div>
+
+<p>Для преобразования в HTML мы создали шаблон</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0"
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+
+<xsl:template match="/sonnet">
+  <html>
+    <head>
+      <title>Shakespearean sonnet</title>
+    </head>
+    <body>
+      <xsl:apply-templates/>
+    </body>
+  </html>
+</xsl:template>
+
+<xsl:template match="author">
+  <h1>
+    <xsl:value-of select="lastName"/>,
+    <xsl:value-of select="firstName"/>
+    (<xsl:value-of select="yearOfBirth"/>-
+     <xsl:value-of select="yearOfDeath"/>),
+    <xsl:value-of select="nationality"/>
+  </h1>
+  <br/>
+  <hr/>
+</xsl:template>
+
+<xsl:template match="lines">
+  <xsl:for-each select="line">
+    <xsl:value-of select="."/>
+    <br/>
+  </xsl:for-each>
+</xsl:template>
+
+</xsl:stylesheet>
+]]></div>
+
+<p>Пусть исходный XML документ, а также XSL шаблоны находятся в одной текущей директории.
+Тогда команда для преобразования могут выглядеть следующим образом:
+</p>
+
+<pre>xsltproc sonnetrules.xsl sonnet.xml -o sonnet_tesult_html.html</pre>
+
+<h1>Вопросы</h1>
+<ol>
+<li>&lt;xsl:template match=“..”></li>
+<li>&lt;xsl:foreach select=“..”></li>
+<li>&lt;xsl:apply-templates select=“..”></li>
+<li>&lt;xsl:if ...></li>
+<li>&lt;xsl:choose ...></li>
+<li>&lt;xsl:sort ...></li>
+</ol>
+
+</body>
+</html>

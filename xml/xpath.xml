@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="Технологии XML: XPath"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css" />
+<title>XPath, XQuery</title>
+</head>
+<body>
+
+<h1>XPath, XQuery</h1>
+
+<p>XPath — язык для навигации внутри документа
+Назначение  XPath: выбирать из документа узлы или значения, которые нужны для совершения с ними каких-л. операций (напечатать, подсчитать, преобразовать…)
+</p>
+
+<h2>сведения</h2>
+<p>Основные понятия:</p>
+<ul>
+<li>узел (node) документа: узлами являются не только элементы, но и их атрибуты (attribute node), текстовое содержимое (text node) и т.д.</li>
+<li>атомарное значение (atomic value): число, строка, дата или булево значение</li>
+<li>последовательность (sequence)</li>
+</ul>
+
+<p>Выражение на XPath (путь) выбирает в документе последовательность узлов или атомарных значений, отвечающих заданным условиям
+Последовательность может состоять из 0 или 1 члена
+</p>
+
+<p>XPath — основные элементы</p>
+<p>Основные понятия:</p>
+<ul>
+<li>корень документа</li>
+<li>элементы</li>
+<li>атрибуты</li>
+<li>абсолютный и относительный путь</li>
+<li>родитель-дети</li>
+<li>предки-потомки</li>
+<li>сиблинги (узлы одного уровня)</li>
+</ul>
+
+<h2>XPath — выбор узлов</h2>
+
+<ul>
+<li>путь от корня (абсолютный) начинается с /</li>
+<li>фрагмент пути между двумя / — шаг по дереву (по умолчанию — от корня к листьям)</li>
+<li>в результат входят все узлы, подходящие под описанный путь: /booklist ; /booklist/book/author</li>
+<li>путь без / (относительный) считается не от корня, а от текущей позиции: book/author</li>
+<li>//	любое количество шагов</li>
+<li>//book ; //author ; /booklist//author</li>
+</ul>
+
+
+<table>
+<thead>
+<tr>
+<th>Выражение</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>. (точка)</td><td>Текущий узел</td></tr>
+<tr><td>.. (две точки)</td><td>Родительский узел</td></tr>
+<tr><td>    ../title</td><td>(путь от book/author к book/title)</td></tr>
+<tr><td> *</td><td>Узел с любым именем</td></tr>
+<tr><td>/booklist/*</td><td>все дети booklist</td></tr>
+<tr><td>/booklist/*/*</td><td>все внуки booklist</td></tr>
+<tr><td>node()</td><td>Любой узел</td></tr>
+<tr><td>text()</td><td>Узел с текстовым содержимым</td></tr>
+<tr><td>/library/book/chapter/*</td><td>выбор всех дочерних узлов любого узла chapter каждого узла book в library</td></tr>
+<tr><td>//book/*</td><td>выбор всех дочерних узлов всех book</td></tr>
+<tr><td>/*/*/*/paragraph</td><td>выбор всех paragraph которые имеют трех родителей</td></tr>
+<tr><td>//*</td><td>выбор всех элементов документа</td></tr>
+</tbody>
+</table>
+
+<h2>XPath - аттрибуты</h2>
+
+<p>Аттрибут можно выбирать по его имени или по узлу в котором он находится.
+Аттрибут состоит из имени и значения, например в &lt;chapter num="5"&gt;, имя аттрибута - num, значение - 5.
+Для выбора аттрибута по имени используется префикс @.
+</p>
+
+<p>@num выбирает аттрибут с именем  num</p>
+<p>//@* выбирает ВСЕ аттрибуты в документе</p>
+
+<p>Для выбора аттрибута по узлу необходимо его имя с префиксом заключить в квадратные скобки:</p>
+<p>//chapter[@num]</p>
+<p>выбирает каждый chapter элемент в любом месте документа, который содержит аттрибут num
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Выражение</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>@</td><td>Атрибут</td></tr>
+<tr><td>//book/@lang</td><td>атрибут по имени lang</td></tr>
+<tr><td>//book/@*</td><td>все атрибуты</td></tr>
+<tr><td>//chapter[@num]</td><td>выбирает все chapter узлы с аттрибутом num</td></tr>
+<tr><td>//chapter[not(@num)]</td><td>выбирает все chapter узлы, которые не содержат аттрибута <q>num</q></td></tr>
+<tr><td>//chapter[@*]</td><td>выбирает все chapter узлы, которые содержат любые аттрибуты</td></tr>
+<tr><td>//chapter[not(@*)]</td><td>выбирает все chapter узлы, которые не содержат аттрибутов</td></tr>
+<tr><td>//chapter[@num='3']</td><td>выбирает все chapter узлы с аттрибутом num равным 3</td></tr>
+<tr><td>//chapter[normalize-space(@num)="3"]</td><td>Функция normalize-space() используется для отсекания правых и левых пробелов в значении при сравнении</td></tr>
+</tbody>
+</table>
+
+<h2>XPath - условия и выражения</h2>
+
+<p>Выражения с условием (предикатом)</p>
+
+<table>
+<thead>
+<tr>
+<th>Выражение</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>book[2]</td><td>условие на номер узла в последовательности</td></tr>
+<tr><td>book[last()]</td><td>условие на номер узла в последовательности</td></tr>
+<tr><td>book[position()&lt;3]</td><td>условие на номер узла в последовательности</td></tr>
+<tr><td>book[city="Seoul"]</td><td rowspan="3">условие на значение дочерних элементов (путь отсчитывается от текущей позиции)</td></tr>
+<tr><td>book[price>250]</td></tr>
+<tr><td>book[count = 0 or count = 1]</td></tr>
+<tr><td>//book[@lang="rus"]/title</td><td>условие на значение атрибутов</td></tr>
+<tr><td>book[2]/author vs. book/author[2]</td><td>Условие […] применяется к тому узлу, после которого стоит</td></tr>
+<tr><td>//chapter[count(section)=1]</td><td>count(elem) количество выбраных узлов, selects chapters с строго одним дочернем узлом section</td></tr>
+<tr><td>//*[name()='section']</td><td>аналогично //section, name() возвращает имя узла</td></tr>
+<tr><td>//*[starts-with(name(), 'sec')]</td><td>starts-with(arg1, arg2) проверяет начинается ли arg1 с arg2</td></tr>
+<tr><td>//*[contains(name(), 'ect')]</td><td>contains(arg1, arg2) проверяет, содержит ли arg1 в себе arg2</td></tr>
+</tbody>
+</table>
+
+<table>
+<caption>XPath — операторы</caption>
+<thead>
+<tr>
+<th>Оператор</th>
+<th>Описание</th>
+<th>Пример</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>|</td><td>Объединяет два множества</td><td>//book | //cd</td></tr>
+<tr><td>+</td><td>сложение</td><td>6 + 4</td></tr>
+<tr><td>-</td><td>вычитание</td><td>6 - 4</td></tr>
+<tr><td>*</td><td>умножение</td><td>6 * 4</td></tr>
+<tr><td>div</td><td>деление</td><td>8 div 4</td></tr>
+<tr><td>mod</td><td>остаток от деления</td><td>5 mod 2</td></tr>
+<tr><td>=</td><td>равно</td><td>price=9.80</td></tr>
+<tr><td>!=</td><td>не равно</td><td>price!=9.80</td></tr>
+<tr><td>and</td><td>логический оператор <q>и</q></td><td>price&gt;9.00 and price&lt;9.90</td></tr>
+<tr><td>or</td><td>логический оператор <q>или</q></td><td>price=9.80 or price=9.70</td></tr>
+<tr><td>not()</td><td>функция отрицания</td><td>not(price &lt; 9.80)</td></tr>
+<tr><td>&lt; или &amp;lt;</td><td>меньше чем</td><td>price&lt;9.80</td></tr>
+<tr><td>&lt;= или &amp;lt;=</td><td>меньше чем или равно</td><td>price&lt;=9.80</td></tr>
+<tr><td>&gt; или &amp;gt;</td><td>больше чем</td><td>price&gt;9.80</td></tr>
+<tr><td>&gt;= или &amp;gt;=</td><td>больше чем или равно</td><td>price&gt;=9.80</td></tr>
+</tbody>
+</table>
+
+<p>Замечание: value=node-set  и value!=node-set  могут быть истины одновременно!</p>
+
+<h2>XPath оси</h2>
+
+<p>Оси (axes, ед.ч. axis), задают <q>направление движения</q> в конкретном шаге.
+В полном виде шаг выглядит так:</p>
+<p>...  /имя_оси::узел[условие]/  ...</p>
+<p>...  /sibling::book[25]/ ...</p>
+<p>Ось по умолчанию — child: /booklist/child::book = /booklist/book</p>
+
+<table>
+<caption>XPath — оси (axes)</caption>
+<thead>
+<tr>
+<th>Ось</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+
+<tr><td>ancestor</td><td>предки текущего узла</td></tr>
+<tr><td>ancestor-or-self</td><td>предки текущего узла и он сам</td></tr>
+<tr><td>attribute::</td><td>все аттрибуты текущего узла</td></tr>
+<tr><td>child</td><td>прямой потомок текущего узла</td></tr>
+<tr><td>descendant</td><td>потомки текущего узла</td></tr>
+<tr><td>descendant-or-self</td><td>>потомки текущего узла и он сам</td></tr>
+<tr><td>following</td><td>все узлы после текущего узла в XML документе</td></tr>
+<tr><td>following-sibling</td><td>все узлы после текущего на этом же уровне</td></tr>
+<tr><td>namespace</td><td>все пространства имен текущего узла</td></tr>
+<tr><td>parent</td><td>прямой предок текущего узла</td></tr>
+<tr><td>preceding</td><td>все узлы перед текущим узлом в XML документе, кроме предков, аттрибутов и namespace</td></tr>
+<tr><td>preceding-sibling::</td><td>все узлы перед текущим узлом на этом же уровне</td></tr>
+<tr><td>self::</td><td>сам текущий узел</td></tr>
+</tbody>
+</table>
+
+<table>
+<caption>XPath — оси (axes), примеры</caption>
+<thead>
+<tr>
+<th>Пример</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>//book/descendant::*</td><td>все потомки каждого book</td></tr>
+<tr><td>//book/descendant::section</td><td>все потомки section каждого book</td></tr>
+<tr><td>//parent::*</td><td>любой элемент, являющийся родителем</td></tr>
+<tr><td>//section/parent::*</td><td>любой родитель узла section</td></tr>
+<tr><td>//parent::chapter</td><td>любой узел chapter который является родителем (т.е. имеет дочерние узлы)</td></tr>
+<tr><td>/library/book[3]/following::*</td><td>каждый узел book в библиотеке по номеру больше 3</td></tr>
+</tbody>
+</table>
+
+<p>Замечание: preceding-sibling:: и following-sibling:: неприменимы к аттрибутам и пространствам имен</p>
+
+
+<table>
+<caption>XPath — оси. Сокращения/синонимы.</caption>
+<thead>
+<tr>
+<th>Пример</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>(none)</td><td>можно заменить на child::</td></tr>
+<tr><td>@</td><td>можно заменить на attribute::</td></tr>
+<tr><td>.</td><td>можно заменить на self::node()</td></tr>
+<tr><td>.//X</td><td>можно заменить на self::node()/descendant-or-self::node()/child::X</td></tr>
+<tr><td>..</td><td>можно заменить на parent::node()</td></tr>
+<tr><td>../X</td><td>можно заменить на parent::node()/child::X</td></tr>
+<tr><td>//</td><td>можно заменить на /descendant-or-self::node()/</td></tr>
+<tr><td>//X</td><td>можно заменить на /descendant-or-self::node()/child::X</td></tr>
+</tbody>
+</table>
+
+
+<p>Технология XPath предназначена для адресации какой-либо части дерева XML, и, чаще всего, используется вместе с технологией XSLT.
+XQuery является своего рода расширением языка XPath, и позволяет строить более сложные запросы к дереву XML документа (например, к разным его веткам).</p>
+
+<p>Программирование XPath и XQuery запросов является с программной точки зрения нелегкой задачей,
+поэтому для их создания воспользуемся freeware open source утилитой xmllint.</p>
+
+<h2>Практический пример</h2>
+<p>Пусть мы имеем XML документ <q>sonnet.xml</q> следующего содержания:</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0"?>
+<sonnet type="Shakespearean">
+  <author>
+    <lastName>Shakespeare</lastName>
+    <firstName>William</firstName>
+    <nationality>British</nationality>
+    <yearOfBirth>1564</yearOfBirth>
+    <yearOfDeath>1616</yearOfDeath>
+  </author>
+  <title>Sonnet 130</title>
+  <lines>
+    <line>My mistress' eyes are nothing like the sun,</line>
+    <line>Coral is far more red than her lips red.</line>
+    <line>If snow be white, why then her breasts are dun,</line>
+    <line>If hairs be wires, black wires grow on her head.</line>
+    <line>I have seen roses damasked, red and white,</line>
+    <line>But no such roses see I in her cheeks.</line>
+    <line>And in some perfumes is there more delight</line>
+    <line>Than in the breath that from my mistress reeks.</line>
+    <line>I love to hear her speak, yet well I know</line>
+    <line>That music hath a far more pleasing sound.</line>
+    <line>I grant I never saw a goddess go,</line>
+    <line>My mistress when she walks, treads on the ground.</line>
+    <line>And yet, by Heaven, I think my love as rare</line>
+    <line>As any she belied with false compare.</line>
+  </lines>
+</sonnet>
+]]></div>
+
+<p>Чтобы загрузить XML документ для разбора парсером, необходимо выполнить:</p>
+
+<p><code>xmllint sonnet.xml</code></p>
+
+<p>Если необходимо <q>выполнить</q> выражение XPath, необходимо воспользоваться командой</p>
+
+<p><code>xmllint --xpath "XPath_выражение" sonnet.xml</code></p>
+
+<p>Например, выражение</p>
+
+<p><code>xmllint --xpath "//line/text()" sonnet.xml</code></p>
+
+<p>Выдаст построчно содержимое сонета:</p>
+
+<pre>My mistress' eyes are nothing like the sun,
+Coral is far more red than her lips red.
+If snow be white, why then her breasts are dun,
+If hairs be wires, black wires grow on her head.
+I have seen roses damasked, red and white,
+But no such roses see I in her cheeks.
+And in some perfumes is there more delight
+Than in the breat[1;5Hh that from my mistress reeks.
+I love to hear her speak, yet well I know
+That music hath a far more pleasing sound.
+I grant I never saw a goddess go,
+My mistress when she walks, treads on the ground.
+And yet, by Heaven, I think my love as rare
+As any she belied with false compare.
+</pre>
+
+<h2>Задание на лабораторную работу</h2>
+
+<p>Необходимо для XML документа, созданого в первой лабораторной работе, выполнить такие запросы:</p>
+  <ol>
+    <li>Запрос на поиск любого элемента в любом месте, независимо от уровня и места нахождения.</li>
+    <li>Запрос на поиск элемента, относительно корня.</li>
+    <li>Запрос на поиск элемента, относительно любой (выбранной Вами) оси.</li>
+    <li>Запрос на поиск элемента, у которого проверяется равенство аттрибута конкретному значению.</li>
+    <li>Запрос с применением строковых функций для работы с содержимым элемента.</li>
+    <li>Запрос на применение агрегирующей функции (типа avg).</li>
+    <li>Любой запрос с применением оператора XQuery.</li>
+  </ol>
+
+<p>Отчет должен содержать листинги всех 7 запросов и полученных результатов выполнения запроса.</p>
+
+<h1>Вопросы</h1>
+<ol>
+<li>XPath. Методы задания пути к узлам.</li>
+<li>XPath. Работа с аттрибутами.</li>
+<li>XPath. Условия выражений для элементов и аттрибутов.</li>
+<li>XPath. Оси.</li>
+<li>XPath. Функции (в т.ч. агрегирующие).</li>
+<li>XQuery. Операторы.</li>
+</ol>
+
+</body>
+</html>
