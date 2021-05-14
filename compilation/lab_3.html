@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="Генерация кода – первый проход"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css">
+<title>Теория компиляции, разработка компиляторов, лабораторная работа №3</title>
+</head>
+<body>
+
+
+<h1>Генерация кода – первый проход</h1>
+
+<p>Цель:  Изучение основ работы ассемблера, создание простой программы генерации кода виртуального процессора.
+
+1. Краткие теоретические сведения
+В общих случаях предложения языка Ассемблера состоят из следующих компонент: 
+метка или имя; 
+мнемоника; 
+операнды; 
+комментарии. 
+Метка или имя является необязательным компонентом. Не во всех языках Ассемблеров эти понятия различаются. Если они различаются (например, MASM), то метка - точка программы, на которую передается управление, следовательно, метка стоит в предложении, содержащем команду; имя - имя переменной программы, ячейки памяти, следовательно, имя стоит в предложении, содержащем псевдокоманду резервирования памяти или определения константы. В некоторых случаях метка и имя могут отличаться даже синтаксически, так, в MASM/TASM после метки ставится двоеточие, а после имени - нет.
+
+<h2>Постановка задачи</h2>
+<p>Написать программу генерации машинных команд. Входной файл содержит мнемоники команд и их аргументы, а также метки.
+Выходной файл – полный отчет о распознании (смотри пример ниже).
+<p>Первый в строке идентификатор с помощью бинарного поиска (смотри лабораторную работу номер 1) проверяется на принадлежность командам.
+<p>Если идентификатор не найден среди команд, происходит поиск среди имен (меток).
+Если имя не найдено там, оно добавляется в таблицу имен, иначе это ошибка - повторное определение.
+Для хранения имен необходимо использовать перемешанные таблицы (хеширование) – смотри лабораторную работу номер 2.
+<p>Если идентификатор найден среди команд, то из таблицы команд берем шаблон распознания аргументов для этой команды (число).
+В зависимости от шаблона ищем далее во входной строке имена регистров, константы или имена меток.
+Шаблоны, которые необходимо реализовать (как минимум):
+
+<table>
+<th>Имя шаблона
+<th>Распознание аргументов
+<tr><td>Арифметическая команда (RRR)
+<td>Регистр, Регистр, Регистр
+<tr><td>Обращение в память – база+смещение (RRC)
+<td>Регистр, Регистр, 16-битовая константа
+<tr><td>Команда сдвига (RRS)
+<td>Регистр, Регистр, 5-битовая константа
+<tr><td>Сравнение с нулем и переход (RM)
+<td>Регистр, Метка
+<tr><td>Сравнение двух регистров и переход (RRM)
+<td>Регистр, Регистр, Метка
+</table>
+
+Например:
+<table>
+<tr>
+<th>Действие
+<th>Команда
+<th>Шаблон
+<tr><td>Сложить (регистры)<td>ADD<td>RRR
+<tr><td>Сложить с иммедиатой<td>ADDI<td>RRC
+<tr><td>Вычесть (регистры)<td>SUB<td>RRR
+<tr><td>Вычесть иммедиату<td>SUBI<td>RRC
+<tr><td>Умножить<td>MUL<td>RRR
+<tr><td>Загрузить 1-байтовое число<td>LD1<td>RRC
+<tr><td>Загрузить 4-байтовое число<td>LD4<td>RRC
+<tr><td>Перейти если регистр равен нулю<td>BEQZ<td>RM
+<tr><td>Перейти если равны два регистра<td>BEQ<td>RRM
+<tr><td>Перейти если меньше два регистра<td>BLT<td>RRM
+<tr><td>Сдвиг влево<td>SHL<td>RRS
+<tr><td>Сдвиг вправо<td>SHR<td>RRS
+<tr><td>Сохранить как 1-байтовое число<td>ST1<td>RRC
+<tr><td>Сохранить как 4-байтовое число<td>ST4<td>RRC
+<tr><td>Вызвать функцию<td>CALL<td>RM
+</table>
+
+<p>После успешного распознания аргументов ассемблерной команды, необходимо построить двоичное представление для машинной инструкции.
+<p>Для примера покажем как это выглядит в простейшей системе команд типа RISC, где одна команда – одно целое число.
+
+<p>биты машинной инструкции
+<table class="ifmt">
+<tr>
+<td class="bit">31
+<td class="bit">30
+<td class="bit">29
+<td class="bit">28
+<td class="bit">27
+<td class="bit">26
+<td class="bit">25
+<td class="bit">24
+<td class="bit">23
+<td class="bit">22
+<td class="bit">21
+<td class="bit">20
+<td class="bit">19
+<td class="bit">18
+<td class="bit">17
+<td class="bit">16
+<td class="bit">15
+<td class="bit">14
+<td class="bit">13
+<td class="bit">12
+<td class="bit">11
+<td class="bit">10
+<td class="bit">9
+<td class="bit">8
+<td class="bit">7
+<td class="bit">6
+<td class="bit">5
+<td class="bit">4
+<td class="bit">3
+<td class="bit">2
+<td class="bit">1
+<td class="bit">0
+</tr>
+<tr>
+<td class="opc" colspan="6">код операции
+<td class="gpr" colspan="5">регистр
+<td class="gpr" colspan="5">регистр
+<td class="gpr" colspan="5">регистр
+<td class="opx" colspan="11">не используем (ноль)
+</tr>
+<tr>
+<td class="opc" colspan="6">код операции
+<td class="gpr" colspan="5">регистр
+<td class="gpr" colspan="5">регистр
+<td class="tdb" colspan="5">сдвиг
+<td class="opx" colspan="11">не используем (ноль)
+</tr>
+<tr>
+<td class="opc" colspan="6">код операции
+<td class="gpr" colspan="5">регистр
+<td class="gpr" colspan="5">регистр
+<td class="imm" colspan="16">константа
+</tr>
+<tr>
+<td class="opc" colspan="6">код операции
+<td class="gpr" colspan="5">регистр
+<td class="imm" colspan="21">константа
+</tr>
+</table>
+
+<p>В процесс распознания необходимо проверять выход констант за допустимые пределы (согласно двоичного представления для машинной инструкции):
+регистры – от r0 до r31, сдвиг – от 0 до 31, константа – от -32768 до 32767.
+Место, предназначенное для меток, не заполняем (оставляем для второго прохода ассемблера).
+
+<p>Например: ADD r5,r20,r14
+
+<table class="ifmt">
+<tr>
+<td class="bit">31
+<td class="bit">30
+<td class="bit">29
+<td class="bit">28
+<td class="bit">27
+<td class="bit">26
+<td class="bit">25
+<td class="bit">24
+<td class="bit">23
+<td class="bit">22
+<td class="bit">21
+<td class="bit">20
+<td class="bit">19
+<td class="bit">18
+<td class="bit">17
+<td class="bit">16
+<td class="bit">15
+<td class="bit">14
+<td class="bit">13
+<td class="bit">12
+<td class="bit">11
+<td class="bit">10
+<td class="bit">9
+<td class="bit">8
+<td class="bit">7
+<td class="bit">6
+<td class="bit">5
+<td class="bit">4
+<td class="bit">3
+<td class="bit">2
+<td class="bit">1
+<td class="bit">0
+</tr>
+<tr>
+<td class="opc" colspan="6">код ADD (6)
+<td class="gpr" colspan="5">5
+<td class="gpr" colspan="5">20
+<td class="gpr" colspan="5">14
+<td class="opx" colspan="11">0
+</tr>
+</table>
+
+<p>Результат: 6*2<sup>26</sup>+5*2<sup>21</sup>+20*2<sup>16</sup>+14*2<sup>11</sup>
+<p>SUBI	r5,r12,1230
+
+<table class="ifmt">
+<tr>
+<td class="bit">31
+<td class="bit">30
+<td class="bit">29
+<td class="bit">28
+<td class="bit">27
+<td class="bit">26
+<td class="bit">25
+<td class="bit">24
+<td class="bit">23
+<td class="bit">22
+<td class="bit">21
+<td class="bit">20
+<td class="bit">19
+<td class="bit">18
+<td class="bit">17
+<td class="bit">16
+<td class="bit">15
+<td class="bit">14
+<td class="bit">13
+<td class="bit">12
+<td class="bit">11
+<td class="bit">10
+<td class="bit">9
+<td class="bit">8
+<td class="bit">7
+<td class="bit">6
+<td class="bit">5
+<td class="bit">4
+<td class="bit">3
+<td class="bit">2
+<td class="bit">1
+<td class="bit">0
+</tr>
+<tr>
+<td class="opc" colspan="6">код SUBI (16)
+<td class="gpr" colspan="5">5
+<td class="gpr" colspan="5">12
+<td class="imm" colspan="16">1230
+</tr>
+</table>
+
+<p>Результат: 16*2<sup>26</sup>+5*2<sup>21</sup>+12*2<sup>16</sup>+1230*2<sup>0</sup>
+<p>Получившееся число нужно вывести в 16-ичном и двоичном виде.
+<p>Например: Для входного файла</p>
+
+<code>ADD	r5,r12,r30
+QWERTY
+MUL	r5,r12,r30
+DIV	r5,r12,r30
+MYLABEL
+SUBI	r5,r12,1230
+XOR	r5,r12,r30
+AND	r5,r12,r30
+OR	r5,r12,r30
+LDD	r5,r12,5030
+BEQ	r15, MYLABEL
+
+</code>
+
+<p>Результат мог бы выглядеть так</p>
+
+<code>ADD	keyword, opcode=6
+	шаблон = REG,REG,REG
+	первый регистр - 5
+	второй регистр - 12
+	третий регистр – 30
+Результат:0x13452689 или 1000101… (все 32 бита)
+	ОК!
+QWERTY 	new name, hash=24
+MUL	keyword, opcode=2
+	шаблон = REG,REG,REG
+	первый регистр - 5
+	второй регистр - 12
+	третий регистр – 30
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+DIV	keyword, opcode=18
+	шаблон = REG,REG,REG
+	первый регистр - 5
+	второй регистр - 12
+	третий регистр – 30
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+MYLABEL 	new name, hash=13
+	ОК!
+SUBI	keyword, opcode=16
+	шаблон = REG,REG,IMM
+	первый регистр - 5
+	второй регистр - 12
+	константа – 1230
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+XOR	keyword, opcode=26
+	шаблон = REG,REG,REG
+	первый регистр - 5
+	второй регистр - 12
+	третий регистр – 30
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+AND	keyword, opcode=11
+	шаблон = REG,REG,REG
+	первый регистр - 5
+	второй регистр - 12
+	третий регистр – 30
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+OR	keyword, opcode=31
+	шаблон = REG,REG,REG
+	первый регистр - 5
+	второй регистр - 12
+	третий регистр – 30
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+LDD	keyword, opcode=12
+	шаблон = REG,REG,IMM
+	первый регистр - 5
+	второй регистр - 12
+	константа – 5030
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+BEQ	r15, MYLABEL
+	шаблон = REG,LABEL
+	первый регистр - 5
+	метка – есть метка
+Результат:0x3DАF4568 или 1000101… (все 32 бита)
+	ОК!
+</code>
+
+</body>
+</html>
