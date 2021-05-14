@@ -1,0 +1,1602 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="COM, DCOM"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css"/>
+<title>COM DCOM</title>
+</head>
+<body>
+
+<h1>DCOM</h1>
+
+<div id="TableofContents1">
+<p><a href="#__RefHeading___Toc290476606">Основные понятия и определения</a></p>
+<p><a href="#__RefHeading___Toc290476607">Технология COM как спецификация и реализация</a></p>
+<p><a href="#__RefHeading___Toc290476608">Расширения COM (COM extensions)</a></p>
+<p><a href="#__RefHeading___Toc290476609">Базовый интерфейс Iunknown</a></p>
+<p><a href="#__RefHeading___Toc290476610">Указатели на интерфейсы COM объекта</a></p>
+<p><a href="#__RefHeading___Toc290476611">COM серверы</a></p>
+<p><a href="#__RefHeading___Toc290476612">Фабрика классов и класс CoClass</a></p>
+<p><a href="#__RefHeading___Toc290476613">Последовательность событий при обращении клиента к серверу COM</a></p>
+<p><a href="#__RefHeading___Toc290476614">Сервер в клиентском процессе (In-process server)</a></p>
+<p><a href="#__RefHeading___Toc290476615">Локальный сервер (local server)</a></p>
+<p><a href="#__RefHeading___Toc290476616">Удаленный сервер (remote server)</a></p>
+<p><a href="#__RefHeading___Toc290476617">Маршалинг</a></p>
+<p><a href="#__RefHeading___Toc290476618">Проектирование COM объекта</a></p>
+<p><a href="#__RefHeading___Toc290476619">Разработка сервера</a></p>
+<p><a href="#__RefHeading___Toc290476620">Разработка клиентского приложения</a></p>
+<p><a href="#__RefHeading___Toc290476621">Использование MS Word путем импорта библиотеки типов</a></p>
+<p><a href="#__RefHeading___Toc290476622">Использование MS Word путем включения в проект компонента Delphi</a></p>
+<p><a href="#__RefHeading___Toc290476623">Разработка клиентских приложений для MS Office как контролеров автоматизации</a></p>
+<p><a href="#__RefHeading___Toc290476624">Простые СОМ-клиенты и СОМ-серверы</a></p>
+<p><a href="#__RefHeading___Toc290476625">Макросы STDMETHOD и STDMETHODIMP</a></p>
+<p><a href="#__RefHeading___Toc290476626">Проект сервера</a></p>
+<p><a href="#__RefHeading___Toc290476627">Приложение клиента</a></p>
+<p><a href="#__RefHeading___Toc290476628">Технология объектно-ориентированного подхода CORBA</a></p>
+<p><a href="#__RefHeading___Toc290476629">Интерфейс</a></p>
+<p><a href="#__RefHeading___Toc290476630">Сервант</a></p>
+<p><a href="#__RefHeading___Toc290476631">Объектная ссылка</a></p>
+</div>
+
+<p><b>Введение в COM технологии</b></p>
+
+<p id="__RefHeading___Toc290476606"><b>Основные понятия и определения</b></p>
+
+<p><dfn>COM (Component Object Model)</dfn> – модель компонентных объектов Microsoft.
+Стандартный механизм, включающий интерфейсы, с помощью которых одни объекты предоставляют свои сервисы другим.
+Является основой многих объектных технологий, в том числе OLE и ActiveX. Другой перевод: многокомпонентная
+модель объектов.</p>
+<p><dfn>DCOM (Distributed Component Object Model)</dfn> – распределенная модель компонентных объектов.
+Расширение модели COM фирмы Microsoft, ориентированное на поддержку и интеграцию распределенных объектных приложений, функционирующих в сети.</p>
+
+<p>COM представляет собой основанную на объектах клиент-серверную модель,
+разработанную Microsoft для обеспечения взаимодействия между компонентами программного обеспечения и приложениями.
+Microsoft расширила эту технологию добавлением элементов ActiveX, которые представляют результат развития технологий OLE и OCX.
+OCX (OLE Custom eXtension) – это программируемые компоненты-приложения с интерфейсом на базе OLE, позволяющим легко включать их в другие приложения.
+С 1996 года они стали называться ActiveX.
+</p>
+
+<p>Сейчас Microsoft предлагает использовать термин Active technologies вместо ActiveX, включая в новые технологии такие составляющие:</p>
+<ul>
+<li>Active Documents (активные документы);</li>
+<li>ActiveX (управляющие элементы);</li>
+<li>Active Scripting controls;</li>
+<li>Automation (автоматизация, прежде известная как OLE Automation).</li>
+</ul>
+
+<p>Ключевым аспектом COM является то, что эта технология обеспечивает связь между клиентами и серверами посредством <dfn>интерфейсов</dfn>.
+Именно интерфейс предоставляет клиентуспособ <q>узнать</q> у сервера, какие именно возможности он поддерживает на этапе выполнения.
+Для расширения возможностей сервера необходимо просто добавить новый интерфейс к существующим.
+</p>
+
+<p id="__RefHeading___Toc290476607"><b>Технология COM как спецификация и реализация</b></p>
+
+<p>COM является одновременно и спецификацией и реализацией.
+Спецификация COM определяет правила создания объектов и их взаимодействия, способ связи между объектами.
+В соответствии со спецификацией объекты COM могут быть написаны на различных языках, выполняться в адресном пространстве различных процессов и на разнообразных платформах.
+До тех пор, пока объекты полностью соответствуют спецификации, они могут взаимодействовать.
+Это позволяет объединять унаследованный код как компонент с новыми компонентами, разработанными в любом из объектно-ориентированных языков.</p>
+
+<p>COM как реализация представляет собой библиотеку (файлы OLE32.dll OLEAut32.dll), которая предоставляет ряд основных служб,
+поддерживающих описанные спецификации.
+Библиотека COM содержит набор стандартных интерфейсов, определяющих основную функциональность объектов COM, и небольшой набор функций API,
+разработанных для целей создания и управления объектами COM.</p>
+
+<p id="__RefHeading___Toc290476608"><b>Расширения COM (COM extensions)</b></p>
+
+<p>Так как COM является развивающейся технологией,
+она может быть расширена за рамки
+базисных служб. COM является основой для
+других технологий, таких как автоматизация
+(Automation – вместо прежнего термина OLE
+Automation), элементы ActiveX и активные документы
+(Active Documents).</p>
+<p>
+Кроме
+того, в настоящее время возможно создание
+таких объектов COM, которые могут
+взаимодействовать с Microsoft Transaction Server
+(MTS). MTS – это система обработки транзакций,
+предназначенная для построения,
+развертывания и управления большими
+Intranet и Internet приложениями-серверами.
+Хотя MTS архитектурно и не является частью
+COM, она разработана для расширения
+возможностей COM в большой, распределенной
+среде.</p>
+
+<p>
+<b>Составляющие
+приложений COM</b></p>
+<p>
+При
+разработке приложений, использующих
+технологию COM, используются структурные
+элементы, приведенные в таблице.</p>
+
+<table>
+<tr>
+<th>Элемент</th>
+<th>Назначение</th>
+</tr>
+<tr>
+<td>COM Interface</td>
+<td>Средство, с помощью которого объект COM предоставляет
+свои функциональные возможности
+(службы) для внешних клиентов. Объект
+COM снабжает интерфейсом каждый набор
+методов и свойств. Любой объект COM
+имеет один или более интерфейсов</td>
+</tr>
+<tr>
+<td>COM server</td>
+<td>Некоторый модуль (EXE, DLL или OCX), который содержит код для объекта COM</td>
+</tr>
+<tr>
+<td>COM client</td>
+<td>Программный код, который получает требуемые услуги
+от сервера через интерфейс(ы) объекта
+COM. Клиент знает, что он хочет получить
+от сервера, но не знает как его запрос
+выполняется внутри сервера. В большинстве
+случаев клиент реализуется как
+Automation controller (то же, что и ActiveX-клиент)</td>
+</tr>
+<tr>
+<td>Type Library</td>
+<td>Библиотека типов, которая содержит описание COM
+объекта, его интерфейсов и методов, а
+также их GUID идентификаторы. Информация
+из библиотеки записывается в системный
+реестр и используется клиентским приложением.</td>
+</tr>
+<tr>
+<td>Class Factory</td>
+<td>Фабрика классов, экземпляр объекта которой
+создает COM объект. Сам объект фабрики
+классов создается COM сервером при
+запросе клиентским приложением первого
+интерфейса</td>
+</tr>
+</table>
+<p>
+<b>Интерфейсы COM</b></p>
+
+<p>Клиент взаимодействует с объектом COM посредством интерфейса, который представляет собой набор функционально или семантически
+связанных подпрограмм, с помощью которых обеспечивается связь клиента с провайдером сервисов (сервером).
+</p>
+
+<p>Например, каждый COM объект имеет базовый интерфейс <dfn>IUnknown</dfn>, который сообщает, какие интерфейсы объекта доступны клиенту.
+Любой интерфейс сообщает клиенту, какие возможности он предоставляет.</p>
+
+<p>Ключевыми аспектами интерфейсов объектов COM являются следующие:</p>
+
+<ul>
+<li>будучи однажды опубликованным, интерфейс не
+должен изменяться ни при каких
+обстоятельствах. При необходимости
+расширение функциональности должно
+быть выполнено за счет добавления
+других интерфейсов;</li>
+<li>по соглашению, имя интерфейса должен
+начинаться с заглавной буквы I, например,
+<i>IMalloc</i> или <i>IPersis</i>t;</li>
+<li>интерфейс имеет гарантированный уникальный
+идентификатор GUID (Globally Unique Identifier),
+который представляет собой 128-битное
+случайное число. Эти идентификаторы
+называют Interface Identifiers (IIDs). Использование
+таких идентификаторов ограничивает
+возможность конфликтов между разными
+версиями или продуктами;</li>
+
+<li>интерфейсы обладают языковой независимостью. Для
+реализации интерфейса может быть
+использован любой язык программирования,
+который поддерживает указатели и
+структуры и позволяет вызвать функцию
+по указателю на нее;</li>
+
+<li>сами по себе интерфейсы не являются объектами, а предоставляют способ получения доступ к объекту, а клиент получает доступ к
+данным объекта посредством вызова функций;</li>
+
+<li>любой интерфейс является наследником базового интерфейса <i>IUnknow</i>n;</li>
+
+<li>обращения к интерфейсам могут перенаправляться между потоками, процессами и сетевыми компьютерами невидимо для клиента.</li>
+
+</ul>
+
+<p id="__RefHeading___Toc290476609"><b>Базовый интерфейс Iunknown</b></p>
+
+<p>Этот интерфейс, который должны поддерживать все COM объекты, включает следующие подпрограммы:</p>
+<ul>
+<li><p>QueryInterface;</p></li>
+<li><p>AddRef;</p></li>
+<li><p>Release.</p></li>
+</ul>
+
+<p style="margin-left: 1.25cm; text-indent: 0.02cm; margin-bottom: 0cm; line-height: 150%">
+Метод
+QueryInterface, объявленный
+как</p>
+<p>
+Function
+QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;</p>
+<p>
+возвращает
+клиенту указатель на запрошенный
+интерфейс IID. С помощью полученного
+указателя клиент может вызвать любой
+из реализованных методов интерфейса.
+В качестве IID клиент может указать тип
+класса интерфейс – в этом случае
+компилятор самостоятельно извлекает
+соответствующий GUID.</p>
+<p>
+Методы
+AddRef и Release используются для того, чтобы
+объект COM мог самостоятельно отслеживать
+продолжительность своего существования.
+Эти методы просто изменяют число ссылок
+на объект. Когда число ссылок на объект
+становится равным нулю, объект удаляется
+из памяти COM сервером.</p>
+
+<p id="__RefHeading___Toc290476610"><b>Указатели на интерфейсы COM объекта</b></p>
+
+<p>Указатель на интерфейс является 32-битным указателем,
+который ссылается на указатель на
+таблицу vtable (рис 2.). Эта таблица является
+массивом указателей, каждый из которых,
+в свою очередь, указывает на реализацию
+метода. Таблица vtable является общей для
+всех экземпляров объекта, но для каждого
+из экземпляров создается свой набор
+данных.</p>
+
+<div>
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAogAAADhCAMAAAB887QzAAADAFBMVEUAAAAAAAD///8BAgMAACAAAAAAAEEAAAAAAAEAAAAUSqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8A/uWDK9kAAABAHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AU/cHJQAAC0tJREFUeJztnYt2qyAQRYv//8+9ty0KA2hAZvSMnr1WY0wbcyLbAR9pvr4JAeDr7gCE/EARCQQU0ZaAClTkb4poTVgwORLxljAU0RaK2BnmC7f32FtPoKC0ah+AIjpbVYyrAkXs5hkt6ywuRax5Rss6i0sRa57Rss7iUsSaZ7RsHjcU0zuZEfHvD4Le26CIirxNRM03QREV6YkbstubmRVR9U1QREWGRNxqys8ByDRZ78Qjk3/z2+MhKLa/kogi31SYL2+dh+O4qQnzn/83YZHzS+asfAxFxLDdK8KfDkMRlRgVMTVdatRsfsdGDBFD5mGxVZ0O8+VtFOM5bl79to1Ituo6Dy2iXPG2IiqNYrKVOjqIuGPQZRw3iZhSbLHFfAoRY6/vc24w9jFur4itDUVVRO1RTON5I+k+riZncYtNRxR0WWeKAKH+izlUDt9cJGL/qhLbbDPziRV4x6DLOu4pEeu4CCKKNOPbbRWmOnyjO4oJ9fNG0n1eTe7i5gn+Xq54C2EnKaCIshgaiagzipFjM0MRXcSV20h89W26pPnmVlTHnaARN7QiN5+bJmlEPpOrfUD7ROeRz8ptdmJLvmPQZR8XhZaI8eLe8ciyCzoXRkVEUWJEJkgR74yLQlvEXxVBRMzr7tahnR7FNJ43ku5zyzqLC0PYBeMyMO1RzPa79LyRdKJJGy3rLC4QexURRUQgqpb9G8IwrgqqXbNGGFci/qwnxlVBdWdFIwywiDvcnWsHb3EbIq7TW8IAi9gqMXeMYPq4Nu70YgcOaJ94rXQEozuMLxFv2V77uDTufKG1FXHwtJQ3EW/qOPq4Mu7gDn1zEbYijoeZErHx1MGifLTwvtW0n+laZXuv401HleKDIZuE/IzZkhWW8iDTZSL+HsVKJ0XTQdZt2jhAmx8v6w2jLeLotQIHC+8WMbRncEWUBzbTRLR3NV8tyiBu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" alt="Рисунок 5" width="644" height="179"/>
+</div>
+
+<p>Рисунок 2</p>
+
+<p id="__RefHeading___Toc290476611"><b>COM</b><b>серверы</b></p>
+
+<p>Сервер COM является приложением или библиотекой,
+которая предоставляет сервис клиентскому
+приложению (или библиотеке). Сервер
+включает по крайней мере один объект
+COM, который в свою очередь представляет
+собой совокупность методов и свойств.
+Клиент не обязан знать, где в памяти
+располагаются объекты COM.</p>
+<p>
+Когда
+клиент запрашивает сервис у объекта
+COM, он (клиент) должен передать идентификатор
+класса CLSID (class identifier). Идентификатор
+класса CLSID создается на основе GUID
+интерфейса объекта COM.</p>
+<p>
+По
+идентификатору класса CLSID COM определяет
+соответствующий сервер, загружает его
+в память и сервер создает экземпляр
+объекта COM. Экземпляры объектов COM создает
+фабрика классов (class factory), к которой
+обращается сервер. Фабрика классов
+имеет свой интерфейс IClassFactory.</p>
+
+<p id="__RefHeading___Toc290476612"><b>Фабрика классов и класс CoClass</b></p>
+
+<p>COM объект является экземпляром класса
+CoClass, в котором реализованы один или
+более интерфейсов COM. Объект COM обеспечивает
+те сервисы, которые определены в
+интерфейсах класса CoClass.</p>
+<p>
+Экземпляры
+класса CoClass создаются специальным типом
+объекта, который называется фабрикой
+класса. Когда клиент обращается к COM
+объекту, фабрика класса создает экземпляр
+объекта и регистрирует экземпляр объекта
+для этого конкретного клиента. Если в
+это время другой клиент обращается к
+объекту, фабрика классов для него также
+создает (другой) экземпляр объекта.</p>
+<p>
+Любой
+класс CoClass должен иметь фабрику классов
+и идентификатор класса CLSID, так что
+экземпляр COM объекта этого класса может
+быть создан извне, т.е. из другого модуля.
+Благодаря наличию у классов CoClass
+уникального идентификатора CLSID, они
+могут быть обновлены в любое время, как
+только для класса разработан новый
+интерфейс. Новый интерфейс может
+использовать модифицированные или
+новые методы и это не оказывает никакого
+влияния на прежние версии. В случае
+использования обычных библиотек DLL
+подобная ситуация прежде была типичной
+проблемой.</p>
+
+<p id="__RefHeading___Toc290476613"><b>Последовательность событий при обращении клиента к серверу COM</b></p>
+
+<p><b>Шаг 1.</b>
+Клиентское приложение запрашивает
+интерфейс путем вызова конструктора
+сокласса. Сокласс является производным
+от класса <b>TObject</b> и
+содержит только два конструктора и
+больше никаких методов.
+Конструктор <b>Create</b> используется
+для внутрипроцессных или локальных
+серверов, а <b>CreateRemote</b> –
+для серверов, размещенных на удаленных
+компьютерах. Любой из этих конструкторов
+должен создать экземпляр объекта и
+возвратить указатель на первый интерфейс
+(интерфейс по умолчанию), предоставляемый
+COM объектом. В Delphi конструктор сокласса
+вызывает метод <b>CreateComObject</b> (для
+локального сервера) или
+<b>CreateRemoteComObject</b> (для
+удаленного сервера). В свою очередь
+метод <b>CreateComObject</b>
+вызывает функцию Win API <b>CoCreateInstance</b>
+(или <b>CoCreateInstanceEx</b> в
+случае удаленного сервера). Вот
+реализация
+метода
+<b>CreateComObject</b> в
+модуле <b>ComObject</b>:</p>
+<p>
+Function CreateComObject(const
+ClassID: TGUID): IUnknown;</p>
+<p>
+Begin</p>
+<p>
+OleCheck(CoCreateInstance(ClassID,
+nil, CLSCTX_INPROC_SERVER or</p>
+<p>
+CLSCTX_LOCAL_SERVER, IUnknown,
+Result));</p>
+<p>
+End;</p>
+<p>
+Функция-оболочка
+OleCheck предназначена для генерации
+исключительной ситуации в случае ошибки
+– и только.</p>
+<p>
+Главный
+параметр обсуждаемых функций – это
+идентификатор сокласса ClassID, который
+идентифицирует в реестре Windows библиотеку
+(или приложение), содержащую реализацию
+сервера. Вот содержимое ветви реестра
+HKEY_CLASSES_ROOTCLSID для зарегистрированного
+внутрипроцессного сервера:</p>
+
+<p>[{40BC0668-D946-11D5-BE01-ABCDCE4D71F9}]=&quot;SmpCOM Object&quot;</p>
+<p>InprocServer32=&quot;D:WORKDIRSIMPLECOMSIMPLECOM.DLL&quot;</p>
+<p>InprocServer32&quot;ThreadingModel&quot;=&quot;Apartment&quot;</p>
+<p>ProgID=&quot;SimpleCOM.SmpCOM&quot;</p>
+<p>Version=&quot;1.0&quot;</p>
+<p>TypeLib=&quot;{40BC0665-D946-11D5-BE01-ABCDCE4D71F9}&quot;</p>
+
+<p>Первый GUID – это и есть идентификатор сокласса.
+Соответствующую константу (типа TGUID)
+Delphi по умолчанию именует с префиксом
+CLASS_, например, CLASS_SmpCOM.</p>
+<p>
+<b>Шаг
+2.</b>
+Функция CoCreateInstance иницирует библиотеку
+COM, которая по идентификатору CLSID
+отыскивает в реестре библиотеку .dll (или
+приложение) и загружает ее в память.</p>
+<p>
+<b>Шаг
+3.</b>
+Создается экземпляр объекта фабрика
+класса. Для случая реализации сервера
+в виде библиотеки в ее секции инициализации
+содержится вызов конструктора класса
+TTypedComObjectFactory (для сервера с библиотекой
+типов) или TComObjectFactory (для сервера без
+библиотеки типов). Если сервер реализован
+в виде библиотеки, то вызов этого
+конструктора делается в секции
+инициализации библиотеки. Конструктор
+класса TTypedComObjectFactory в конечном итоге
+вызвает унаследованный конструктор
+класса TComObjectFactory. Параметры конструкторов
+определяют вид COM сервера и модель его
+функционирования.</p>
+<p>
+<b>Шаг
+4.</b>
+Конструктор сокласса создает COM объект
+и возвращает указатель на запрошенный
+интерфейс. Теперь клиентское приложение
+может вызывать методы интерфейса или,
+с помощью метода QueryInterface, может получить
+указатель на любой другой интерфейс,
+поддерживаемый объектом, по его
+идентификатору GUID.</p>
+<p>
+<b>Шаг
+5.</b>
+Объект COM самостоятельно ведет подсчет
+ссылок на его интерфейсы. Когда число
+этих ссылок равно нулю, COM объект
+уничтожается самостоятельно. Библиотека
+(или приложение) выгружается из памяти
+службами COM с помощью функции Win API
+CoFreeUnusedLibraries. Эта функция выгружает
+библиотеку с COM объектом в том случае,
+если функция DllCanUnloadNow возвращает значение
+S_OK. Реализация библиотеки сервера в
+соответствии со спецификацией COM должна
+экспортировать, в общем случае, всего
+4 функции: DllGetClassObject, DllCanUnloadNow,
+DllRegisterServer и DllUnregisterServer.</p>
+
+
+<h1>Способы реализации СОМ серверов</h1>
+
+<p>При работе с объектами COM клиент не знает, где находится объект. Он просто обращается к объекту посредством его интерфейса.
+Далее библиотека COM выполняет все необходимые шаги для удовлетворения вызова клиента.</p>
+
+<p>Эти шаги зависят от конкретного местонахождения объекта COM:
+в том же процессе, что и клиент, в другом процессе на машине клиента или на другой машине в сети.
+В зависимости от этого различают три вида серверов COM.</p>
+
+<h3 id="__RefHeading___Toc290476614">Сервер в клиентском процессе (In-process server)</h3>
+
+<p>Это библиотека DLL, которая выполняется в
+адресном пространстве процесса клиента.
+Например, элемент ActiveX, внедренный в Web
+страницу, выполняется в Internet Explorer или
+другом браузере. Это значит, что объект
+ActiveX загружается на машину клиента и
+выполняется в том же процессе, что и Web
+браузер. Клиент обращается к объекту
+COM путем прямого вызова интерфейса COM.</p>
+
+<div>
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWsAAADbCAMAAACcJUCLAAADAFBMVEUAAAAAAAD///8BAgMAACAAAAAAAEEAAAAAAAIAABJ+AEFvAGJ0AHVMACBiAGllAHIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8A/vLb3yLAAABAHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AU/cHJQAABdpJREFUeJztndt2qzgQBaf5/3+eWRMbdKHBQqY3wlQ9+BAkessVHUUmF//zL6j45+oBPIj/XRvE83JtE4SDax241oFrHbjWgWsduNaBax241nHY9aunnfXJsaXk79Pn+kQ7dtqnbXi6XD/Gzrl84fp1P2Uqpvp7ls4PlvoUPa2oNIfPnS1N9rzeu3PVdKP/GD2ubTlKwqz8aGnPHq1st/LS7KryE2h1kXXTTWQfd71SU5or5209c/Ortl1PrQe30fzHSfPapqOurbw074rr+YJpZdGW5WFZcedler0iv09adWnedU9xWtOza27CF3s+x/W609a87nVdJExPcF19iSq/RrWsIVZfmndlDZkvWB7XrpfTteu0NtefHde1X29dvWwenk7Xy1e02my5v876t+yvl9bV/rreqGcHP7y/FrA5mKFGeRxc68C1jhFd/yq41oFrHbjWgWsduNaBax241oFrHbjWgWsduNaBax241oFrHbjWgWsdN3J99m/RBuM8gRu5vnoAh8C1DlzrwLUOXOvAtQ5c68C1DlzrwLUOXOvAtQ5c68C1jp9yffU9U5fN0f6duq/ra0axC6514FoHrnXgWgeudeBax0NcZ7vbaqcr5BmuLZ268Lk8wrWlf658Kk9wbdmBZX8II3XI/9bG6vV0xBCf4TpN7vz0+i+9xA7xGa7TGSuarW4OHSKucd1Gh+v3srws0Msqjet9Oue1bTaHDvFnXa/3fI5r1pB2jryWqYSzDznIruvqNXo6Z/mpQn7sEH/Z9RDgWgeudeBaB6514FoHrnXgWsdDXFv1Dceqj+YJPsO11Y/vG31zM67fY2j7llTDvaf89fffIa7LEaSbFx86bn/oHv/d1JtnOq6rCbdvG9dfsZK7N44u1/Oq8njX3niae+P6EF7q9kj6XE/5W5VFM65rP3RzKLjuZyOzx/Xmnm/C9Sv6u/NNr2XKh3BGdd06f7fO1x9uvkbH9dmuh+B2rhsXclz7KU5z+0Z64zSu/ZSi2T4toLjuCXSb3z/GeLgArp2SR39N/vQClzHkvLa9O2/M655At3n+oeij1+N6N9BtXn0vsPF6XO8G7jaf+hp9DEZz/alf172nQRjW9Yn3VEfhZq6btye49lPae7a/xMG1n7LZte67dy2udwMPdu7+mYVRGNt18YtEh+ri2k/5cMH3P2M2COO77quLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8loi6u/ZSIurj2UyLq4tpPiaiLaz8lom7jXzvTsmvhvq4HB9c6cK0D1zpwrQPXOtpdj7Brahj9wDS7vu5p4VoHrnXgWgeudeBaB6514FoHrnXgeq/cuW8+guudcicbwPV2ubMF4Hq73LyOvG8bpalu5Vsofryz9Dn56a4t6z+7XqTbtH7oGOKxQY3C2a7TG4HOD7PrNKdxnU6dPq9twvUUuV6nD1+i0/Kc1ukBXbd9Dekr7Zw6Zc+3dr3VqWOIxwZ1hGyiBNUuT33/WmbKXS8LyappPNdW/RtSPD8V4/oO+5Cy3rLQzQdpfambOqq/Tn3tejJ/Fve9RflVrv0NazFt9t91crf6+9Rz7z3Z6tjaDg5Xn0/hOh3juqHp66hlj5rMlptWXJ8WZeXBejpPuD4lq3HpwPX3YWnDOrEP+dzUnZZeow++v45A6zowH9e6fFzr8nGtA9c62l1fx6HRD0yz6yG5wxgTuNaBax03d30vnCdwH9e3B9c6cK0D1zpwrQPXOnCtA9c6cK0D1zpwrWN2DQJerkEErnXgWsd/dKiDZER2AsUAAAAASUVORK5CYII=" alt="Рисунок 11" width="363" height="219"/>
+</div>
+
+<p>Рисунок 3. Сервер в клиентском процессе</p>
+
+<h3 id="__RefHeading___Toc290476615">Локальный сервер (local server)</h3>
+
+<p>Он представляет собой другое приложение (файл *.exe), которое выполняется в другом адресном пространстве, но на том же компьютере,
+что и клиентское приложение. Например, обработка таблицы Excel, внедренной в документ Word, выполняется приложением Excel.
+Локальный сервер связывается с клиентом посредством COM библиотек.</p>
+
+<div>
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAm4AAADGCAMAAABcpvyLAAADAFBMVEUAAAAAAAD///8BAgMAACAAAAAAAFEAAAAAAAEAABxfACNSAF9mAGVlAEhkAGFuAGkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8A/sddMIpAAABAHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AU/cHJQAACWtJREFUeJztnQmWgyoQAKe9/53/MqNCs2hDsEVT9d5MUJF2qQCiSX7+AXDj5+4NgG/if93kVdx9ROGA/3ST5U2g28ygGziCbuAIuoEj6AaOoBs4gm7gCLqBI+gGjqAbOIJu4Ai6gSPoBo6gGziCbuAIuoEj6PYxdz9P+hjQbYhud+/yQ0A3dHME3dDNEXRDN0fQDd0cQTd0cwTd0M2RkbrdN5pT2Cl0m5Ghuo0oZERgdJsVdEM3R9AN3RxBN3RzBN3QzRF0QzdH0A3dHHm9bheGRbdmLtOtMPp6Gej2FK7STdIZV4JuT+Ei3SSdcSno1sEttxgv7bvJvl+/L+vUOm/f6X3PtyoxbKVIKOI3oy0wup3juMVxNXShblEVJ1o3ieZH7W6wMqyqlqLbMN6mm0S2JbqFeXrdRLfcOXQbxtt02wXbWsxVnGPdZHmLbk69oV7ep9tWXUkk0p9ueV9s67ap1jP04dZ5lYPdqVt07vRpNJ7SE93OC+gF3ZJiw5y4JpP9NVujqFu6tHbB26tbeJF4TiVKBro1h7p0IORYt0Ltll0bLKXGdLBu8YaInn0MujWHMuhm7i5IlpbIo+1Mxn86keqWLvXRzX4e0K051LluW0V1vn0qh+oWbacx+KPG3ZbEqiiolm9w3y28otuyLO291+ZQp7pJIXVerC9D+25fq1vSrIyjQbe8gTQV60uvbsUr02/Vresd1xrqRDc5mDrJ7MgntVv2dv5S3SRKyBLehSFDPADfNP6HbtFqaZV2iW4ju0IOuoUqLp6dX+U1h0K37NhJ8lrFrlvj+Tnj+tptn6MPhqSLW0Md65bMdri30sWwS4V4/vnemHUb3f/+Ft3MxQ7I1pDzM93y0Y9rbmLJXvYeQt/Mk0qTlW2Np27x9q4Pi7VuxK2Nacux6hR4jlv0xenNocpUqlu5p+Rdu0l1cWsodOunRbfscaww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" alt="Рисунок 12" width="622" height="198"/>
+</div>
+
+<p>Рисунок 4. Локальный сервер</p>
+<p>
+Когда
+объект COM принадлежит другому процессу
+на том же компьютере, что и клиентское
+приложение, или вовсе на другом компьютере
+(в сети), COM использует так называемого
+<q>заместителя</q> (proxy) для того, чтобы
+инициировать удаленный вызов процедуры
+(remote procedure call – RPC). Так как заместитель
+находится в клиентском процессе, то с
+точки зрения клиента обращения к
+интерфейсам выглядят так же, как и для
+случая размещения сервера в клиентском
+процессе. Заместитель перехватывает
+вызовы клиента и отправляет их туда,
+где находится сервер. Механизм, который
+позволяет клиенту получить доступ к
+объекту, находящемуся в другом процессе
+или на другом компьютере (невидимо для
+клиента), называется маршалингом или
+маршализацией.</p>
+
+<h3 id="__RefHeading___Toc290476616">Удаленный сервер (remote server)</h3>
+
+<p>Он представляет собой библиотеку (DLL или OCX) или другое приложение, которые выполняются на другом компьютере, а не на машине клиента.
+Например, клиентское приложение, использующее базу данных, связывается с приложением, выполняемым на другом компьютере в сети.
+В этом случае удаленный сервер использует интерфейсы DCOM.</p>
+
+<div>
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAm0AAADKCAMAAADAU4fzAAADAFBMVEUAAAAAAAD///8BAgMAACAAAAAABFEAAAAAAARhdG6vgjAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8A/ue2L1/AAABAHRSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AU/cHJQAAC7BJREFUeJztnYuWsyoMhf/w/u8856yZIgnXcItY957ViggE8CtEdNp/PxBkpX93VwB6kUAbZKd/P/RdurtDoYr+p819k0DbyQJtkJ1AG2Qn0AbZCbRBdgJtkJ1A26zuXvJ5jEDbCtrubvJDBNpAm51AG2izE2gDbXYCbaDNTqANtNkJtIE2O4E20GYn0Aba7ATaQJudQBtosxNoex9tN90jdaDtlbTdZhW0gTY7q6ANtNlZBW2gzc4qaANtdlYX0nbTpc7f1Y6oCGir6jtoW1HICsNH0Gb/IevvL4M6hqqCtp20mTe7O6PdCQNtoA20rTAM2nQZQdsKw6BNlxG0rTAM2nQZQdsKw6BNlxG0rTDMadtoFrR1WdxK28yC0JRh0KbN+D20URKzT6BtLOPX0EZJzEaBtrGMhTsgLLiqESZ+24e5z50Lv/eJc+4K+NsbnwGR3e2gUMRvQpVh0KbLWDhhG0YKC9pYtUnSRiyeNTFAGbKKo8+ibfOdx/W0Udis/bDsp40YbBFtIU5mjmhLkXsYbRuN76CNWID8vMKnU+InJ8xAOovbxzbmAvzW333eK7QRAw20lbWdtjDA8Wjx0tfAgjY/WBHjiNgUk6GNeDuY//aJy3+cRmljn075QdV9aL+bthAjk1N8WGvRhDZZR5L91KAtPlpo5DBtYUM8RtmVoO0U2sLZK9OWGdvkGF2aSRfTxitCMrqq19DmJ5hrRroWFHos6mhTe4OU7lxDFTGL7CUDMW3xURva1F34GtpiexvHNu0nPU4hXCJfwYCPWG9zUbvC2Bithyz228IWtLGIMMDnP+rbaOOXv5oib9EkbZQNtvV9tGXnFTkJJTOT2qKGtkK4ldZUw7Rlr0l30aZenFJpD23RnasQRzxK4Ke22KaNKnuNxIaaGtuSOWETbX0kN7WJtk0Cbalvki+tqC7aOh2dpkDbinqNaC1t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" alt="Рисунок 7" width="621" height="202"/>
+</div>
+
+<p>Рисунок 5. Удаленный сервер</p>
+
+<p>Различие между локальным и удаленным сервером
+состоит в применяемом способе (и
+инструментальных средствах) взаимодействия
+клиента и сервера: в первом случае
+используется COM, а во втором – DCOM.</p>
+<p>
+Если
+сервер реализован как библиотека (а
+библиотека не может выполняться как
+самостоятельное приложение), то COM
+создает специальное приложение-суррогат
+(surrogate), в рамках которого и выполняется
+библиотека.</p>
+
+<h3 id="__RefHeading___Toc290476617">Маршалинг</h3>
+
+<p>Механизм маршалинга позволяет клиентскому приложению делать вызовы методов интерфейса для объекта COM,
+который находится в другом процессе или на другом компьютере.</p>
+
+<p>При любом вызове функций посредством интерфейса клиентское приложение помещает фактические параметры функции в стек и выполняет ее вызов.
+Если функция не находится в клиентском процессе, то вызов передается заместителю.
+Заместитель упаковывает параметры в пакет и передает их удаленному объекту.
+Заглушка COM объекта распаковывает пакет, помещает аргументы в стек и вызывает объект COM.
+Таким образом объект COM обрабатывает запрос клиента в своем собственном адресном пространстве.</p>
+
+<p>Какой именно маршалинг будет реализован, зависит от реализации COM объекта.
+Стандартный механизм реализован интерфейсом <i>IDispatch</i>.
+Кроме того, объекты могут самостоятельно выполнять маршалинг, однако это довольно сложно.</p>
+
+<p>Отметим, что технология Microsoft Transaction Server (MTS) обеспечивает дополнительную поддержку для удаленных объектов.</p>
+
+<h2 id="__RefHeading___Toc290476624">Простые СОМ-клиенты и СОМ-серверы</h2>
+
+<p>Для иллюстрации описанных приемов работы
+с СОМ приведем два примера на языке C++,
+в которых используется СОМ. Они достаточно
+просты и используют язык C++ и функции
+СОМ API. Всю работу будем проделывать
+самостоятельно, без использования таких
+структур, как MFC или ATL. Хотя примеры и
+тривиальны, на них вполне можно
+продемонстрировать основные приемы,
+используемые в СОМ. Ниже мы применим
+новую библиотеку активных шаблонов
+фирмы Microsoft, чтобы заново реализовать
+данный пример сервера.</p>
+<p>
+Прежде
+чем мы начнем разработку, необходимо
+внести существенное изменение в интерфейс
+компонента. Первоначальное определение
+абстрактного класса выглядит следующим
+образом:</p>
+
+<div class="lang-cpp"><![CDATA[
+class IMath : public IUnknown {
+public:
+virtual long Add(long Op1, long Op2) = 0;
+virtual long Subtract(long Op1, long Op2) = 0;
+virtual long Multiply(long Op1, long Op2) = 0;
+virtual long Divide (long Op1, long Op2) = 0;
+};
+]]></div>
+
+<p>Такой способ объявления порождает одну проблему. Каждый метод СОМ-интерфейса должен возвращать значение типа HRESULT.
+В нашем случае возвращается только результат операции.
+Поэтому нам требуется возвратить HRESULT, а результат операции передать через параметр.
+Это выглядит следующим образом:</p>
+
+<div class="lang-cpp"><![CDATA[
+class IMath : public IUnknown {
+public:
+virtual HRESULT Add(long Op1, long Op2, long *pResult) = 0;
+virtual HRESULT Subtract(long Op1, long Op2, long *pResult) = 0;
+virtual HRESULT Multiply(long Op1, long Op2, long *pResult) = 0;
+virtual HRESULT Divide (long Op1, long Op2, long *pResult) = 0;
+};
+]]></div>
+
+<p>Такая запись несколько необычна, поскольку известно, что возврат методом значения вычислений уменьшает сложность программы.
+Теперь же приходится работать с указателем на возвращаемый результат.
+Возвращение значения типа HRESULT каждым методом является общим правилом в СОМ.
+Однако существуют технические приемы (например, ключевое слово языка определения интерфейсов retval),
+позволяющее приложению клиента трактовать каждый метод таким образом, как если бы он на самом деле возвращал результат, а не HRESULT.
+Ниже мы рассмотрим эту возможность на примере клиента.</p>
+
+<p id="__RefHeading___Toc290476625"><b>Макросы STDMETHOD и STDMETHODIMP</b></p>
+
+<p>Файлы заголовков СОМ предоставляют несколько макросов, используемых при объявлении и реализации СОМ-интерфейсов.
+Microsoft рекомендует применять именно эти макросы, поскольку благодаря им исключается возможность несовместимости программных сред.
+В первую очередь разберемся с макросами <dfn>STDMETHOD</dfn> и <dfn>STDMETHOD_</dfn>,
+а также с <dfn>STDMETHODIMP</dfn> и <dfn>STDMETHODIMP_</dfn>.
+Вот новое определение интерфейса IMath с
+использованием макроса <dfn>STDMETHOD</dfn>.</p>
+
+<div class="lang-cpp"><![CDATA[
+class IMath : public IUnknown {
+public:
+STDMETHOD( Add(long , long , long *))PURE;
+STDMETHOD( Subtract(long , long , long *))PURE;
+STDMETHOD( Multiply(long , long , long *))PURE;
+STDMETHOD( Divide (long , long , long *))PURE;
+};
+]]></div>
+
+<p>Результат развертывания макроса <dfn>STDMETHOD_</dfn> зависит от целевой среды и языка программирования: С или C++.
+Для среды Win32 с использованием C++ определение этого макроса выглядит следующим образом:</p>
+
+<div class="lang-cpp"><![CDATA[
+// OBJBASE.H
+#define STDMETHODCALLTYPE __stdcall
+#define STDMETHOD(method) virtual HRESULT STDMETHODCALLTYPE method
+#define STDMETHOD_(type,method) virtual type STDMETHODCALLTYPE method
+#define PURE = 0
+#define STDMETHODIMP HRESULT STDMETHODCALLTYPE
+#define STDMETHODIMP_(type) type STDMETHODCALLTYPE
+]]></div>
+
+<p>Модификатор <dfn>__stdcall</dfn> указывает на необходимость соблюдения определенного соглашения фирмы Microsoft относительно вызовов,
+используемого в API-функциях Win32. Это соглашение требует, чтобы вызываемая программа очищала стек после своего вызова.
+Модификатор <dfn>PURE</dfn> — всего лишь способ обозначить функцию как чисто виртуальную (pure virtual, т.е. = 0).</p>
+<p>
+Большая
+часть методов СОМ-интерфейсов возвращает
+стандартный тип HRESULT. В этом состоит
+единственное различие между
+макросами <b>STDMETHOD</b> и <b>STDMETHOD_</b>,
+поскольку метод, определенный
+как <b>STDMETHOD</b>,
+всегда возвращает данные типа HRESULT, а
+определение макроса <b>STDMETHOD_</b> позволяет
+пользователю задавать тип возвращаемого
+значения. Вот как в определении интерфейса
+IClassFactory используется макрос <b>STDMETHOD</b>:</p>
+
+<div class="lang-cpp"><![CDATA[
+STDMETHOD (LockServer(BOOL fLock)) PURE;
+//Разворачивается таким образом
+virtual HRESULT _stdcall LockServer(BOOL fLock)= 0;
+]]></div>
+
+<p>Макрос <b>STDMETHOD</b> применен для объявления методов интерфейса, как в абстрактных определениях, так и в определениях класса.
+Единственным отличием является модификатор PURE. Приведем программу для производного класса:</p>
+
+<div class="lang-cpp"><![CDATA[
+class Math: public IMath
+{
+...
+public:
+//IUnknown
+STDMETHOD(QueryInterface( REFIID, void** ));
+STDMETHOD_(ULONG, AddRef());
+STDMETHOD_(ULONG,Release());
+
+//IMath
+STDMETHOD(Add( long, long, long*));
+STDMETHOD(Substract( long, long, long*));
+STDMETHOD(Multiply( long, long, long*));
+STDMETHOD(Divide( long, long, long*));
+};]]></div>
+
+<p>И, наконец, при реализации класса используется макрос STDMETHODIMP. Приведем пример релизации класса Math:</p>
+
+<div class="lang-cpp"><![CDATA[
+STDMETHODIMP Math::Add( long Op1, long Op2, long *pResult )
+{
+*pResult = Op1 + Op2;
+return S_OK;
+}
+
+STDMETHODIMP Math::Subtract( long Op1, long Op2, long *pResult )
+{
+*pResult = Op1 - Op2;
+return S_OK;
+)
+
+STDMETHODIMP Math:: Multiply( long Op1, long Op2,long *pResult )
+{
+*pResult = Op1 * Op2;
+return S_OK;
+}
+
+STDMETHODIMP_ (long) Math::Divide( long Op1, long Op2, long *pResult )
+{
+*pResult = Op1 / Op2;
+return S_OK;
+}]]></div>
+
+<p id="__RefHeading___Toc290476626"><b>Проект сервера</b></p>
+
+<p>Приложение сервера обеспечивает реализацию интерфейса IMath и, таким образом, создает
+и помещает на хранение компонент Math.
+Его определение встречалось на протяжении
+всей данной главы, поэтому здесь мы не
+будем останавливаться на нем подробно.
+Для разработки примера сервера
+воспользуемся средой разработки Visual
+C++. Затем с помощью утилиты AppWizard создадим
+проект Dynamic Link Library с именем Server. Таким
+образом, мы получим простой проект
+Visual C++, не имеющий исходных файлов. 
+</p>
+<p>
+Теперь
+необходимо объявить интерфейс абстрактного
+компонента и его CLSID и IID.  Наберите
+следующий текст и сохраните его в файле
+с именем IMATH.H.</p>
+
+<div class="lang-cpp"><![CDATA[
+//
+// imath.h
+//
+
+// {A888F560-58E4-11d0-A68A-0000837E3100}
+DEFINE_GUID( CLSID_Math,
+0xa888f560, 0x58e4, 0x11d0, 0xa6, 0x8a, 0x0, 0x0, 0x83, 0x7e, 0x31, 0x0);
+
+// {A888F561-58E4-11d0-A68A-0000837E3100}
+DEFINE_GUID( IID_IMath,
+0xa888f561, 0x58e4, 0x11d0, 0xa6, 0x8a, 0x0, 0x0, 0x83, 0x7e, 0x31, 0x0);
+
+class IMath : public IUnknown
+{
+public:
+STDMETHOD( Add( long, long, long* )) PURE;
+STDMETHOD( Subtract( long, long, long* )) PURE;
+STDMETHOD( Multiply( long, long, long* )) PURE;
+STDMETHOD( Divide( long, long, long* )) PURE;
+};]]></div>
+
+<p>Чтобы предоставить программе клиента информацию об определениях интерфейса и идентификаторов
+CLSID и IID, необходимо отделить их от
+собственно текста программы. Только
+благодаря этому программа клиента может
+получить доступ к функциям компонента.
+Фактически клиент не нуждается в CLSID
+(поскольку доступ к компоненту
+осуществляется с помощью его ProgID),
+поэтому ничто не помешает нам расположить
+его именно здесь.</p>
+<p>
+Строки,
+начинающиеся с макроса DEFINE_GUID, можно
+ввести таким же образом, как это сделано
+здесь, либо создать ваши собственные с
+помощью утилиты GUIDGEN. Теперь необходимо
+объявить класс компонента и фабрику
+классов для него. Чтобы сделать это,
+создайте файл с именем МАТН.Н и введите
+следующие определения:</p>
+
+<div class="lang-cpp"><![CDATA[
+//
+// math.h
+//
+
+#include "imath.h"
+
+extern long g_lObjs;
+extern long g_lLocks;
+
+
+class Math : public IMath
+{
+protected:
+// Reference count
+long m_lRef;
+
+public:
+Math();
+~Math();
+
+public:
+// IUnknown
+STDMETHOD(QueryInterface( REFIID, void** ));
+STDMETHOD_(ULONG, AddRef());
+STDMETHOD_(ULONG, Release());
+
+// IMath
+STDMETHOD(Add( long, long, long* ));
+STDMETHOD(Subtract( long, long, long* ));
+STDMETHOD(Multiply( long, long, long* ));
+STDMETHOD(Divide( long, long, long* ));
+};
+
+class MathClassFactory : public IClassFactory
+{
+protected:
+long m_lRef;
+
+public:
+MathClassFactory();
+~MathClassFactory();
+
+// IUnknown
+STDMETHOD( QueryInterface(REFIID, void** ));
+STDMETHOD_(ULONG, AddRef());
+STDMETHOD_(ULONG, Release());
+
+// IClassFactory
+STDMETHOD( CreateInstance(LPUNKNOWN, REFIID, void**));
+STDMETHOD( LockServer(BOOL));
+};]]></div>
+
+<p>Большая часть этих строк встречалась вам и раньше.
+Класс Math является производным по отношению к классу интерфейсов IMath, который в свою очередь является производным для IUnknown.
+Объявим методы IUnknown и IMath. Отслеживание общего количества экземпляров компонента в DLL-файле и количества вызовов IClassFactory::LockServer
+возлагается на две глобальные переменные.
+Затем объявляем класс для фабрики
+классов компонента Math. Теперь можно
+взглянуть, на текст программы. Создайте
+файл МАТН.СРР и введите в него следующее:</p>
+
+<div class="lang-cpp"><![CDATA[
+//
+// Math.cpp
+//
+
+#include <windows.h>
+#include "math.h"
+
+//
+// Math class implementation
+//
+// Constructors
+Math::Math()
+{
+m_lRef = 0;
+
+// Увеличить значение внешнего счетчика объектов
+InterlockedIncrement( &g_lObjs );
+}
+
+// The destructor
+Math::~Math()
+{
+// Уменьшить значение внешнего счетчика объектов
+InterlockedDecrement( &g_lObjs );
+}]]></div>
+
+<p>В конструкторе внутренний счетчик инициализируется значением нуль, а значение счетчика экземпляров для DLL-файла увеличивается.
+Затем деструктор его уменьшает. Теперь добавьте в программу следующее:</p>
+
+<div class="lang-cpp"><![CDATA[
+STDMETHODIMP Math::QueryInterface( REFIID riid, void** ppv )
+{
+*ppv = 0;
+
+if ( riid == IID_IUnknown || riid == IID_IMath )
+*ppv = this;
+
+if ( *ppv )
+{
+AddRef();
+return( S_OK );
+}
+return (E_NOINTERFACE);
+}
+
+STDMETHODIMP_(ULONG) Math::AddRef()
+{
+return InterlockedIncrement( &m_lRef );
+}
+
+STDMETHODIMP_(ULONG) Math::Release()
+{
+if ( InterlockedDecrement( &m_lRef ) == 0 )
+{
+delete this;
+return 0;
+}
+
+return m_lRef;
+}]]></div>
+
+<p>Таким образом, будет обеспечена реализация трех методов интерфейса IUnknown.
+Наш компонент поддерживает только два интерфейса: обязательный IUnknown и пользовательский IMath.
+Функция QueryInterface проверяет возможность получения клиентом требуемого интерфейса, а также возвращает указатель на указатель виртуальной таблицы компонента.
+Перед возвратом указателя увеличивается значение внутреннего счетчика обращений.
+Это осуществляется с помощью вызова метода AddRef().
+Реализации функций AddRef() и Release() ничем не отличаются от использованных ранее.</p>
+
+<div class="lang-cpp"><![CDATA[
+STDMETHODIMP Math::Add( long lOp1, long lOp2, long* pResult )
+{
+*pResult = lOp1 + lOp2;
+return S_OK;
+}
+
+STDMETHODIMP Math::Subtract( long lOp1, long lOp2, long* pResult )
+{
+*pResult = lOp1 - lOp2;
+return S_OK;
+}
+
+STDMETHODIMP Math::Multiply( long lOp1, long lOp2, long* pResult )
+{
+*pResult = lOp1 * lOp2;
+return S_OK;
+}
+
+STDMETHODIMP Math::Divide( long lOp1, long lOp2, long* pResult )
+{
+*pResult = lOp1 / lOp2;
+return S_OK;
+}]]></div>
+
+<p>Мы получили текст относительно простой программы, но зато она поможет нам быстро прогрессировать в понимании СОМ.
+Следующий текст программы представляет собой реализацию класса C++ для фабрики классов.</p>
+
+<div class="lang-cpp"><![CDATA[
+MathClassFactory::MathClassFactory() {
+m_lRef = 0;
+}
+
+MathClassFactory::~MathClassFactory() {
+}
+
+STDMETHODIMP MathClassFactory::QueryInterface( REFIID riid, void** ppv )
+{
+*ppv = 0;
+
+if ( riid == IID_IUnknown || riid == IID_IClassFactory )
+*ppv = this;
+
+if ( *ppv )
+{
+AddRef();
+return S_OK;
+}
+
+return(E_NOINTERFACE);
+}
+
+STDMETHODIMP_(ULONG) MathClassFactory::AddRef() {
+return InterlockedIncrement( &m_lRef );
+}
+
+STDMETHODIMP_(ULONG) MathClassFactory::Release() {
+if ( InterlockedDecrement( &m_lRef ) == 0 )
+{
+delete this;
+return 0;
+}
+
+return m_lRef;
+}
+
+STDMETHODIMP MathClassFactory::CreateInstance
+( LPUNKNOWN pUnkOuter, REFIID riid, void** ppvObj )
+{
+Math* pMath;
+HRESULT hr;
+
+*ppvObj = 0;
+
+pMath = new Math;
+
+if ( pMath == 0 )
+return( E_OUTOFMEMORY );
+
+hr = pMath->QueryInterface( riid, ppvObj );
+
+if ( FAILED( hr ) )
+delete pMath;
+
+return hr;
+}
+
+STDMETHODIMP MathClassFactory::LockServer( BOOL fLock )
+{
+if ( fLock )
+InterlockedIncrement( &g_lLocks );
+else
+InterlockedDecrement( &g_lLocks );
+
+return S_OK;
+}]]></div>
+
+
+<p>Большую часть из приведенного выше кода мы уже
+встречали. Единственным исключением
+является исходный текст процедуры
+LockServer() . Хранилище сервера (DLL-файл)
+содержит переменную для подсчета
+обращений, обеспечивающую, при
+необходимости, блокировку сервера.
+Дальше будет показано, как именно
+используется этот счетчик.</p>
+<p>
+После
+сохранения предыдущего файла МАТН.СРР
+создайте новый и назовите его SERVER.CPP.
+Этот файл будет содержать главную
+программу реализации хранилища нашего
+компонента. Файлы IMATH.H, МАТН.Н и МАТН.СРР
+хранят тексты программ компонента.
+Теперь приведем код, с помощью которого
+наш компонент помещается в хранилище.</p>
+
+<div class="lang-cpp"><![CDATA[
+//
+// server.cpp : Defines the initialization routines for the DLL.
+//
+
+#include <windows.h>
+
+#include <initguid.h>
+#include "math.h"
+
+long g_lObjs = 0;
+long g_lLocks = 0;
+
+STDAPI DllGetClassObject( REFCLSID rclsid, REFIID riid, void** ppv )
+{
+HRESULT hr;
+MathClassFactory *pCF;
+
+pCF = 0;
+
+// Make sure the CLSID is for our Expression component
+if ( rclsid != CLSID_Math )
+return( E_FAIL );
+
+pCF = new MathClassFactory;
+
+if ( pCF == 0 )
+return( E_OUTOFMEMORY );
+
+hr = pCF->QueryInterface( riid, ppv );
+
+// Check for failure of QueryInterface
+if ( FAILED( hr ) )
+{
+delete pCF;
+pCF = 0;
+}
+
+return hr;
+}
+
+STDAPI DllCanUnloadNow(void)
+{
+if ( g_lObjs || g_lLocks )
+return( S_FALSE );
+else
+return( S_OK );
+}]]></div>
+
+
+
+<p>Вначале мы включили в программу файл заголовков INITGUID.H, чтобы определить GUID, используемый в DLL-файле.
+Затем определили две глобальные переменные, отвечающие за подсчет обращений к хранилищу компонента.
+Имейте в виду: для того чтобы DLL-файл стал настоящим хранилищем компонентов, стандарт СОМ требует наличия В нем как минимум двух функций
+(на самом деле их четыре, но остальные две будут рассмотрены в следующих примерах).
+Сначала реализуем функцию DllGetClassObject.
+СОМ вызывает эту точку входа по требованию клиента компонента.
+Указанная функция проверяет, поддерживается ли затребованный клиентом компонент DLL-файлом.
+Удостоверившись в этом, мы создаем экземпляр фабрики
+классов для объекта Math и вызываем функцию
+QueryInterface из интерфейса, затребованного
+клиентом. Фабрика классов объекта Math
+поддерживает только интерфейсы IUnknown и
+IClassFactory. Если клиент или СОМ требует
+какой-либо другой интерфейс, то
+возвращается код ошибки. Благодаря двум
+глобальным переменным реализация
+функции DllCanUnloadNow намного упростилась.
+Проверяем, имеются ли ожидающие обработки
+экземпляры компонента Math, и подсчитываем
+количество вызовов функции LockServer. Если
+какая-либо из проверок дает положительный
+результат, DLL-файл не может быть выгружен.</p>
+<p>
+Остался
+всего один шаг. Чтобы сделать обе функции,
+определенные в файле SERVER.CPP, доступными
+для общего пользования, требуется
+создать файл определений SERVER. DEF и ввести
+в него следующие строки:</p>
+
+
+<pre>;
+; Server.def : Declares the module parameters for the DLL.
+;
+
+LIBRARY &quot;SERVER&quot;
+DESCRIPTION 'SERVER Windows Dynamic Link Library'
+
+EXPORTS
+; Имена точек входа для внешнего пользования помещаются здесь
+DllGetClassObject PRIVATE
+DllCanUnloadNow PRIVATE</pre>
+
+<p>Прежде чем создавать проект, используйте
+элемент Files into project... меню Insert для включения
+в проект файлов МАТН.СРР, SERVER.CPP и SERVER.
+DEF, и лишь после этого приступайте к
+созданию проекта. Последним шагом будет
+регистрация компонента Math. К этой статье
+прилагается файл SERVER.REG, который выглядит
+следующим образом:</p>
+
+<pre>REGEDIT
+
+HKEY_CLASSES_ROOT\Math.Component.1
+ = Chapter 6 Math Component
+HKEY_CLASSES_ROOT\Math.Component.1\CurVer
+ = Math.Component.1
+HKEY_CLASSES_ROOT\Math.Component.1\CLSID
+ = {A888F560-58E4-11d0-A68A-0000837E3100}
+
+HKEY_CLASSES_ROOT\CLSID\{A888F560-58E4-11d0-A68A-0000837E3100}
+ = Chapter 6 Math Component
+HKEY_CLASSES_ROOT\CLSID\{A888F560-58E4-11d0-A68A-0000837E3100}
+\ProgID = Math.Component.1
+HKEY_CLASSES_ROOT\CLSID\{A888F560-58E4-11d0-A68A-0000837E3100}
+\VersionIndependentProgID = Math.Component
+HKEY_CLASSES_ROOT\CLSID\{A888F560-58E4-11d0-A68A-0000837E3100}
+\InprocServer32 = c:\book\chap6\server\debug\server.dll
+HKEY_CLASSES_ROOT\CLSID\{A888F560-58E4-11d0-A68A-0000837E3100}
+\NotInsertable</pre>
+
+<p>Если вы использовали в примере имеющиеся
+GUID, то вам потребуется изменить только
+информацию о расположении SERVER.DLL в файле
+SERVER.REG в разделе InProcServer32. Однако если
+были сгенерированы собственные GUID,
+необходимо во всех строках, содержащих
+CLSID, обновить значения GUID. После того
+как вы введете необходимую информацию или обновите файл SERVER.REG,
+включите, его в реестр с помощью утилиты REGEDIT или дважды щелкните на названии этого файла в окне Windows Explorer.
+</p>
+
+<table>
+<tr>
+<td>
+<p>
+<b>ПРИМЕЧАНИЕ</b><br/>В Windows95 и Windows NT существуют программы
+редактирования реестра REGEDIT.EXE и
+REGEDIT32.EXE. Зарегистрировать REG-файл
+можно, дважды щелкнув на его пиктограмме
+в окне Windows Explorer. Можно также ввести в
+командной строке start server.reg.</p>
+</td>
+</tr>
+</table>
+
+<p>Теперь, после создания простого компонента
+Math, требуется организовать доступ к
+нему из приложения клиента, чтобы
+проверить, как он функционирует.</p>
+
+<p id="__RefHeading___Toc290476627"><b>Приложение клиента</b></p>
+
+<p>Клиентское приложение представляет собой простое
+консольное приложение (Console Application)
+Win32. С помощью утилиты AppWizard создайте
+консольное приложение с именем Client. Это
+опять-таки только основа проекта, и
+AppWizard предоставит только МАК-файл. 
+</p>
+<p>
+После
+этого мы создадим файл CLIENT.CPP и включим
+в него следующую программу:</p>
+
+<div class="lang-cpp"><![CDATA[
+//
+// Client.cpp
+//
+
+#include <windows.h>
+#include <tchar.h>
+#include <iostream.h>
+
+#include <initguid.h>
+#include "..\server\imath.h"
+
+
+int main( int argc, char *argv[] )
+{
+cout << "Initializing COM" << endl;
+
+if ( FAILED( CoInitialize( NULL ))) {
+cout << "Unable to initialize COM" << endl;
+return -1;
+}
+
+char* szProgID = "Math.Component.1";
+WCHAR szWideProgID[128];
+CLSID clsid;
+long lLen = MultiByteToWideChar( CP_ACP, 0, szProgID,
+    strlen( szProgID ), szWideProgID, sizeof( szWideProgID ) );
+
+szWideProgID[ lLen ] = '\0';
+HRESULT hr = ::CLSIDFromProgID( szWideProgID, &clsid );
+if ( FAILED( hr )) {
+cout.setf( ios::hex, ios::basefield );
+cout << "Unable to get CLSID from ProgID. HR = " << hr << endl;
+return -1;
+}
+
+IClassFactory* pCF;
+// Получить фабрику классов для класса Math
+hr = CoGetClassObject( clsid, CLSCTX_INPROC, NULL,
+     IID_IClassFactory, (void**) &pCF );
+if ( FAILED( hr )) {
+cout.setf( ios::hex, ios::basefield );
+cout << "Failed to GetClassObject server instance. HR = " << hr << endl;
+return -1;
+}
+
+// с помощью фабрики классов создать экземпляр
+// компонента и получить интерфейс IUnknown.
+IUnknown* pUnk;
+hr = pCF->CreateInstance( NULL, IID_IUnknown, (void**) &pUnk );
+
+// Release the class factory
+pCF->Release();
+
+if ( FAILED( hr )) {
+cout.setf( ios::hex, ios::basefield );
+cout << "Failed to create server instance. HR = " << hr << endl;
+return -1;
+}
+
+cout << "Instance created" << endl;
+
+IMath* pMath = NULL;
+hr = pUnk->QueryInterface( IID_IMath, (LPVOID*)&pMath );
+pUnk->Release();
+if ( FAILED( hr )) {
+cout << "QueryInterface() for IMath failed" << endl;
+return -1;
+}
+
+long result;
+pMath->Multiply( 100, 8, &result );
+cout << "100 * 8 is " << result << endl;
+
+pMath->Subtract( 1000, 333, &result );
+cout << "1000 - 333 is " << result << endl;
+
+cout << "Releasing instance" << endl;
+pMath->Release();
+
+cout << "Shuting down COM" << endl;
+CoUninitialize();
+
+return 0;
+}]]></div>
+
+
+<p>В начале программы мы поместили файл
+заголовков IMATH.H из проекта сервера. Для
+определения GUID компонентов перед ним
+включен файл INITGUID.H. Функция main в первую
+очередь обеспечивает инициализацию
+библиотеки СОМ. В примере для определения
+CLSID используется ProgID компонента. Однако,
+прежде чем мы сможем вызвать CLSIDFromProgID,
+необходимо преобразовать ProgID (для
+которого используется кодировка ANSI) в
+строку с кодировкой Unicode. Все вызовы
+СОМ, OLE и ActiveX имеют встроенные реализации
+Unicode. Поэтому до передачи строк в любую
+API-функцию СОМ они должны быть преобразованы
+в вызовы с кодировкой Unicode.</p>
+<p>
+После
+получения CLSID компонента вызываем
+функцию CoGetClassObject и запрашиваем указатель
+на интерфейс фабрики классов для
+компонента Math. После этого с помощью
+вызова CreateInstance создаем экземпляр
+компонента Math. Затем освобождаем
+интерфейс фабрики классов. Функция
+CreateInstance возвращает указатель на интерфейс
+IUnknown, с помощью которого мы в конце
+концов запрашиваем IMath. Получив указатель
+на него, используем сервисы компонента
+для выполнения некоторых простых
+операций.</p>
+<p>
+По
+окончании всего этого мы освобождаем
+указатель на интерфейс IMath и вызываем
+CoUninitialize (это необходимо сделать до
+завершения работы приложения).</p>
+<p>
+После
+ввода описанной выше программы включите
+в проект клиента файл CLIENT.CPP и постройте
+приложение. При пошаговой отладке
+клиента можно дойти даже до текста
+программы сервера. Не пожалейте времени
+и хорошо разберитесь в этих простых
+примерах клиента и сервера СОМ. Данные
+примеры помогут вам понять, что
+представляет собой СОМ-разработка. 
+</p>
+
+<p id="__RefHeading___Toc290476628"><b>Технология объектно-ориентированного подхода CORBA</b></p>
+
+<p><dfn>CORBA</dfn> (<i>Common Object Request Broker Architecture</i> —
+общая архитектура брокера объектных
+запросов)– это набор спецификаций,
+возникающий в результате самого широкого
+обсуждения накопившихся реальных
+проблем, в котором участвуют и разработчики
+и потребители технологий. В результате
+такого обсуждения создается документ,
+предлагающий решение рассматриваемых
+вопросов на уровне существующих
+технологий и технологий ближайшей
+перспективы. Достоинством опережающей
+разработки спецификации по сравнению
+с реализацией является возможность для
+независимых разработчиков создавать
+потенциально совместимые продукты, не
+ограничивая свободы выбора языков, ОС,
+аппаратных платформ, и не диктуя выбора
+конкретного технологического решения.</p>
+<p>
+Альтернативные
+подходы, наиболее ярко выраженные в
+политике Microsoft и Sun, не соответствуют
+современным тенденциям развития
+технологий, согласно которым диктат
+одного производителя (хотя бы и с самыми
+лучшими намерениями) в общем, создает
+больше проблем, чем решает. Здесь имеются
+в виду не только технологии. Примером
+этого служит ОС Windows, которая имеет
+больше пользователей, чем все остальные
+вместе взятые, и при этом большинство
+рассматривает этот выбор как вынужденный.</p>
+<p>
+Любой
+частный стандарт, поддерживаемый
+отдельным производителем (оставляя в
+стороне вопрос о его открытости) вынужден
+следовать исторически сложившейся
+линии развития, что рано или поздно
+входит в противоречие с интересами
+потребителя.</p>
+<p>
+Проблема
+монопольных стандартов состоит в
+заведомо протекционистской политике
+владельца стандарта, проявляющейся на
+других связанных рынках, в случае с
+Microsoft, это ОС. Усиленное продвижение СОМ
+на платформе Windows делает перенос этого
+стандарта на другие платформы экономически
+невыгодным, заставляя разработчика
+вступать в заведомо проигрышную
+конкуренцию с Microsoft.</p>
+<p>
+CORBA
+является концепцией, а не ее реализацией.
+Когда мы говорим <q>COM</q>, то понимаем
+под этим скорее набор конкретных средств
+– элементов операционной системы,
+библиотек, утилит и т.п., являющихся
+составной частью того, что называется
+Microsoft Windows. Под термином <q>CORBA</q>
+понимается именно сложная и развитая
+концепция, сформулированная на уровне
+специального языка описаний – IDL.
+Реализации же этой концепции могут
+сильно отличаться друг от друга по
+различным критериям, наиболее важным
+в том или другом случае. VisiBroker (разработки
+Visigenic/Borland/Inprise/Corel) и Application Server, BEA WebLogic,
+Iona Orbix, Oracle Application Server и <q>картриджи</q>
+Oracle, IBM BOSS – все эти продукты используют
+те или иные возможности CORBA.</p>
+<p>
+Под
+<q>стандартом</q> применительно к CORBA
+понимается то, что официально утверждено
+консорциумом OMG. Надо сказать, что это
+очень высокий уровень <q>легитимности</q>,
+так как авторитет OMG в компьютерном мире
+чрезвычайно высок. OMG представляет собой
+некоммерческую организацию, являющуюся
+содружеством разработчиков программного
+обеспечения и его потребителей,
+объединивших свои усилия для создания
+спецификаций этой технологии. В настоящий
+момент в OMG состоит более 800 членов,
+включая всех сколько-нибудь серьезных
+производителей программного обеспечения
+(и даже c недавнего времени Microsoft). Первая
+спецификация CORBA появилась в 1991 г. Новые
+возможности официально считаются
+добавленными в CORBA в момент утверждения
+соответствующей спецификации. Как
+правило, в разработке спецификации
+участвуют крупнейшие специалисты в
+данной области. Разработка реализации
+– задача конкретной фирмы. Обычно от
+утверждения спецификации до появления
+высококачественной реализации проходит
+довольно много времени – иногда несколько
+лет. В настоящий момент стандартизовано
+отображение языка IDL на 6 языков
+программирования – Ada, C, C++, Cobol, Java и
+Smalltalk. Существуют также отображения на
+Pascal (точнее, Delphi), Perl, Python и еще несколько
+языков, но они не стандартизованы.</p>
+<p>
+Объекты
+CORBA можно рассматривать как экземпляры
+(instances) некоторого метатипа, причем и
+метатип, и сами объекты существуют вне
+связи с конкретной программой на
+конкретном языке. Этот метатип в CORBA
+называется «интерфейсом».</p>
+
+<p id="__RefHeading___Toc290476629"><b>Интерфейс</b></p>
+
+<p>К счастью, для новичка в мире CORBA понять,
+что же такое интерфейс, не составляет
+никакого труда.</p>
+<p>
+Интерфейс в CORBA – это логически сгруппированный
+набор методов и атрибутов. Каждому
+интерфейсу присваивается имя, уникальное
+в пределах одной распределенной системы.
+В отличие от СОМ в CORBA нет бинарного
+стандарта интерфейсов. Вместо этого
+существует стандартный язык описаний
+IDL. Так уж получилось, что языки с названием
+IDL существуют в трех различных технологиях
+– OSF/DCE, Microsoft/COM и OMG/CORBA. Эти языки во
+многом похожи, поскольку предназначены
+для одного и того же, но OMG/IDL несколько
+отличается от своих «однофамильцев».</p>
+<p>
+За
+его основу был взят язык C++ (его описательная
+часть и директивы препроцессора), поэтому
+читатель, знакомый с C++, при работе с IDL
+будет чувствовать себя вполне комфортно.</p>
+<p>
+Вот
+пример объявления интерфейсов на языке
+IDL:</p>
+<div class="lang-cpp"><![CDATA[
+exception MyException {};
+interface MyBaseInterface
+{
+long MyMethod_1(in long i, out string str);
+void MyMethod_2 () raises (MyException);
+};
+interface MyDerivedInterface : MyBaseInterface {
+octet MyMethod_3 (inout double d);};]]></div>
+
+<p>В настоящий момент последним стандартом
+CORBA является стандарт версии 2.3. В нем
+понятия «объект» и «интерфейс» связаны,
+так сказать, отношением «один к одному»
+– один объект не может поддерживать
+несколько интерфейсов. В стандарте
+CORBA 3.0, принятие которого ожидается к
+концу 2000 г, должна появиться возможность
+создания объектов, поддерживающих
+несколько интерфейсов.</p>
+<p>
+С
+помощью приведенного выше примера
+определения интерфейса (и, естественно,
+определенного программного кода) вы
+можете, предположим, создать 5 объектов
+типа MyBaseInterface и 10000 объектов
+MyDerivedInterface. Каждый из этих объектов
+сопоставлен со своим типом и, кроме
+этого, имеет свой уникальный идентификатор.</p>
+<p>
+Еще
+раз повторим – создание вышеуказанных
+10005 объектов в общем случае никак не
+связано с «захватом» ни ресурсов
+компьютера (в первую очередь памяти),
+ни сетевых ресурсов.</p>
+<p id="__RefHeading___Toc290476630"><b>Сервант</b></p>
+
+<p>Итак, вы можете создать CORBA-объект и даже
+установить с ним связь. В общем случае
+этого совершенно недостаточно, чтобы
+использовать его в конкретной программе.
+Функциональность CORBA-объекта недоступна
+для клиента до тех пор, пока в программе
+(серверном приложении) не создан объект,
+который позволяет получить доступ к
+методам, объявленным в IDL-интерфейсе.
+Этот объект (реализованный на C++, Java, C,
+Cobol, Ada, Smalltalk или некоторых других языках)
+и называется «сервантом».</p>
+<p>
+Конечно,
+в зависимости от используемого языка
+программирования, серванты реализуются
+по-разному. Для объектно-ориентированных
+языков сервант является экземпляром
+(instance) некоторого класса, методы которого
+реализуют нужную функциональность.
+Такой класс часто называют «классом
+реализации».</p>
+<p>
+За
+время существования CORBA-объекта с ним
+может быть сопоставлено множество
+различных реализаций сервантов (но не
+более одного за раз). Более того, они
+могут содержаться в адресном пространстве
+различных приложений. Эти приложения
+могут быть даже запущены на различных
+компьютерах.</p>
+<p>
+Часто
+говорят, что сервант является «инкарнацией»
+CORBA-объекта. Связь между сервантами и
+CORBA-объектами является хотя и строго
+формализованной, но очень гибкой. Сервант
+может быть создан раньше или позже
+CORBA-объекта; один сервант может
+«обслуживать» как один, так и несколько
+(иногда сотни тысяч и миллионы)
+CORBA-объектов. Явное разделение циклов
+жизни CORBA-объектов и их сервантов (а
+именно серванты потребляют реальные
+ресурсы) – один из столпов, на которых
+базируется очень высокая масштабируемость
+CORBA-приложений.</p>
+
+<p id="__RefHeading___Toc290476631"><b>Объектная ссылка</b></p>
+
+<p>Единственная сложность, связанная с пониманием смысла термина «объектная ссылка», состоит в
+том, что он используется в двух различных смыслах.</p>
+
+<p>Есть объектная ссылка «мира CORBA», которая представляет собой закодированную информацию о CORBA-объекте.
+Она включает имя хоста, порта TCP/IP (или координаты Репозитария Реализаций), конечно же,
+уникальный идентификатор данного CORBA-объекта и множество другой информации,
+позволяющей клиенту установить связь с серверным объектом через границы
+языков программирования, операционных систем и аппаратных платформ. Операции
+с объектной ссылкой невозможны для клиента, за исключением того, что клиент
+может превратить ее в строку и записать в файл или базу данных. Впоследствии
+кто угодно может считать такую строку и преобразовать ее опять в объектную
+ссылку.</p>
+
+<p>В другом понимании «объектная ссылка» – это переменная того или иного языка
+программирования, с помощью которой клиент осуществляет вызов удаленных методов.
+В последующих разделах будут приведены примеры получения и использования такой объектной ссылки.
+В дальнейшем все упоминания объектных ссылок относятся именно к этому, второму, типу объектных ссылок.</p>
+
+<p>Концептуально переменная типа «объектная ссылка» является указателем на так называемый «proxy-объект»,
+который существует на стороне клиента и обеспечивает выполнение удаленных вызовов.
+Сам proxy-объект сделан недоступным для программиста; связано это с тем, что его создание – задача не клиентского приложения, а самого ORB’а.
+Логически с каждым proxy-объектом сопоставлена отдельная объектная ссылка,
+и под копированием объектной ссылки следует понимать создание как нового proxy-объекта, так и настроенного на него нового «указателя».
+Разумеется, в реальных реализациях физического копирования proxy-объекта не происходит – как всегда в таких случаях, используется механизм счетчика ссылок.</p>
+
+<p>Очень важно отчетливо понимать, что копирование (или уничтожение) объектных ссылок на стороне клиента влияет исключительно на клиентское приложение.
+Неправильное ведение счетчика ссылок в самом худшем случае приведет к продолжению физического существования в клиентском приложении ненужного proxy-объекта.
+Никакого отношения к серверному объекту эти действия не могут иметь в принципе.
+И создание, и уничтожение сервантов или серверных CORBA-объектов – задача серверного приложения.
+Философия CORBA состоит в том, чтобы клиент посылал сообщения «установить связь с существующим объектом» и
+«разорвать с ним связь», а не «создать серверный объект» и «уничтожить его».
+Разумеется, клиент может инициировать создание Corba-объектов вызвав у удаленного объекта специально предусмотренный
+для этого программистом (автором объекта) метод.</p>
+
+</body>
+</html>
