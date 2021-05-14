@@ -1,0 +1,45 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j5.jpg>&nbsp;
+<br><br><img src=j5.jpg>
+<br><br><img src=j5.jpg></td><td valign=top>
+<h4 align=center> Выбрать тех сотрудников, которые имеют подчиненных </h4>
+
+<p>Это почти то же самое, что выбрать для каждого сотрудника его начальника. 
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+for $a in doc('file:///c:/KING/kingx/king_corp.xml')//employee
+for $b in doc('file:///c:/KING/kingx/king_corp.xml')//employee
+where $b/@id = $a/manager_id
+return $b/name/text()
+</pre>
+<hr>
+Результат:
+<p><img src=xq61.jpg>
+</td></tr></table>
+<p> Но запрос выдал нам повторяющиеся имена, так как выдается начальник для каждого сотрудника, а несколько сотрудников имеют одного и того же начальника. Как избавиться от дубликатов?
+<hr>
+
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq60.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq62.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

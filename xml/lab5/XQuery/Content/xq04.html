@@ -1,0 +1,56 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr>
+<td valign=top><img src=i6.jpg>&nbsp;</td><td valign=top>
+<h3 align=center>Базы данных XML</h3>
+<p>Все расширяющееся применение языка XML породило программные продукты, поддерживающие базы данных XML. В приведенной ниже таблице даны сравнительные характеристики традиционных (реляционных) баз данных (баз данных SQL) и баз данных XML
+<p><table border>
+<tr>
+<th width=25%>Базы данных SQL</th>
+<th width=25%>Базы данных XML</th>
+<th>Комментарий</th>
+</tr><tr>
+<td valign=top>Реляционная структура (жесткая)</td>
+<td valign=top>Иерархическая структура (гибкая)</td>
+<td valign=top> Считаем, что реляционная модель данных, в основе которой лежат таблицы, нам знакома. В основе модели XML лежит дерево - иерархия. О модели данных XML мы еще расскажем позже.</td>
+</tr><tr>
+<td valign=top>Разделение данных и метаданных</td>
+<td valign=top>Совмещение данных и метаданных</td>
+<td valign=top>В реляционной базе данных метаданные (т.е., данные, описывающие данные) составляют отдельные от данных таблицы. В XML метаданные (теги) распределены по тексту, т.е., непосредственно сопутствуют самим данным. Объем метаданных в XML значительно больше.</td>
+</tr><tr>
+<td valign=top>Плотное заполнение данными</td>
+<td valign=top>Сильно разреженные данные</td>
+<td valign=top> У нас могут отсутствовать какие-то данных (например, мы можем не иметь информации о дате рождения сотрудника). В реляционной базе данных структура жесткая, соответствующее поле все равно предусматривается, в него заносится значение NULL. В XML отсутствующих данных просто нет. Это особенно сказывается, если данные сильно разрежены.</td>
+</tr><tr>
+<td valign=top>Записи не упорядочены, по определению</td>
+<td valign=top>Порядок записей имеет значение</td>
+<td valign=top> В реляционной базе данных, если мы хотим как-то упорядочить данные, нам нужно применять ORDER BY, которая не является реляционной операцией. В XML имеется естественная упорядоченность документа (1-я глава предшествует 2-й), в некоторых случаях она очень важна.</td>
+</tr><tr>
+<td valign=top>Язык запросов, нечувствительный к регистру</td>
+<td valign=top>Язык запросов, чувствительный к регистру</td>
+<td valign=top>&nbsp;</td>
+</tr>
+</table>
+
+<hr>
+<table align=center  width=70%><tr>
+<td width=33% align=center><a href=xq03.html><img src=prev.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq05.html><img src=next.jpg BORDER=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

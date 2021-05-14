@@ -1,0 +1,239 @@
+<html xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+<title>Практический пример: вывод дерева XML</title>
+<style>
+<!--
+h3 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:14.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+p {
+	text-align:justify;
+	text-indent:6.0pt;
+	line-height:15.6pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+}
+pre {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	tab-stops:45.8pt 91.6pt 137.4pt 183.2pt 229.0pt 274.8pt 320.6pt 366.4pt 412.2pt 458.0pt 503.8pt 549.6pt 595.4pt 641.2pt 687.0pt 732.8pt;
+	font-size:10.0pt;
+	font-family:"Lucida Console";
+}
+span.xmlattr {
+	color:#006600;
+}
+-->
+</style>
+</head>
+<body bgcolor="#FFFFFF" lang=RU>
+<div class=Section1>
+  <h3><span style='font-family:Verdana'>Практический пример: вывод дерева XML</span></h3>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+'>&lt;<b>script</b>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        <b>function</b> parse (node) {</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               <b>if</b> (node.nodeType==1) {</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       document.write (<span class=xmlattr>&quot;&lt;ul&gt;&quot;</span>); <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>сдвигаем</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>дочерние</span><span
+style='font-family:Courier;color:#666666;'> </span><span
+style='font-family:Courier;color:#666666'>элементы</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       </span></pre>
+    <pre style='line-height:
+13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       document.write (<span class=xmlattr>&quot;&lt;span class='tag'&gt;&amp;lt;&quot;</span>+node.tagName+<span
+class=xmlattr>&quot;&lt;/span&gt;&quot;</span>);<span style='color:#666666'>//</span></span><span
+style='font-family:Courier;color:#666666'>вывод</span><span style='font-family:
+Courier;color:#666666;'> </span><span style='font-family:
+Courier;color:#666666'>стартового</span><span style='font-family:Courier;
+color:#666666;'> </span><span style='font-family:Courier;
+color:#666666'>тэга</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;color:#666666;'>                     </span><b><span
+lang=EN-US style='font-family:Courier;'>for</span></b><span
+lang=EN-US style='font-family:Courier;'> (<b>var</b> i=0; i&lt;node.attributes.length; i++) <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>выводим</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>атрибуты</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                               document.write(<span class=xmlattr>&quot; &lt;span class='attr'&gt;&quot;</span>+node.attributes.item(i).nodeName+</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                                      <span class=xmlattr>&quot;&lt;/span&gt;=&lt;span class='val'&gt;\&quot;&quot;</span>+</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                                      node.attributes.item(i).nodeValue+<span
+class=xmlattr>&quot;\&quot;&lt;/span&gt;&quot;</span>); </span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       </span><b><span style='font-family:Courier'>if</span></b><span
+style='font-family:Courier'> (node.hasChildNodes()) <span style='color:#666666'>//тэги завершаются иначе у элементов с содержимым</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>                               </span><span
+lang=EN-US style='font-family:Courier;'>document.write(<span
+class=xmlattr>&quot;&lt;span class='tag'&gt;&amp;gt;&lt;/span&gt;&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       <b>else</b><span style='color:#666666'>  //... </span></span><span
+style='font-family:Courier;color:#666666'>и</span><span style='font-family:
+Courier;color:#666666;'> </span><span style='font-family:
+Courier;color:#666666'>без</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>содержимого</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                               document.write(<span class=xmlattr>&quot;&lt;span class='tag'&gt; /&amp;gt;&lt;/span&gt;&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       <b>for</b> (<b>var</b> i=0; i&lt;node.childNodes.length; i++) <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>перебираем</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>дочерние</span><span
+style='font-family:Courier;color:#666666;'> </span><span
+style='font-family:Courier;color:#666666'>элементы</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                               parse (node.childNodes.item(i)); </span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       </span><b><span style='font-family:Courier'>if</span></b><span
+style='font-family:Courier'> (node.hasChildNodes()) <span style='color:#666666'>//если были дочерние элементы, выводим заверш. тэг</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>                               </span><span
+lang=EN-US style='font-family:Courier;'>document.write (<span
+class=xmlattr>&quot;&lt;span class='tag'&gt;&amp;lt;/&quot;</span>+node.tagName+<span
+class=xmlattr>&quot;&amp;gt;&lt;/span&gt;&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       document.write (<span class=xmlattr>&quot;&lt;/ul&gt;&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               }</span></pre>
+    <pre style='line-height:13.2pt;
+background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               <b>else if</b>  (node.nodeType==3) <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>текстовые</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>узлы</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       document.write (<span class=xmlattr>&quot;&lt;em&gt;&quot;</span>+node.nodeValue+<span
+class=xmlattr>&quot;&lt;/em&gt;&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               </span><b><span style='font-family:Courier'>else return</span></b><span
+style='font-family:Courier'>; <span style='color:#666666'>//узлы других типов не обрабатываем (комментарии, ссылки на сущности и т.п.)</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>               </span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>        </span><span lang=EN-US
+style='font-family:Courier;'>}</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        <b>var</b> xmlDoc = <b>new</b> ActiveXObject (<span
+class=xmlattr>&quot;Msxml2.DOMDocument.4.0&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        xmlDoc.async =<b>false</b>;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        xmlDoc.validateOnParse = <b>false</b>;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        xmlDoc.resolveExternals = <b>false</b>;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        <b>var</b> xmlFile = prompt (<span class=xmlattr>&quot;Input path to an XML file: &quot;</span>, <span
+class=xmlattr>&quot;books.xml&quot;</span>)</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        xmlDoc.load(xmlFile);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        </span></pre>
+    <pre style='line-height:13.2pt;
+background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        <b>if</b> (xmlDoc.parseError.errorCode != 0) {</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               <b>var</b> myErr = xmlDoc.parseError;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               alert(<span class=xmlattr>&quot;Error: &quot;</span>+myErr.reason+<span
+class=xmlattr>&quot;\nLine: &quot;</span>+myErr.line+</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>                       <span class=xmlattr>&quot;\nPos: &quot;</span>+myErr.linepos+<span
+class=xmlattr>&quot;\nSource code: &quot;</span>+myErr.srcText);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        }</span></pre>
+    <pre style='line-height:13.2pt;
+background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        <b>else</b> {</span></pre>
+    <pre style='line-height:
+13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               <b>var</b> root = xmlDoc.documentElement;            </span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>               </span><span style='font-family:Courier'>parse (root);  <span style='color:#666666'>//начинаем разбор с корневого элемента</span>        </span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>        }</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>&nbsp;</span></pre>
+    <pre style='line-height:13.2pt;
+background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>&lt;<b>/script</b>&gt;</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Для обработки дерева в
+    примере используется функция <b>parse</b>. Она вызывает рекурсивно сама себя.
+    Это дает нам возможность обойти все дерево элементов, ввести их сатрибутами и
+    текстом.</span></p>
+</div>
+</body>
+</html>

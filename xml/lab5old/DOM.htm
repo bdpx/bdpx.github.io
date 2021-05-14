@@ -1,0 +1,735 @@
+<html xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+<title>DOM - Объектная модель документа</title>
+<style>
+<!--
+h2 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:16.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+h3 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:14.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+a:link, span.MsoHyperlink {
+	color:blue;
+	text-decoration:underline;
+	text-underline:single;
+}
+a:visited, span.MsoHyperlinkFollowed {
+	color:purple;
+	text-decoration:underline;
+	text-underline:single;
+}
+p {
+	text-align:justify;
+	text-indent:6.0pt;
+	line-height:15.6pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+}
+pre {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	tab-stops:45.8pt 91.6pt 137.4pt 183.2pt 229.0pt 274.8pt 320.6pt 366.4pt 412.2pt 458.0pt 503.8pt 549.6pt 595.4pt 641.2pt 687.0pt 732.8pt;
+	font-size:10.0pt;
+	font-family:"Lucida Console";
+}
+span.xmlattr {
+	color:#006600;
+}
+-->
+</style>
+</head>
+<body bgcolor="#FFFFFF" link=blue vlink=purple lang=RU>
+<div class=Section1>
+  <h2><span style='font-family:Verdana'>DOM - Объектная модель документа</span></h2>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Работу с DOM при программировании приложений можно
+    разделить на следующие выжные этапы (при использовании парсера MSXML): </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Создание и настройка параметров
+      экземпляра объекта XMLDOMDocument - XML документа. </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Обработка ошибок </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Работа с данными документа:
+      элементами, атрибутами, содержимым.</span></li>
+  </ul>
+  <p>Рассмотрим работу с DOM на примерах (будем использовать JavaScript).</p>
+  <h3><span style='font-family:Verdana'>Объект DOMDocument.</span></h3>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Как и любой ActiveX объект
+    - объект <b>DOMDocument</b> создается при помощи оператора <b>new</b>: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span lang=EN-US style='font-family:Courier;
+'>var</span></b><span lang=EN-US style='font-family:
+Courier;'> objDoc = <b>new</b> ActiveXObject(<span
+class=xmlattr>&quot;Msxml2.DOMDocument&quot;</span>);</span></pre>
+  </div>
+  <p align="left"><span style='font-size:9.0pt;font-family:Verdana'>Ниже перечисленны наиболее
+    выжные свойства и методы этого объекта: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Свойство</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>async</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Указывает,
+            будет ли загрузка документа выполняться асинхронно (асинхронная загрузка
+            может быть прерванна). <b>true</b> - асинхронная, <b>false</b>-нет. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>documentElement</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Указывает
+            на элемент верхнего уровня в иерархии - корень дерева элементов. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>resolveExternals</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Указывает,
+            будет ли документ принимать внешние объявления (DTD, внешние сущности и
+            т.п.). Может принимать 2 значения: <b>true</b> - принимает, <b>false</b> - не
+            принимает. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>parseError</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>содержит
+            информацию о последней ошибке </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>url</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            URL файла в виде, приведенном к каноническому. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>validateOnParse</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Указывает,
+            будет ли документ проверяться на допустимость в процессе загрузки и анализа.
+            Принимает 2 значения: <b>true</b> - проверка на допустимость осуществляется, <b>false</b> - нет. </span></p></td>
+      </tr>
+    </table>
+    <p>&nbsp;</p>
+  </div>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Метод</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>abort</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Прерывает
+            асинхронную загрузку документа </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>load</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Загружает
+            XML документ из указанного файла: </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><span style='font-family:Courier'>xmlDoc.load(<span
+  class=xmlattr>&quot;news.xml&quot;</span>)</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>loadXML</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Загружает
+            XML документ из переданной строки: </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+  '>xmlDoc.load(<span class=xmlattr>&quot;&lt;news&gt;&lt;item date='25.06.03'&gt;In the ...&lt;/item&gt;&lt;/news&gt;&quot;</span>)</span></pre>
+          </div></td>
+      </tr>
+    </table>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Итак, первый этап выглядит
+    примерно так: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span lang=EN-US style='font-family:Courier;
+'>var</span></b><span lang=EN-US style='font-family:
+Courier;'> xmlDoc = <b>new</b> ActiveXObject (<span
+class=xmlattr>&quot;Msxml2.DOMDocument&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>xmlDoc.async = <b>false</b>;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>xmlDoc.resolveExternals = <b>true</b>; <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>принимать</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>внешние</span><span
+style='font-family:Courier;color:#666666;'> </span><span
+style='font-family:Courier;color:#666666'>определения</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>xmlDoc.validateOnParse = <b>true</b>; <span style='color:#666666'>//проверять на допустимость</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>&nbsp;</span></pre>
+    <pre style='line-height:13.2pt;
+background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>xmlDoc.load (<span class=xmlattr>&quot;news.xml&quot;</span>); <span
+style='color:#666666'>//загрузить файл</span></span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>В данном примере будет
+    загружен XML документ с именем <span class=xmlattr>&quot;books.xml&quot;</span>,
+    он может принимать внешние определения и будет проверен на допустимость. </span></p>
+  <h3><span style='font-family:Verdana'>Обработка ошибок: IXMLDOMParseError</span></h3>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Ошибки, возникающие в
+    процессе анализа XML данных можно обработать после загрузки XML данных (вызова
+    метода <b>load</b> или <b>loadXML</b>). Если не установлен флажок <b>vlidateOnParse</b>,
+    проверяются только синтаксические ошибки, допущенные при составлении документа,
+    в противном случае - все ошибки, в том числе и нарушающие допустимость XML
+    документа. Информация об ошибке предоставляется свойством <b>parseError</b>,
+    имеющим тип <b>IXMLDOMParseError</b>: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Свойство</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>errorCode</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Код
+            ошибки. В случае успеха равен <b>0</b>. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>line</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Номер
+            строки исходного текста XML документа, в которой находится ошибка. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>linepos</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Номер
+            символа в строке исходного текста XML документа, в которой находится ошибка. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>reason</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Текст
+            сообщения об ошибке </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>srcText</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            полный исходный код строки, содержащей ошибку </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>url</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>URL
+            файла, содержащего ошибку. </span></p></td>
+      </tr>
+    </table>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>С учетом вышесказанного
+    проведем обработку ошибки загрузки документа XML: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span lang=EN-US style='font-family:Courier;
+'>var</span></b><span lang=EN-US style='font-family:
+Courier;'> xmlDoc = <b>new</b> ActiveXObject (<span
+class=xmlattr>&quot;Msxml2.DOMDocument&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>xmlDoc.async = <b>false</b>;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>xmlDoc.resolveExternals = <b>true</b>; <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>принимать</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>внешние</span><span
+style='font-family:Courier;color:#666666;'> </span><span
+style='font-family:Courier;color:#666666'>определения</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>xmlDoc.validateOnParse = <b>true</b>; <span style='color:#666666'>//проверять на допустимость</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>&nbsp;</span></pre>
+    <pre style='line-height:13.2pt;
+background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>xmlDoc.load (<span
+class=xmlattr>&quot;news_err.xml&quot;</span>);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span lang=EN-US
+style='font-family:Courier;'>var</span></b><span
+lang=EN-US style='font-family:Courier;'> myErr = xmlDoc.parseError;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span lang=EN-US
+style='font-family:Courier;'>if</span></b><span
+lang=EN-US style='font-family:Courier;'> (myErr.errorCode != 0) { <span
+style='color:#666666'>//</span></span><span style='font-family:Courier;
+color:#666666'>далее</span><span style='font-family:Courier;color:#666666;
+'> </span><span style='font-family:Courier;color:#666666'>следует</span><span
+style='font-family:Courier;color:#666666;'> </span><span
+style='font-family:Courier;color:#666666'>обработка</span><span
+style='font-family:Courier;color:#666666;'> </span><span
+style='font-family:Courier;color:#666666'>ошибки</span><span lang=EN-US
+style='font-family:Courier;color:#666666;'>!</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    alert(<span
+class=xmlattr>&quot;</span></span><span class=xmlattr><span style='font-family:
+Courier'>Ошибка</span></span><span class=xmlattr><span lang=EN-US
+style='font-family:Courier;'>: &quot;</span></span><span
+lang=EN-US style='font-family:Courier;'>+myErr.reason+<span
+class=xmlattr>&quot;\n</span></span><span class=xmlattr><span style='font-family:
+Courier'>в</span></span><span class=xmlattr><span style='font-family:Courier;
+'> </span></span><span class=xmlattr><span
+style='font-family:Courier'>файле</span></span><span class=xmlattr><span
+lang=EN-US style='font-family:Courier;'> &quot;</span></span><span
+lang=EN-US style='font-family:Courier;'>+myErr.url+</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>          <span
+class=xmlattr>&quot;\n</span></span><span class=xmlattr><span style='font-family:
+Courier'>Строка</span></span><span class=xmlattr><span lang=EN-US
+style='font-family:Courier;'>: &quot;</span></span><span
+lang=EN-US style='font-family:Courier;'>+myErr.line+<span
+class=xmlattr>&quot;\n</span></span><span class=xmlattr><span style='font-family:
+Courier'>Символ</span></span><span class=xmlattr><span lang=EN-US
+style='font-family:Courier;'>: &quot;</span></span><span
+lang=EN-US style='font-family:Courier;'>+myErr.linepos+</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>          <span
+class=xmlattr>&quot;\n</span></span><span class=xmlattr><span style='font-family:
+Courier'>Исходный</span></span><span class=xmlattr><span style='font-family:
+Courier;'> </span></span><span class=xmlattr><span
+style='font-family:Courier'>код</span></span><span class=xmlattr><span
+lang=EN-US style='font-family:Courier;'>: &quot;</span></span><span
+lang=EN-US style='font-family:Courier;'>+myErr.srcText);</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>}</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span lang=EN-US
+style='font-family:Courier;'>else</span></b><span
+lang=EN-US style='font-family:Courier;'> {</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    </span><span
+style='font-family:Courier'>alert (&quot;Все нормально&quot;)</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>}</span></pre>
+  </div>
+
+  <h3><span style='font-family:Verdana'>Элементы: IXMLDOMElement</span></h3>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Элементы являются наиболее
+    важной составляющей XML документов. Они выстраиваются в иерархическую
+    структуру, в кторой для каждого элемента можно определить родительский элемент
+    (<b>parentNode</b>), дочерние элементы (<b>childNodes</b>), соседние элементы
+    слева и справа (<b>previousSibling</b>, <b>nextSibling</b>) и много другой
+    полезной информации. Краткий перечень основных свойств и методов приведен ниже: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Свойство</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>attributes</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Содержит
+            список атрибутов данного узла (тип <b>IXMLDOMNamedNodeMap</b>) </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>baseName</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Базовое
+            имя узла: для узла &lt;<b>nsp:elt</b> ... &gt; вернет <b>elt</b></span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>childNodes</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Содержит
+            список дочерних узлов (тип <b>IXMLDOMNodeList</b>) </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>firstChild</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Первый
+            дочерний элемент </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>lastChild</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Последний
+            дочерний элемент </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>nextSibling</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Следующий
+            соседний (правый) элемент </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>previousSibling</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Предыдущий
+            соседний (левый) элемент </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>parent</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Родительский
+            элемент </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>nodeName</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            полное имя узла: для узла &lt;<b>nsp:elt</b> ... &gt; вернет <b>nsp:elt</b></span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>tagName</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Имя
+            элемента </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>prefix</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Префикс
+            пространства имен: для узла &lt;<b>nsp:elt</b> ... &gt; вернет <b>nsp</b></span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>nodeType</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            тип узла: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>1
+            - элемент </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>2
+            - атрибут </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>3
+            - текст </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>4
+            - секция CDATA </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>5
+            - ссылка на сущность </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>6
+            - сущность </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>7
+            - инструкция по обработке XML документа </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>8
+            - комментарий </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>9
+            - документ (корень) </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>10
+            - DTD </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>11
+            - фрагмент документа </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span style='font-size:9.0pt;font-family:Verdana'>12
+            - нотация</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>nodeValue</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Текст,
+            ассоциированный с узлом </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>text</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Текст,
+            ассоциированный с узлом, и дочерними узлами </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>xml</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Текст и
+            разметка XML - содержимое данного элемента со всеми его дочерними элементами </span></p></td>
+      </tr>
+    </table>
+    <p>&nbsp;</p>
+  </div>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td width="23%" bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Метод</span></b></p></td>
+        <td width="77%" bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>appendChild
+            (newElem)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Присоединить
+            дочерний узел: </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><b><span style='font-family:Courier'>var</span></b><span
+  style='font-family:Courier'> newElem = xmlDoc.createElement (&quot;name&quot;)</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>elem.appendChild (newElem);</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>cloneNode
+            (flag)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Создает
+            копию текущего узла. Принимает логический аргумент, определяющий, клонируются
+            ли его дочерние элементы </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+  '>MyNewNode = currNode.cloneNode(<b>true</b>);</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span lang=EN-US
+  style='font-family:Courier;'>root.appendChild(MyNewNode);</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>getAttribute
+            (name)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            значение атрибута с указанным именем </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>getAttributeNode
+            (name)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            узел атрибута с указанным именем </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>hasChildNodes
+            ()</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает <b>true</b>, если у данного элемента есть дочерние элементы, и <b>false</b>-в
+            противном случае. </span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>removeChild
+            (elem)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Удаляет
+            дочерний элемент </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><span style='font-family:Courier'>elem = xmlDoc.documnetElement.firstChild;</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>xmlDoc.documnetElement.removeChild (elem);</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>replaceChild
+            (elem, newElem)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Заменяет
+            дочерний элемент </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><span style='font-family:Courier'>elem = xmlDoc.documnetElement.firstChild;</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span lang=EN-US
+  style='font-family:Courier;'>xmlDoc.documnetElement.replaceChild (elem, xmlDoc.documnetElement.lastChild);</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>setAttribute
+            (name, val)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Устанавливает
+            значение атрибута с именем <b>name</b></span></p></td>
+      </tr>
+    </table>
+  </div>
+  <h3><span style='font-family:Verdana'>IXMLDOMNamedNodeMap</span></h3>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td width="27%" bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Свойство</span></b></p></td>
+        <td width="73%" bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>length</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Количество
+            элементов в коллекции </span></p></td>
+      </tr>
+    </table>
+    <p>&nbsp;</p>
+  </div>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Meтод </span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>getNamedItem
+            (name)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            элемент коллекции (узел) с указанным именем </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+  '>nodeId = someNode.attributes.getNamedItem(<span
+  class=xmlattr>&quot;id&quot;</span>);</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>alert(nodeId.value);</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>item (i)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            элемент коллекции (узел) с индексом <b>i</b></span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><b><span lang=EN-US style='font-family:Courier;
+  '>for</span></b><span lang=EN-US style='font-family:
+  Courier;'> (<b>var</b> i=0; i&lt;someNode.attributes.length; i++) {</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span lang=EN-US
+  style='font-family:Courier;'>    <b>var</b> attr=someNode.attributes.item(i);</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>}</span></pre>
+          </div></td>
+      </tr>
+    </table>
+  </div>
+  <h3><span style='font-family:Verdana'>IXMLDOMNodeList</span></h3>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td width="16%" bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Свойство</span></b></p></td>
+        <td width="84%" bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>length</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Количество
+            элементов в коллекции </span></p></td>
+      </tr>
+    </table>
+    <p>&nbsp;</p>
+  </div>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Meтод </span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Описание</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>item (i)</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            элемент коллекции (узел) с индексом <b>i</b></span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><b><span lang=EN-US style='font-family:Courier;
+  '>for</span></b><span lang=EN-US style='font-family:
+  Courier;'> (<b>var</b> i=0; i&lt;someNode.attributes.length; i++) {</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span lang=EN-US
+  style='font-family:Courier;'>    <b>var</b> attr=someNode.attributes.item(i);</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>}</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>nextNode
+            ()</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Возвращает
+            следующий узел коллекции </span></p>
+          <div style='border:solid #DDDDDD 1.0pt;
+  padding:2.0pt 2.0pt 2.0pt 2.0pt;
+  background:#FFFFFF'>
+            <pre style='
+  line-height:13.2pt;background:#FFFFFF;
+  border:none;padding:0cm;'><b><span style='font-family:Courier'>for</span></b><span
+  style='font-family:Courier'> (<b>var</b> i=0; i&lt;someNode.childNodes.length-1; i++) {</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>    </span><b><span
+  lang=EN-US style='font-family:Courier;'>var</span></b><span
+  lang=EN-US style='font-family:Courier;'> next=someNode.childNodes.nextNode(i);</span></pre>
+            <pre
+  style='line-height:13.2pt;background:#FFFFFF;border:none;  padding:0cm;'><span style='font-family:
+  Courier'>}</span></pre>
+          </div></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>reset ()</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Сброс
+            счетчика </span></p></td>
+      </tr>
+    </table>
+  </div>
+</div>
+</body>
+</html>

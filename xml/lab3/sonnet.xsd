@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <xsd:element name="sonnet">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="author"/>
+        <xsd:element ref="title" minOccurs="0"/>
+        <xsd:element ref="lines"/>
+      </xsd:sequence>
+      <xsd:attribute name="type" type="sonnetType"
+        default="Shakespearean"/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:simpleType name="sonnetType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="Petrarchan"/>
+      <xsd:enumeration value="Shakespearean"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:element name="author">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="lastName"/>
+        <xsd:element ref="firstName"/>
+        <xsd:element ref="nationality"/>
+        <xsd:element ref="yearOfBirth" minOccurs="0"/>
+        <xsd:element ref="yearOfDeath" minOccurs="0"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="lastName" type="xsd:string"/>
+  <xsd:element name="firstName" type="xsd:string"/>
+  <xsd:element name="nationality" type="xsd:string"/>
+  <xsd:element name="yearOfBirth" type="xsd:string"/>
+  <xsd:element name="yearOfDeath" type="xsd:string"/>
+
+  <xsd:element name="title" type="xsd:string"/>
+
+  <xsd:element name="lines">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="line" minOccurs="14" maxOccurs="14"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="line" type="xsd:string"/>
+</xsd:schema>

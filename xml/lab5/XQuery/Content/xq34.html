@@ -1,0 +1,43 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j3.jpg>&nbsp;
+<br><br><img src=j3.jpg>
+<br><br><img src=j3.jpg></td><td valign=top>
+<h4 align=center>Выбрать фамилии и имена всех сотрудников и номера их отделов</h4>
+<p>В этом запросе проблема состоит в том, что нам нужно выбрать вместе данные, находящиеся на разных уровнях иерархии: номер отдела является атрибутом элемента <code>department</code>, а имя сотрудника - содержится в элементе <code>name</code>, вложенном в элемент <code>employee</code>, вложенном в элемент <code>employes</code>, вложенном в элемент <code>department</code>. 
+<p>Как видите из текста запроса, в выражениях и в аргументах функций можно применять выражения маршрута. 
+<p>В данном случае мы применили "шаг вверх" - <code>../</code>: 
+мы спустились по дереву до сотрудника. На этом шаге мы имеем кортеж имен сотрудников. От каждого имени мы поднимаемся на 2 уровня вверх по дереву и выбираем номер отдела, в котором этот сотрудник работает.
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+doc('file:///c:/KING/kingx/king_corp.xml')
+  //department//employee/concat(name,' - ',../../string(@id))
+</pre>
+<hr>
+Результат:
+<p><img src=xq34.jpg>
+</td></tr></table>
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq33.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq35.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

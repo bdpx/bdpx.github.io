@@ -1,0 +1,42 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr>
+<td valign=top><img src=i6.jpg>&nbsp;</td><td valign=top>
+<h3 align=center> Выражение адресации</h3>
+<p>Выражение адресации состоит из последовательности шагов, разделенных символом <code>/</code>, например:
+<pre>
+    /self::king_corp/child::departments/
+          descendant::employee[position()=1]
+</pre>
+<p>Выражение адресации очень напоминает полное имя файла в файловой системе (это сделано сознательно). На каждом шагу мы движемся по дереву. Контекстный узел аналогичен текущему каталогу - это тот узел, в котором мы находимся на данном шаге адресации. Все выражения вычисляются относительно контекстного узла.
+<p>Но обратите внимание: в отличие от каталогов файловой системы, шаг адресации может выбрать не один, а <i>множество</i> (<i>кортеж</i> в терминах XQuery) узлов. Например, ели мы переходим от узла <code>departments</code> к узлу, <code>department</code>, то мы получим множество узлов.
+<p>Шаги адресации состоят из трех частей: 
+<ul>
+<li><b>oсь</b>, указывающая дерево взаимоотношений между текущим узлом контекста и узлами, отбираемыми на данном шаге адресации, 
+<li><b>правило проверки</b> узлов, указывающее тип и название узлов, отбираемых на данном шаге адресации, 
+<li>нуль или более <b>предикатов</b> для дальнейшего отсева в наборе узлов, собранных на данном шаге адресации.
+</ul>
+
+
+<hr>
+<table align=center  width=70%><tr>
+<td width=33% align=center><a href=xq12.html><img src=prev.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq14.html><img src=next.jpg BORDER=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

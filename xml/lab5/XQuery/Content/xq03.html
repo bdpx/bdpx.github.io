@@ -1,0 +1,69 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr>
+<td valign=top><img src=i1.jpg>&nbsp;</td><td valign=top>
+<h3 align=center>Язык XML</h3>
+<table width=100%>
+<tr><td width=50%>
+<p>
+Стандартом де-факто для представления полуструктурированной информации является язык XML. XML-документ представляет собой плоский текст, в котором выполнена разметка тегами. Очень похож на HTML, но если HTML говорит о том, как представлять информацию, то XML дает возможность сообщать о смысле информации.
+<p>Свойства XML, отличающие его от HTML приведены ниже, их общий смысл - более строгие синтаксические требования, чем в HTML:
+<ul>
+<li>Строгая иерархическая структура документа. Закрывающие теги обязательны (кроме случая тега с пустым . телом).
+<li>Чувствительность к регистру
+<li>Значения аргументов обязательно берутся в кавычки или в апострофы
+</ul>
+<p>Обратите внимание: ограничителем символьной строки могут быть. на равных правах кавычки и апострофы, только открывающий и закрывающий ограничители должны быть одинаковы.
+<p>Существенно, что XML-документы могут довольно легко восприниматься человеком и легко обрабатываться программно.
+</td>
+<td width=50% align=center><b>Пример XML-документа</b>
+<table border><tr><td>
+<pre>
+&lt;order id="<font color=green><b>7916</b></font>"&gt;
+  &lt;order_date&gt;<font color=blue><b>2007-01-08</b></font>&lt;/order_date&gt;
+  &lt;ship_date&gt;<font color=blue><b>2007-03-19</b></font>&lt;/ship_date&gt;
+  &lt;item&gt;
+    &lt;product id="<font color=green><b>10345</b></font>"/&gt;
+    &lt;price&gt;<font color=blue><b>10.20</b></font>&lt;/price&gt;
+    &lt;quantity&gt;<font color=blue><b>3</b></font>&lt;/quantity&gt;
+    &lt;total&gt;<font color=blue><b>30.60</b></font>&lt;total&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;product id="<font color=green><b>10349</b></font>"/&gt;
+    &lt;price&gt;<font color=blue><b>1.75</b></font>&lt;/price&gt;
+    &lt;quantity&gt;<font color=blue><b>100</b></font>&lt;/quantity&gt;
+    &lt;total&gt;<font color=blue><b>175.00</b></font>&lt;total&gt;
+  &lt;/item&gt;
+  &lt;total&gt;<font color=blue><b>205.60</b></font>&lt;total&gt;
+&lt;/order&gt;
+</pre>
+</td></tr></table>
+<p align=center>
+Значения атрибутов выделены зеленым цветом, а тела тегов - синим.
+</td>
+</tr>
+</table>
+
+<hr>
+<table align=center  width=70%><tr>
+<td width=33% align=center><a href=xq02.html><img src=prev.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq04.html><img src=next.jpg BORDER=0></a></td>
+</tr></table>
+</td></tr></table>
+
+</body>
+</html>

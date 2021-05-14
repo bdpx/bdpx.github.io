@@ -1,0 +1,92 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr>
+<td valign=top>
+<img src=j2.jpg>&nbsp;
+<br><br><img src=j2.jpg>
+<br><br><img src=j2.jpg></td><td valign=top>
+<h4 align=center>Выбрать фамилии и имена всех сотрудников</h4>
+<table border align=center><tr><td>
+Запрос:
+<pre>
+doc('file:///c:/KING/kingx/king_corp.xml')
+  /king_corp/departments/department
+  /employees/employee/name
+</pre>
+<hr>
+<table><tr>
+<td>Результат, сохраненный в файле:
+<pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;name&gt;<font color=blue>CAROL F. CLARK</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>FRANCIS A. KING</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>BARBARA M. MILLER</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>JAMES B. KING</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>CHRIS L. ALBERTS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>MATTHEW G. FISHER</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>GRACE M. ROBERTS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>MICHAEL A. DOUGLAS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>JEAN K. DOYLE</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>DANIEL T. PETERS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>KAREN P. SHAW</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>RAYMOND Y. PORTER</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>ALICE B. JENSEN</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>LESLIE D. BAKER</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>JOHN Q. SMITH</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>TERRY M. JONES</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>DONALD T. SCOTT</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>DIANE G. ADAMS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>JENNIFER D. FORD</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>LYNN S. DENNIS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>SARAH S. DUNCAN</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>GREGORY J. LANGE</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>LIVIA N. WEST</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>JAMES T. MURRAY</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>RICHARD M. LEWIS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>KEVIN J. ALLEN</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>CYNTHIA D. WARD</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>KENNETH J. MARTIN</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>MARION S. BLAKE</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>MARY A. TURNER</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>FRED S. JAMES</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>DENISE D. SOMMERS</font>&lt;/name&gt;
+&lt;name&gt;<font color=blue>PAUL S. ROSS</font>&lt;/name&gt;
+</pre></td>
+<td width=10%>&nbsp;</td>
+<td valign=top>В области результата Qzix:
+<br><img src=xq18.jpg>
+<p>В дальнейшем мы будем, как правило,<br> 
+показывать только часть результата<br>
+в области результатов Qzix.</td>
+</tr></table>
+</td></tr></table>
+<p>В этом запросе задан полный маршрут от корня документа
+<p>В дальнейшем мы будем пользоваться такой записью:
+<pre>
+doc('file:///c:/KING/kingx/king_corp.xml')
+  //employee/name
+</pre>
+<p>Здесь выбираются элементы <code>employee</code>, лежащие на любом уровне, и их потомки <code>name</code>. Результат будет тот же.
+
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq17.html><img src=prev.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq19.html><img src=next.jpg BORDER=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

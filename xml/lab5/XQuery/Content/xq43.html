@@ -1,0 +1,51 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j2.jpg>&nbsp;
+<br><br><img src=j2.jpg>
+<br><br><img src=j2.jpg></td><td valign=top>
+<h4 align=center> Выбрать среднюю зарплату по отделам</h4>
+<p>Здесь мы применяем агрегатную функцию (<code>avg()</code>). Мы спускаемся до отдела и считаем среднее значение для элементов <code>salary</code>, вложенных в данный отдел.
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+doc('file:///c:/KING/kingx/king_corp.xml')
+  //department/concat(@id,' - ',avg(employees//salary))
+</pre>
+<hr>
+Результат:
+<p><img src=xq43.jpg>
+</td></tr></table>
+<p>Хотим предостеречь читателей от довольно типичной ошибке, связанной с применением агрегатных функций. Агрегатная функция применима на том уровне, где мы имеем <i>множество</i> вложенных значений, по которым она и считается. В следующем, <font color=red><b>неправильном</b></font> решении мы уже вышли на уровень отдельного сотрудника, и будет вычисляться средняя зарплата одного сотрудника.
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+doc('file:///c:/KING/kingx/king_corp.xml')
+  //department//employee/concat(../../@id,' - ',avg(salary))
+</pre>
+Результат:
+<p><img src=xq43a.jpg>
+</td></tr></table>
+
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq42.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq44.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

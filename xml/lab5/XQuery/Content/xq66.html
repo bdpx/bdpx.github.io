@@ -1,0 +1,53 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j5.jpg>&nbsp;
+<br><br><img src=j5.jpg>
+<br><br><img src=j5.jpg></td><td valign=top>
+<h4 align=center> Выбрать тех сотрудников, которые НЕ имеют подчиненных
+</h4>
+
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+let $x:=&lt;x&gt;{
+    for $a in doc('file:///c:/KING/kingx/king_corp.xml')//employee
+    for $b in doc('file:///c:/KING/kingx/king_corp.xml')//employee
+    where $b/@id = $a/manager_id
+    return $b/name
+} &lt;/x&gt;
+for $c in doc('file:///c:/KING/kingx/king_corp.xml')//employee
+  where <font color=red>every</font> $h in $x/name
+  <font color=red>satisfies</font> $h!=$c/name
+return $c/name/text()
+</pre>
+<hr>
+Результат:
+<p><img src=xq66.jpg>
+</td></tr></table>
+<hr>
+<p>Здесь мы применяем один из, так называемых, <i>кванторов</i> <code>every ... satisfies ...</code>. Полагаем, что семантика квантора понятна из текста.
+<p>Оператором <code>let</code> создается список сотрудников, которые имеют подчиненных и  запоминается в переменной  <code>$x</code>.
+Затем перебирается (<code>for</code>) список сотрудников и выбираются те, в котором имя не совпадает ни с одним элементом в списке в переменной  <code>$x</code>
+
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq65.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq67.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

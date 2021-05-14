@@ -1,0 +1,44 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr>
+<td valign=top><img src=i5.jpg>&nbsp;</td><td valign=top>
+<h3 align=center>Оператор let</h3>
+<p>связывает переменные с полным результатом вычисления выражения, добавляя эти связи к  кортежам, полученным оператором <code>for</code>, или создавая единственный кортеж (при отсутствии оператора <code>for</code>). 
+<p>Пример:<p><i>Выбрать имена и должности всех сотрудников 
+ </i>
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+for $a in  doc('file:///c:/KING/kingx/king_corp.xml') //employee/name
+  let $b:=$a/../function
+  return ($a, $b)
+</pre>
+<hr>
+Результат:
+<p><img src=xq52.jpg>
+</td></tr></table>
+<p> Это оператор присваивания.
+В данном случае для каждого значения <code>$a</code> вычисляется выражение, выбирающее для данного сотрудника его должность, и результат этого вычисления сохраняется в переменной <code>$b</code>. 
+<p>Как мы увидим далее, <code>let</code> может употребляться и вне <code>for</code>.
+<hr>
+<table  width=100%><tr>
+<td width=33% align=center><a href=xq51.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq53.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

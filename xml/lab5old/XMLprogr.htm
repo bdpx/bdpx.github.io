@@ -1,0 +1,170 @@
+<html xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+<title>Программные интерфейсы для XML</title>
+<style>
+<!--
+h1 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	page-break-after:avoid;
+	font-size:16.0pt;
+	font-family:Arial;
+	font-weight:bold;
+}
+h3 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:14.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+p {
+	text-align:justify;
+	text-indent:6.0pt;
+	line-height:15.6pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+}
+-->
+</style>
+</head>
+<body bgcolor="#FFFFFF" lang=RU>
+<div class=Section1>
+  <h1> Программный интерфейс XML</h1>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>В предыдущих уроках мы с
+    вами рассмотрели принципы проектирования правильно оформленных и допустимых
+    (valid) XML документов. Нам с вами так же знаком тот факт, что браузеры не
+    проверяют документы на допустимость, даже если с ними ассоциированны DTD или
+    схема. Однако, в тех случаях, когда XML применяют не как средство разметки
+    документов, а как средство структурирования данных, проверка на допустимость
+    очень важна. Известно так же, что в популярнейший браузер <b>Microsoft Internet
+    Explorer</b> встроен XML анализатор, проверяющий допустимость XML документов на
+    уровне расширенной объектной модели. Эта одна из причин, по которой мы должны с
+    ней познакомиться. </span></p>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Еще одной причиной
+    является использование XML не в браузерах, а, например, в программах,
+    написанных на <b>Visual С++</b>. В этом случае приходится читать XML файлы и
+    отображать данные &quot;вручную&quot;. Существует 2 типа анализаторов
+    (парсеров) XML, использующих принципиально разный подход к разбору документов: </span></p>
+  <ul type=disc>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Анализаторы, генерирующие
+      дерево элементов XML - <b>DOM парсеры</b> </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Анализаторы, основанные на
+      событиях - <b>SAX парсеры</b></span></li>
+  </ul>
+  <h3><span style='font-family:Verdana'>DOM парсеры</span></h3>
+  <p><b><span style='font-size:9.0pt;font-family:Verdana'>DOM</span></b><span
+style='font-size:9.0pt;font-family:Verdana'> - <b>D</b>ocument <b>O</b>bject <b>M</b>odel,
+    объектная модель документа. Данный термин в течение длительного времени
+    применялся к WEB-браузерам. Такие объекты, как <i>окно</i>, <i>документ</i>, <i>история</i> считались частью объектной модели браузера. Каждый, кто сталкивался с
+    разработкой WEB-приложений, знает, что эти объекты в разных браузерах эти
+    объекты реализованны по разному. Для создания более стандартизованного способа
+    обращения и манипулирования структурами документов консорциум <b>W3C</b> предложил другую спецификацию, которая привела впоследствии к текущей модели
+    W3C DOM. </span></p>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>W3C DOM представляет собой <b>не зависящее от языка или платформы</b> определение. Это означает, что для
+    различных составляющих DOM объектов определены интерфейсы, но для них не
+    предлагается никакой конкретной реализации, и ее можно осуществить на любом
+    языке программирования. Эта модель помогает разработчику читать, находить,
+    модифицировать, добавлять, и удалять объекты из документа. Модель HTML DOM
+    является частным случаем W3C DOM. </span></p>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>В каких случаях случая
+    следут использовать DOM? </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>В случае необходимости <b>XSLT-преобразований</b> </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>В случае необходимости
+      комплексной <b>XPath</b> фильтрации </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Если вам необходимо
+      модифицировать и сохранять XML документ </span></li>
+  </ul>
+  <p style='
+text-align:justify'><span style='font-size:9.0pt;font-family:
+Verdana'>DOM позволяет создать и модифицировать XML документ в памяти так же,
+    как и прочитать его из XML файла. SAX анализаторы разработанны для чтения - не
+    записи XML файлов. DOM является наилучшим выбором для модификации и сохранения
+    XML документов. </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Если необходим произвольный
+      доступ к элементам документа </span></li>
+  </ul>
+  <p style='
+text-align:justify'><span style='font-size:9.0pt;font-family:
+Verdana'>В случае, когда произвольный доступ к элементам документа является
+    ключевым моментом, то наилучшим выходом будет использование DOM для построения
+    дерева XML элементов в памяти.</span></p>
+  <h3><span style='font-family:Verdana'>SAX парсеры</span></h3>
+  <p><b><span style='font-size:9.0pt;font-family:Verdana'>SAX</span></b><span
+style='font-size:9.0pt;font-family:Verdana'> - <b>S</b>imple <b>A</b>PI for <b>X</b>ML,
+    простой программный интерфейс приложений для XML. SAX предоставляет
+    последовательный доступ к элементам XML документа. Анализаторы такого типа
+    читают XML документ и сообщают программе о встреченных символах по мере их
+    появления. Например, сообщает, когда находит открывающий тэг элемента,
+    символьные данные и закрывающий тэг. Такой программный интерфейс называется
+    интерфейсом <b>основанным на событиях</b>. SAX является отличной альтернативой
+    DOM в следующих случаях: </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Когда документы имеют большой
+      размер. </span></li>
+  </ul>
+  <p style='
+text-align:justify'><span style='font-size:9.0pt;font-family:
+Verdana'>Возможно наибольшим преимуществом SAX является значительно меньшее
+    использование памяти, по сравнению с DOM. При использовании SAX? потребление
+    памяти не возрастает с размером файла. </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>В случае необходимости
+      остановить процесс разбора </span></li>
+  </ul>
+  <p style='
+text-align:justify'><span style='font-size:9.0pt;font-family:
+Verdana'>SAX позволяет остановить процесс разбора в любой момент. Это позволяет
+    использовать его для поиска уникальных данных. Например, необходимо найти товар
+    в каталоге, после чего остановить поиск. </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>При необходимости получать
+      небольшие порции информации </span></li>
+  </ul>
+  <p style='
+text-align:justify'><span style='font-size:9.0pt;font-family:
+Verdana'>Для множества приложений нет необходимости читать XML документ
+    целиком, для получения необходимых данных. SAX предоставляет такую возможность,
+    позволяя снизить ресурсоемкость процесса разбора. </span></p>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Можно привести еще
+    несколько преимуществ SAX, однако существует и ряд ограничений: </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Отсутствует произвольный
+      доступ к элементам </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Сложно организовать
+      комплексный поиск </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>SAX не поддерживается текущими
+      броузерами. </span></li>
+  </ul>
+</div>
+</body>
+</html>

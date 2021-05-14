@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>Введение в DOM</title>
+</head>
+
+<body>
+<p></p>
+<h2><a name="5">Раздел 1. Разбор файла в документ</a></h2>
+
+<a name="5_1">
+</a><h3><a name="5_1">Трехшаговый процесс</a></h3>
+
+<p><a name="5_1">Чтобы работать с информацией в XML-файле, файл должен быть разобран для создания <b>объекта <code>Document</code></b>.
+
+</a></p><p><a name="5_1">Объект Document является интерфейсом, так что
+его экземпляр не может быть создан непосредственно, обычно вместо этого
+приложение использует фабрику. Подробности этого процесса различаются
+от реализации к реализации, но идеи одни и те же. (Опять-таки, Уровень
+3 стандартизирует эту задачу.) Например, в среде Java разбор файла
+является 3-шаговым процессом:
+</a></p><ol>
+<li><a name="5_1"><b>Создание <code>DocumentBuilderFactory</code>.</b> Этот объект создает <code>DocumentBuilder</code>.
+</a></li><li><a name="5_1"><b>Создание <code>DocumentBuilder</code>.</b> <code>DocumentBuilder</code> действительно выполняет разбор для создания объекта <code>Document</code>.
+</a></li><li><a name="5_1"><b>Разбор файла</b> для создания объекта <code>Document</code>.
+</a></li></ol>
+
+<p><a name="5_1">Теперь вы можете начать построение приложения.
+
+</a><a name="5_2">
+</a></p><h3><a name="5_2">Базовое приложение</a></h3>
+
+<p><a name="5_2">Начнем с создания базового приложения, класса с именем <code>OrderProcessor</code>.
+
+</a></p><pre><a name="5_2">import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import org.w3c.dom.Document;
+public class OrderProcessor {
+  public static void main (String args[]) {
+    File docFile = new File("orders.xml");
+    Document doc = null;
+    try {
+      <b>DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      doc = db.parse(docFile); </b>
+    } catch (Exception e) {
+      System.out.print("Problem parsing the file: "+e.getMessage());
+    }
+  }
+}
+</a></pre>
+
+<p><a name="5_2">Сначала Java-код импортирует необходимые классы, а затем создает приложение <code>OrderProcessor</code>. Примеры в этом учебнике рассматривают один файл, так что для краткости приложение содержит прямую ссылку на него.
+
+</a></p><p><a name="5_2">Так как объект <code>Document</code> может быть использован позже, приложение определяет его вне блока <code>try-catch</code>.
+
+</a></p><p><a name="5_2">В блоке <code>try-catch</code> приложение создает объект <code>DocumentBuilderFactory</code>, который затем используется для создания <code>DocumentBuilder</code>. Наконец, <code>DocumentBuilder</code> разбирает файл для создания <code>Document</code>.
+
+</a><a name="5_3">
+</a></p><h3><a name="5_3">Установки парсера</a></h3>
+
+<p><a name="5_3">Одно из преимуществ создания парсеров при помощи <code>DocumentBuilder</code> состоит в управлении различными установками парсера, создаваемого при помощи <code>DocumentBuilderFactory</code>. Например, парсер может быть установлен на проверку правильности документа:
+
+</a></p><pre><a name="5_3">...
+try {
+  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+  <b>dbf.setValidating(true); </b>
+  DocumentBuilder db = dbf.newDocumentBuilder();
+  doc = db.parse(docFile);
+} catch (Exception e) {
+...
+</a></pre>
+
+<p><a name="5_3">Java-реализация DOM Уровня 2 обеспечивает управление параметрами парсера через следующие методы:
+</a></p><ul>
+<li><a name="5_3"><b><code>setCoalescing()</code>:</b> Определяет,
+превращает ли парсер узлы CDATA в текст и соединяет ли их с окружающими
+текстовыми узлами (если возможно). Значение по умолчанию - <code>false</code>.
+</a></li><li><a name="5_3"><b><code>setExpandEntityReferences()</code>:</b> пределяет, расширяются ли внешние ссылки на сущности. Если <code>true</code>, внешние данные вставляются в документ. Значение по умолчанию - <code>true</code>. (Приемы работы с внешними сущностями см. в <i></i></a><i><a href="#9_2">Ресурсы</a></i>.)
+</li><li><b><code>setIgnoringComments()</code>:</b> Определяет, игнорируются ли комментарии в файле. Значение по умолчанию - <code>false</code>.
+</li><li><b><code>setIgnoringElementContentWhitespace()</code>:</b>
+Определяет, игнорируются ли пропуски между элементами (аналогично тому,
+как браузер интерпретирует HTML). Значение по умолчанию - <code>false</code>.
+</li><li><b><code>setNamespaceAware()</code>:</b> Определяет, обращает ли парсер внимание на информацию пространства имен. Значение по умолчанию - <code>false</code>.
+</li><li><b><code>setValidating()</code>:</b> По умолчанию парсер не проверяет правильность документов. Установите здесь <code>true</code> для проверки правильности.
+</li></ul>
+
+<a name="5_4">
+</a><h3><a name="5_4">Исключения парсера</a></h3>
+
+<p><a name="5_4">При всех разнообразных возможностях в создании парсера
+многие вещи могут быть неправильно сделаны. Как показано в примере,
+приложение сводит все это в единственное родовое <code>Exception</code>, которое не может быть достаточно полезным в смысле отладки.
+
+</a></p><p><a name="5_4">Чтобы лучше диагностировать проблемы, вы
+можете вылавливать специфические исключения, относящиеся к различным
+аспектам создания и использования парсера:
+</a></p><pre><a name="5_4">...
+try {
+  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+  DocumentBuilder db = dbf.newDocumentBuilder();
+  doc = db.parse(docFile);
+<b>} catch (javax.xml.parsers.ParserConfigurationException pce) {
+  System.out.println("The parser was not configured correctly.");
+  System.exit(1);
+} catch (java.io.IOException ie) {
+  System.out.println("Cannot read input file.");
+  System.exit(1);
+} catch (org.xml.sax.SAXException se) {
+  System.out.println("Problem parsing the file.");
+  System.exit(1);
+} catch (java.lang.IllegalArgumentException ae) {
+  System.out.println("Please specify an XML source.");
+  System.exit(1); </b>
+}
+...
+</a></pre>
+
+<p><a name="5_4">Когда парсер создал документ, приложение может проходить через него для обработки данных.
+
+</a><a name="6">
+</a></p><p><a name="6">&nbsp;</a></p>
+<h2><a name="6">Раздел 2. Прохождение по документу</a></h2>
+
+<a name="6_1">
+</a><h3><a name="6_1">Получение корневого элемента</a></h3>
+
+<p><a name="6_1">Если документ разобран и создан <code>Document</code>,
+приложение может двигаться по структуре для обзора, поиска и
+отображения информации. Эта навигация является основой для многих
+операций, выполняемых на объекте <code>Document</code>.
+
+</a></p><p><a name="6_1">Прохождение через документ начинается с
+корневого элемента. Правильно форматированный документ имеет только
+один корневой элемент, называемый также <code>DocumentElement</code>. Сначала приложение выбирает этот элемент.
+
+</a></p><pre><a name="6_1">import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import org.w3c.dom.Document;
+<b>import org.w3c.dom.Element; </b>
+public class OrderProcessor {
+...
+    System.exit(1);
+  }
+  //STEP 1: Get the root element
+    <b>Element root = doc.getDocumentElement();
+    System.out.println("The root element is " + root.getNodeName());</b>
+  }
+}
+</a></pre>
+
+<p><a name="6_1">Компиляция и выполнение приложения выведет имя корневого элемента, <code>orders</code>.
+
+</a></p><p><a name="6_2">
+</a></p>
+<h3><a name="6_2">Получение потомка элемента</a></h3>
+
+<p><a name="6_2">Если приложение определило корневой элемент, оно выбирает список потомков корневого элемента как <code>NodeList</code>. Класс <code>NodeList</code>
+является серией компонентов, которую приложение может перебирать. В
+данном примере для краткости приложение получает дочерние узлы и
+проверяет выборку, показывая, сколько элементов появляется в
+результирующем <code>NodeList</code>.
+
+</a></p><p>&nbsp;</p>
+<p><a name="6_2">Заметьте, что документ имеет только два элемента, но <code>NodeList</code> содержит пять потомков, включая три текстовых узла, которые содержат переводы строк.
+</a></p><pre><a name="6_2">...
+<b>import org.w3c.dom.NodeList; </b>
+...
+    //STEP 1: Get the root element
+    Element root = doc.getDocumentElement();
+    System.out.println("The root element is "+root.getNodeName());
+    //STEP 2: Get the children
+    <b>NodeList children = root.getChildNodes();
+    System.out.println("There are "+children.getLength()
+        +" nodes in this документ."); </b>
+  }
+}
+</a></pre>
+
+<a name="6_3">
+</a><h3><a name="6_3">Использование <code>getFirstChild()</code> и <code>getNextSibling()</code></a></h3>
+
+<p><a name="6_3">Отношения предок-потомок и братские отношения
+предлагают альтернативный способ для перебора всех потомков данного
+узла, который может быть более подходящим в некоторых ситуациях,
+например, когда для понимания данных важны отношения и порядок, в
+котором появляются потомки.
+</a></p><p><a name="6_3">На Шаге 3, цикл <code>for</code> начинается с
+первого потомка корня. Приложение перебирает "братьев" первого потомка,
+пока все они не будут обработаны. При выполнении каждой итерации цикла
+приложение выбирает объект <code>Node</code>, выводит его имя и значение. Заметьте, что в число пяти потомков <code>orders</code> входят элементы <code>order</code> и три текстовых узла. Заметьте также, что элементы имеют значение <code>null</code>,
+а не текст, как ожидалось. Эти текстовые узлы являются потомками
+элементов, которые имеют в качестве своих значений реальное содержимое.
+</a></p><pre><a name="6_3">...
+<b>import org.w3c.dom.Node; </b>
+...
+    //STEP 3: Step through the children
+    <b>for (Node child = root.getFirstChild();
+        child != null;
+        child = child.getNextSibling())
+    {
+      System.out.println(start.getNodeName()+" = "
+        +start.getNodeValue());
+    }</b>
+  }
+}
+...
+</a></pre>
+
+<p><a name="6_4">
+</a></p>
+<h3><a name="6_4">Рекурсия через многие уровни потомков</a></h3>
+
+<p><a name="6_4">Код в подразделе <i></i></a><i><a href="#6_3">Использование <code>getFirstChild()</code> и <code>getNextSibling()</code></a></i>
+показывает потомка первого уровня, но это трудно для всего документа.
+Чтобы увидеть все элементы, функциональность предыдущего примера должна
+быть оформлена в метод и должна вызываться рекурсивно.
+</p><p>Приложение начинает с корневого элемента и печатает имя и
+значение на экране. Затем приложение проходит через каждый его потомок
+так же, как и раньше. Но для каждого потомка приложение также проходит
+через каждый его потомок, проверяя всех "детей" и "внуков" корневого
+элемента.
+</p><pre>...
+public class OrderProcessor {
+  <b>private static void stepThrough (Node start)
+  {</b>
+    System.out.println(start.getNodeName()+" = "+start.getNodeValue());
+    for (Node child = start.getFirstChild();
+          child != null;
+          child = child.getNextSibling())
+    {
+      <b>stepThrough(child); </b>
+    }
+  <b>}</b>
+  public static void main (String args[]) {
+    File docFile = new File("orders.xml");
+...
+    System.out.println("There are "+children.getLength()
+        +" nodes in this документ.");
+    //STEP 4: Recurse this functionality
+    <b>stepThrough(root);</b>
+  }
+}
+</pre>
+
+<p><a name="6_5">
+</a></p>
+<h3><a name="6_5">Включение атрибутов</a></h3>
+
+<p><a name="6_5">Метод <code>stepThrough()</code>, как он был написан
+до сих пор, может проходить через большинство типов узлов, но в нем
+полностью отсутствуют атрибуты, поскольку они не являются потомками
+никаких узлов. Чтобы показывать атрибуты, модифицируем метод <code>stepThrough()</code> для проверки элементных узлов на наличие атрибутов.
+
+</a></p><p><a name="6_5">Приведенный ниже модифицированный код проверяет каждый узел на то, является ли он элементом, путем сравнения его <code>nodeType</code> с константой <code>ELEMENT_NODE</code>. Объект <code>Node</code> имеет в своем составе константы, которые представляют каждый тип узла, такие, как <code>ELEMENT_NODE</code> или <code>ATTRIBUTE_NODE</code>. Если <code>nodeType</code> соответствует <code>ELEMENT_NODE</code>, он является элементом.
+
+</a></p><p><a name="6_5">Для каждого найденного им элемента приложение создает объект <code>NamedNodeMap</code>, содержащий все атрибуты элемента. Приложение может перебирать <code>NamedNodeMap</code>, печатая имя и значение каждого атрибута, так же, как оно перебирало <code>NodeList</code>.
+
+</a></p><pre><a name="6_5">...
+<b>import org.w3c.dom.NamedNodeMap; </b>
+...
+  private static void stepThroughAll (Node start)
+  {
+    System.out.println(start.getNodeName()+" = "+start.getNodeValue());
+    <b>if (start.getNodeType() == start.ELEMENT_NODE)
+    {
+      NamedNodeMap startAttr = start.getAttributes();
+      for (int i = 0;
+          i &lt; startAttr.getLength();
+          i++) {
+        Node attr = startAttr.item(i);
+        System.out.println(" Attribute: "+ attr.getNodeName()
+            +" = "+attr.getNodeValue());
+      }
+    }</b>
+    for (Node child = start.getFirstChild();
+        child != null;
+        child = child.getNextSibling())
+    {
+      stepThroughAll(child);
+    }
+  }
+</a></pre>
+
+<p><a name="7">
+</a></p>
+<p><a name="7">&nbsp;</a></p>
+<h2><a name="7">Раздел 3. Редактирование документа</a></h2>
+
+<a name="7_1">
+</a><h3><a name="7_1">Изменение значения в узле</a></h3>
+
+<p><a name="7_1">Просмотр содержимого XML-документ полезен, но когда вы
+имеете дело с полнофункциональным приложением, вам может понадобиться
+изменять данные, добавляя, перемещая или удаляя информацию. Возможность
+редактирования данных также важна при создании новых XML-документов.
+Простейшим из таких изменений является изменение текстового содержания
+элемента.
+</a></p><p><a name="7_1">Нашей целью является изменить значение текстового узла элемента, в данном случае установкой <code>status</code> для каждого <code>order</code> в "processed", а затем вывести новые значения на экран.
+
+</a></p><p><a name="7_1">Метод <code>changeOrder()</code> вызывается с передачей ему начального узла (<code>root</code>) в качестве параметра, а также имени изменяемого элемента и измененного значения.
+
+</a></p><p><code><a name="7_1">changeOrder()</a></code><a name="7_1">
+сначала проверяет имя узла, чтобы увидеть, тот ли элемент, который
+редактируется. Если это так, приложению нужно изменить значение не
+этого узла, а его первого потомка, поскольку этот первый потомок
+является текстовым узлом, который на самом деле содержит содержимое
+элемента. </a></p><p><a name="7_1">В противном случае приложение проверяет каждый потомок так же, как это делалось при прохождении по документу в первый раз.
+
+</a></p><p><a name="7_1">Когда изменения выполнены, значение проверяются при помощи <code>getElementsByTagName()</code>. Этот метод возвращает список всех дочерних элементов с заданным именем, таким, как <code>status</code>. Приложение может затем проверить значения в списке, чтобы убедиться, что метод <code>changeOrder()</code> работает.
+
+</a></p><pre><a name="7_1">...
+public class OrderProcessor {
+  <b>private static void changeOrder (Node start,
+            String elemName,
+            String elemValue)
+  {
+    if (start.getNodeName().equals(elemName)) {
+      start.getFirstChild().setNodeValue(elemValue);
+    }
+    for (Node child = start.getFirstChild();
+        child != null;
+        child = child.getNextSibling())
+    {
+      changeOrder(child, elemName, elemValue);
+    }
+  }</b>
+...
+  public static void main (String args[]) {
+...
+  // Change text content
+    <b>changeOrder(root, "status", "processing");
+    NodeList orders = root.getElementsByTagName("status");
+    for (int orderNum = 0;
+        orderNum &lt; orders.getLength();
+        orderNum++)
+    {
+      System.out.println(orders.item(orderNum)
+            .getFirstChild().getNodeValue());
+    }</b>
+  }
+}
+</a></pre>
+
+<p>&nbsp;</p>
+<p><a name="7_1">Заметьте, что приложение выбирает узлы <code>status</code> даже, несмотря на то, что они являются "внуками" корневого элемента, а не непосредственными его "детьми". <code>getElementsByTagName()</code> проходит через документ и находит все элементы с определенным именем.
+
+</a><a name="7_2">
+</a></p><h3><a name="7_2">Добавление узлов: подготовка данных</a></h3>
+
+<p><a name="7_2">Иногда необходимо не изменить существующий узел, а
+добавить узел, и у вас есть несколько способов сделать это. В нашем
+примере приложение вычисляет общую стоимость каждого заказа и добавляет
+в <code>order</code> элемент <code>total</code>. Оно получает общую
+стоимость, выбирая каждый заказ и проходя через все его составляющие,
+чтобы получить стоимость составляющей, а затем итоговую стоимость их
+всех. Затем приложение добавляет новый элемент в заказ (см. код ниже).
+</a></p><p><a name="7_2">Сначала приложение выбирает элементы <code>order</code> так же, как оно выбирало элементы <code>status</code>. Затем перебирает каждый из этих элементов.
+
+</a></p><p><a name="7_2">Для каждого из этих order приложению нужен <code>NodeList</code> из его составляющих <code>item</code>, так что приложение должно сначала преобразовать узел (<code>Node</code>) <code>order</code> в <code>Element</code>, чтобы использовать <code>getElementsByTagName()</code>.
+
+</a></p><p><a name="7_2">Приложение затем может перебрать составляющие <code>item</code> для выбранного <code>order</code>. Каждая из них преобразуется в <code>Element</code>, так что из него можно выбрать по имени <code>price</code> и <code>qty</code>. Приложение делает это при помощи метода <code>getElementsByTagName()</code>, и поскольку их всего по одному в каждом item, оно может прямо брать <code>item(0)</code>, первую составляющую результирующего <code>NodeList</code>. Этот первый элемент представляет элемент <code>price</code> (или <code>qty</code>). Из него извлекается значение текстового узла.
+
+</a></p><p><a name="7_2">Значение текстового узла имеет тип <code>String</code>, приложение затем преобразует его в <code>double</code>, чтобы сделать возможным вычисление.
+
+</a></p><p><a name="7_2">Когда приложение заканчивает проверку всех составляющих для каждого заказа, <code>total</code> типа <code>double</code> представляет итоговое значение. Затем <code>total</code> преобразуется в <code>String</code>, так что оно может использоваться как содержимое нового элемента, <code>&lt;total&gt;</code>, который в конечном счете присоединяется к <code>order</code>.
+
+</a></p><pre><a name="7_2">...
+  changeOrder(root, "status", "processing");
+  NodeList orders = root.getElementsByTagName(" order ");
+  for (int orderNum = 0;
+        orderNum &lt; orders.getLength();
+        orderNum++)
+  {
+    <b>Element thisOrder = (Element)orders.item(orderNum);
+    NodeList orderItems = thisOrder.getElementsByTagName("item");
+    double total = 0;
+    for (int itemNum = 0;
+        itemNum &lt; orderItems.getLength();
+        itemNum++) {
+      // Total up cost for each item and
+      // add to the order total
+      //Get this item as an Element
+      Element thisOrderItem = (Element)orderItems.item(itemNum);
+      //Get pricing information for this Item
+      String thisPrice =
+        thisOrderItem.getElementsByTagName("price").item(0)
+            .getFirstChild().getNodeValue();
+      double thisPriceDbl = new Double(thisPrice).doubleValue();
+      //Get quantity information for this Item
+      String thisQty =
+        thisOrderItem.getElementsByTagName("qty").item(0)
+            .getFirstChild().getNodeValue();
+      double thisQtyDbl = new Double(thisQty).doubleValue();
+      double thisItemTotal = thisPriceDbl*thisQtyDbl;
+      total = total + thisItemTotal;
+    }
+    String totalString = new Double(total).toString();</b>
+  }
+...
+</a></pre>
+
+<a name="7_3">
+</a><h3><a name="7_3">Добавление узлов: добавление узлов в документ</a></h3>
+
+<p><a name="7_3">Вы можете создать новый <code>Node</code> многими способами, и этот пример применяет несколько из них. Во-первых, объект <code>Document</code> может создавать новый текстовый узел со значением <code>totalString</code>. Новый <code>Node</code> теперь существует, но еще никуда не присоединен к <code>Document</code>. Новый элемент <code>total</code> создается аналогично, и он также поначалу свободный.
+
+</a></p><p><a name="7_3">Другой способ добавление узла - применение <code>appendChild()</code>, как показано здесь для нового элемента <code>total</code>.
+
+</a></p><p><a name="7_3">Наконец, приложение может использовать <code>insertBefore()</code> для добавления нового элемента <code>Document</code>, указывая новый <code>Node</code> и предшествующий <code>Node</code>.
+
+</a></p><p><a name="7_3">Прохождение через документ проверяет изменения.
+
+</a></p><pre><a name="7_3">...
+  changeOrder(root, "status", "processing");
+  NodeList orders = root.getElementsByTagName("order");
+  for (int orderNum = 0;
+        orderNum &lt; orders.getLength();
+        orderNum++)
+  {
+...
+    String totalString = new Double(total).toString();
+    <b>Node totalNode = doc.createTextNode(totalString);
+    Element totalElement = doc.createElement("total");
+    totalElement.appendChild(totalNode);
+    thisOrder.insertBefore(totalElement, thisOrder.getFirstChild());</b>
+  }
+  <b>stepThrough(root); </b>
+...
+</a></pre>
+
+<p><a name="7_4">
+</a></p>
+<h3><a name="7_4">Удаление узла</a></h3>
+
+<p><a name="7_4">Вместо того, чтобы заменять элемент, приложение может
+удалить его совсем. В данном примере приложение проверяет, имеется ли
+составляющая на складе. Если нет, оно удаляет составляющую из заказа
+вместо того, чтобы прибавлять ее к итогу.
+</a></p><p><a name="7_4">Перед добавлением стоимости составляющей к итогу приложение проверяет значение атрибута <code>instock</code>. Если оно <code>N</code>, то вместо добавления к итогу составляющая полностью удаляется. Чтобы это сделать, приложение применяет метод <code>removeChild()</code>, но сначала определяет предка этого <code>orderItem</code> при помощи <code>getParentNode()</code>. code&gt;Node удаляется из документа, но метод также возвращает его, так что, при желании, он может быть перемещен.
+
+</a></p><pre><a name="7_4">...
+    //Get this item as an Element
+    Element thisOrderItem = (Element)orderItems.item(itemNum);
+    <b>if (thisOrderItem.getAttributeNode("instock")
+          .getNodeValue().equals("N")) {
+      Node deadNode =
+        thisOrderItem.getParentNode().removeChild(thisOrderItem);
+    } else {</b>
+      //Get pricing information for this Item
+      String thisPrice =
+        thisOrderItem.getElementsByTagName("price").item(0)
+              .getFirstChild().getNodeValue();
+...
+      total = total + thisItemTotal;
+    <b>}</b>
+  }
+  String totalString = new Double(total).toString();
+...
+</a></pre>
+
+<p><a name="7_5">
+</a></p>
+<h3><a name="7_5">Замена узла</a></h3>
+
+<p><a name="7_5">Конечно, не имеет смысла удалять компоненту заказа, если она не выполнена. Вместо этого приложение заменяет ее компонентой <code>backordered</code>.
+
+</a></p><p><a name="7_5">Вместо <code>removeChild()</code> просто используйте <code>replaceChild()</code>.
+Заметьте, что в данном случае метод также возвращает старый узел, так
+что он может быть перенесен, если это необходимо, возможно, в новый <code>Document</code>, перечисляющий невыполненные компоненты.
+
+</a></p><p><a name="7_5">Заметьте, что поскольку никакое содержимое не
+было добавлено в элемент, этот элемент является пустым. Пустой элемент
+не имеет содержимого и может быть записан в сокращенном виде:
+</a></p><pre><a name="7_5">&lt;backordered /&gt;
+
+Косая черта (<code>/</code>) устраняет необходимость в закрывающем теге (<code>&lt;/backordered&gt;</code>).
+
+...
+  if (thisOrderItem.getAttributeNode("instock")
+        .getNodeValue().equals("N")) {
+    <b>Element backElement = doc.createElement("backordered");</b>
+    Node deadNode = thisOrderItem.getParentNode()
+        .<b>replaceChild ( backElement, thisOrderItem); </b>
+  } else {
+...
+</a></pre>
+
+<p><a name="7_6">
+</a></p>
+<h3><a name="7_6">Создание и установка атрибутов</a></h3>
+
+<p><a name="7_6">Конечно, что хорошего в элементе <code>backordered</code>,
+если не видно, какую компоненту он представляет? Одним из способов
+исправить недостаток информации является добавление атрибутов в
+элемент.
+</a></p><p><a name="7_6">Сначала приложение создает атрибут <code>itemid</code>. Затем оно определяет значение <code>itemid</code> из исходного элемента <code>item</code>, а затем устанавливает значение в сам атрибут. Наконец, оно добавляет элемент в документ, так же, как и раньше.
+
+</a></p><pre><a name="7_6">...
+  if (thisOrderItem.getAttributeNode("instock")
+        .getNodeValue().equals("N")) {
+    Element backElement = doc.createElement("backordered");
+    <b>backElement.setAttributeNode(doc.createAttribute("itemid"));
+    String itemIdString =
+        thisOrderItem.getAttributeNode("itemid").getNodeValue();
+    backElement.setAttribute("itemid", itemIdString); </b>
+    Node deadNode = thisOrderItem.getParentNode().replaceChild(backElement,
+    thisOrderItem);
+  } else {
+...
+</a></pre>
+
+<p>&nbsp;</p>
+<p><a name="7_6">Важно заметить, что <code>setAttribute()</code> создает узел атрибута, если атрибут с таким именем не существует, так что в этом случае приложение может совсем пропустить <code>createAttribute()</code>.
+
+</a><a name="7_7">
+</a></p><h3><a name="7_7">Удаление атрибута</a></h3>
+
+<p><a name="7_7">Приложение может также удалить атрибут. Например,
+может быть нежелательным показывать на выходе информацию о кредите
+покупателя, так что приложение может временно удалить ее из документа.
+</a></p><p><a name="7_7">Удаление информации выполняется явным образом при помощи <code>removeAttribute()</code> для удаления данных.
+
+</a></p><pre><a name="7_7">...
+  Element thisOrder = (Element)orders.item(orderNum);
+  <b>Element customer =
+    (Element)thisOrder.getElementsByTagName("customerid")
+        .item(0);
+  customer.removeAttribute("limit");</b>
+  NodeList orderItems = thisOrder.getElementsByTagName("item");
+...
+</a></pre>
+
+<p>&nbsp;</p>
+<p><a name="7_7">Однако следующий шаг использует информацию о
+кредите, так что вам следует удалить последние изменения прежде, чем
+двигаться дальше.
+</a><a name="8">
+</a></p><p><a name="8">&nbsp;</a></p>
+<h2><a name="8">Раздел 4. Вывод документа</a></h2>
+
+<a name="8_1">
+</a><h3><a name="8_1">Подготовка данных</a></h3>
+
+<p><a name="8_1">Мы в нашем учебнике рассмотрели, как выбирать,
+работать и манипулировать с XML-данными. Для завершения цикла вы должны
+также уметь выводить XML.
+</a></p><p><a name="8_1">В случае этого учебника целевым выводом
+является файл, в котором просто перечисляются все заказы по мере того,
+как они поступают или отвергаются на основе кредита покупателя и <code>customerid</code>.
+
+</a></p><pre><a name="8_1">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;processedOrders&gt;
+ &lt;order&gt;
+  &lt;status&gt;PROCESSED&lt;/status&gt;
+  &lt;customerid&gt;2341&lt;/customerid&gt;
+  &lt;amount&gt;874.00&lt;/amount&gt;
+ &lt;/order&gt;
+ &lt;order&gt;
+  &lt;status&gt;REJECTED&lt;/status&gt;
+  &lt;customerid&gt;251222&lt;/customerid&gt;
+  &lt;amount&gt;200.00&lt;/amount&gt;
+ &lt;/order&gt;
+&lt;/processedOrders&gt;
+</a></pre>
+
+<p><a name="8_1">Сначала приложение создает объект <code>Document</code> для вывода. Для удобства тот же самый <code>DocumentBuilder</code>, который создавал исходный <code>Document</code>, может создавать и новый.
+</a></p><pre><a name="8_1">...
+  public static void main (String args[]) {
+    File docFile = new File("orders.xml");
+    Document doc = null;
+    <b>Document newdoc = null; </b>
+    try {
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      doc = db.parse(docFile);
+      <b>newdoc = db.newDocument();</b>
+    } catch (Exception e) {
+      System.out.print("Problem parsing the file: "+e.getMessage());
+    }
+...
+    thisOrder.insertBefore(totalElement, thisOrder.getFirstChild());
+  }
+  <b>Element newRoot = newdoc.createElement("processedOrders");
+  NodeList processOrders = doc.getElementsByTagName("order");
+  for (int orderNum = 0;
+        orderNum &lt; processOrders.getLength();
+        orderNum++) {
+    Element thisOrder = (Element)processOrders.item(orderNum);
+    Element customerid =
+      (Element)thisOrder.getElementsByTagName("customerid")
+        .item(0);
+    String limit = customerid.getAttributeNode("limit").getNodeValue();
+    String total = thisOrder.getElementsByTagName("total").item(0)
+        .getFirstChild().getNodeValue();
+    double limitDbl = new Double(limit).doubleValue();
+    double totalDbl = new Double(total).doubleValue();
+    Element newOrder = newdoc.createElement("order");
+    Element newStatus = newdoc.createElement("status");
+    if (totalDbl &gt; limitDbl) {
+      newStatus.appendChild(newdoc.createTextNode("REJECTED"));
+    } else {
+      newStatus.appendChild(newdoc.createTextNode("PROCESSED"));
+    }
+    Element newCustomer = newdoc.createElement("customerid");
+    String oldCustomer = customerid.getFirstChild().getNodeValue();
+    newCustomer.appendChild(newdoc.createTextNode(oldCustomer));
+    Element newTotal = newdoc.createElement("total");
+    newTotal.appendChild(newdoc.createTextNode(total));
+    newOrder.appendChild(newStatus);
+    newOrder.appendChild(newCustomer);
+    newOrder.appendChild(newTotal);
+    newRoot.appendChild(newOrder);
+  }
+  newdoc.appendChild(newRoot);
+  System.out.print(newRoot.toString());</b>
+...
+</a></pre>
+
+<p><a name="8_1">После обработки <code>orders.xml</code> приложение создает новый элемент, <code>processedOrders</code>,
+который в конечном счете станет корневым элементом нового документа.
+Затем оно проходит через каждый заказ. Для каждого заказа оно выделяет
+информацию <code>total</code> и <code>limit</code>.
+
+</a></p><p><a name="8_1">Далее приложение создает новые элементы для заказа: <code>order</code>, <code>status</code>, <code>customerid</code> и <code>amount</code>. Оно заполняет <code>status</code> на основе того, превышает ли итог кредит покупателя, и в соответствии с этим заполняет остальное.
+
+</a></p><p><a name="8_1">После того, как приложение создало элементы,
+оно должно собрать их вместе. Сначала оно добавляет состояние,
+информацию о покупателе и итог в новый элемент <code>order</code>. Затем оно добавляет новый <code>order</code> в элемент <code>newRoot</code>.
+
+</a></p><p><a name="8_1">Пока все это происходит, элемент <code>newRoot</code> на самом деле не присоединен к родительскому узлу. Когда приложение завершит обработку всех заказов, <code>newRoot</code> присоединяется к новому документу.
+
+</a></p><p><a name="8_1">Наконец, приложение выводит данные, преобразовывая <code>newRoot</code> в <code>String</code> и просто посылая его в <code>System.out</code>.
+
+</a></p><p><a name="8_2">
+</a></p>
+<h3><a name="8_2">Создание XML-файла</a></h3>
+
+<p><a name="8_2">Теперь нам ясно, как приложение должно создавать новую информацию и выводить ее в файл.
+
+</a></p><p><a name="8_2">Та же логика используется для данных, но вместо того, чтобы выводить на экран, приложение посылает их в файл.
+
+</a></p><p><a name="8_2">Важное обстоятельство, которое стоит здесь
+отметить, состоит в том, что поскольку XML-данные являются просто
+текстом, они могут быть форматированы любым способом. Например, вы
+можете создать разновидность <code>stepThroughAll()</code> которая
+будет создавать версию с отступами, красивую для печати. Только
+помните, что это будет создавать лишние узлы пропусков (текстовые).
+</a></p><pre><a name="8_2">...
+<b>import java.io.FileWriter; </b>
+...
+  <b>try
+  {
+    File newFile = new File("processedOrders.xml");
+    FileWriter newFileStream = new FileWriter(newFile);
+    newFileStream.write</b> ("&lt;?xml version=\"1.0\"?&gt;");
+    <b>newFileStream.write</b> ("&lt;!DOCTYPE
+        "+doc.getDoctype().getName()+" ");
+    if (doc.getDoctype().getSystemId() != null) {
+      <b>newFileStream.write</b> (" SYSTEM ");
+      <b>newFileStream.write</b> (doc.getDoctype().getSystemId());
+    }
+    if (doc.getDoctype().getPublicId() != null) {
+      <b>newFileStream.write</b> (" PUBLIC ");
+      <b>newFileStream.write</b> (doc.getDoctype().getPublicId());
+    }
+    <b>newFileStream.write</b> ("&gt;");
+    <b>newFileStream.write</b> (newRoot.toString());
+    <b>newFileStream.close();
+  } catch (IOException e) {
+  System.out.println("Can't write new file.");
+}</b>
+...
+</a></pre>
+
+<a name="8_3">
+</a><h3><a name="8_3">Тождественные преобразования</a></h3>
+
+<p><a name="8_3">В простом <code>Document</code>, подобном тому,
+который рассматривается в нашем учебнике, легко предположить, что
+выводимый XML прост, но помните, что следует рассматривать многие
+факторы, которые могут привести к усложнению - редко встречающиеся,
+такие, как файлы, содержимое которых определяется DTD или схемой. В
+большинстве случаев лучше полагаться на приложение, которое уже
+принимает все такие возможности во внимание.
+</a></p><p><a name="8_3">Одним из способов, который разработчики часто выбирают для сериализации их объектов <code>Document</code> DOM состоит в создании <b>тождественного преобразования</b>. Это XSL Transformation, которая включает в себя таблицы стилей. Например:
+</a></p><pre><a name="8_3">...
+<b>import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.FileOutputStream; </b>
+...
+      newdoc.appendChild(newRoot);
+      <b>try {
+        DOMSource source = new DOMSource(newdoc);
+        StreamResult result =
+          new StreamResult(new FileOutputStream("processed.xml"));
+        TransformerFactory transFactory = TransformerFactory.newInstance();
+        Transformer transformer = transFactory.newTransformer();
+        transformer.transform(source, result);
+      } catch (Exception e){
+      e.printStackTrace();
+    }</b>
+  }
+}
+</a></pre>
+
+<p><a name="8_3">Здесь вы создаете источник и результат, но поскольку
+вы работаете с тождественным преобразованием, вы не создаете объект для
+представления таблицы стилей. Если бы это было настоящее
+преобразование, в создании <code>Transformer</code> должна была бы использоваться таблица стилей. Вместо этого <code>Transformer</code> просто принимает источник (Document) и посылает его в результат (файл <code>processed.xml</code>).
+
+</a><a name="9">
+</a></p><p><a name="9">&nbsp;</a></p>
+<h2>&nbsp;</h2>
+
+</body></html>

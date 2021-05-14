@@ -1,0 +1,159 @@
+<html xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+<title>XMLShcemes</title>
+<style>
+<!--
+h1 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	page-break-after:avoid;
+	font-size:16.0pt;
+	font-family:Arial;
+	font-weight:bold;
+}
+h3 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:14.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+p {
+	text-align:justify;
+	text-indent:6.0pt;
+	line-height:15.6pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+}
+pre {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	tab-stops:45.8pt 91.6pt 137.4pt 183.2pt 229.0pt 274.8pt 320.6pt 366.4pt 412.2pt 458.0pt 503.8pt 549.6pt 595.4pt 641.2pt 687.0pt 732.8pt;
+	font-size:10.0pt;
+	font-family:"Lucida Console";
+}
+span.xmlattr {
+	color:#006600;
+}
+span.highlight1 {
+	color:white;
+	background:#008800;
+	text-decoration:underline;
+	text-underline:single;
+}
+-->
+</style>
+</head>
+<body bgcolor="#FFFFFF" lang=RU>
+<div class=Section1>
+  <h1> XML схемы</h1>
+  
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Альтернативу определениям
+    DTD представляют XML схемы. Схемы используют синтаксис языка XML для
+    определения правил словаря XML документа - и это далеко не одно их
+    преимущество, по сравнению с DTD. К достоинствам схем можно отнести так же
+    расширяемость и возможность наследования, поддержку пространств имен, поддержку
+    б&oacute;льшего, по сравнению с DTD, количества типов данных (неоспоримое
+    преимущество, если речь идет о программировании, а не разметке) и др. </span></p>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>На данный момент можно выделить
+    2 основных типа схем: <b>XML-Data Reduced</b>   и <b>XML-Schema</b>. </span></p>
+  <p><span
+style='font-size:9.0pt;font-family:Verdana'>Схема представляет собой XML файл,
+    содержащий описание всех элементов и атрибутов проектируемого словаря XML
+    документа. Ниже приведен фрагмент файла схемы <b>XML-Data Reduced</b>:</span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span style='font-family:Courier'>&lt;?<b>xml version</b>=<span
+class=xmlattr>&quot;1.0&quot;</span> ?&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>Schema xmlns</b>=<span
+class=xmlattr>&quot;urn:schemas-microsoft-com:xml-data&quot; </span><b>xmlns:dt</b>=<span
+class=xmlattr>&quot;urn:schemas-microsoft-com:datatypes&quot;</span>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    </span><span
+style='font-family:Courier'>...</span></pre>
+    <pre style='line-height:
+13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>&lt;/<b>Schema</b>&gt;</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>C документом схема может быть ассоциированна путем декларации <i>пространства
+    имен</i>  в корневом элементе XML документа: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+'>&lt;?<b>xml version</b>=<span class=xmlattr>&quot;1.0&quot;</span> ?&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>catalog xmlns</b>=<span
+class=xmlattr>&quot;x-schema:Schema.xml&quot;</span> &gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    </span><span
+style='font-family:Courier'>...</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Пространства имен представляют собой расширенный синтаксис записи имен XML,
+    позволяющий разрешить конфликт имен, при необходимости использования правил
+    нескольких словарей, определяемых соответствующими схемами, в одном документе.
+    Если в документе используются элементы или атрибуты нескольких словарей, то
+    выйти из положения можно следующим образом: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+'>&lt;?<b>xml version</b>=<span class=xmlattr>&quot;1.0&quot;</span> ?&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>catalog xmlns:<span
+class=highlight1>a</span></b>=<span class=xmlattr>&quot;x-schema:schema_a.xml&quot; </span><b>xmlns:<span
+class=highlight1>b</span></b>=<span class=xmlattr>&quot;x-schema:schema_b.xml&quot;</span>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    &lt;<b>a:some_elt a:attr</b>=<span
+class=xmlattr>&quot;value&quot;</span> &gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>        ...</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    &lt;<b>a:some_elt</b>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    &lt;<b>b:other_elt b:attr</b>=<span
+class=xmlattr>&quot;value&quot;</span> /&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    </span><span
+style='font-family:Courier'>...</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>В данном примере элементы
+    и атрибуты записанны с использованием расширенного синтаксиса имен XML: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span style='font-family:Courier'>префикс_пространства_имен:имя_элемента_или_атрибута</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>а сам префикс пространства
+    имен ссоциируется со схемой в описании корневого элемента (подсвечены в примере
+    выше зеленым фоном): </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span style='font-family:Courier'>xmlns</span></b><span
+style='font-family:Courier'>:префикс_пространства_имен=<span class=xmlattr>&quot;схема&quot;</span></span></pre>
+  </div>
+</div>
+</body>
+</html>

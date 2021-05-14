@@ -1,0 +1,46 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j1.jpg>&nbsp;
+<br><br><img src=j1.jpg>
+<br><br><img src=j1.jpg></td><td valign=top>
+<h4 align=center> Для каждого покупателя выбрать продавца, который его обслуживает
+ </h4>
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+for $a in doc('file:///c:/KING/kingx/king_corp.xml')//employee
+  for $b in doc('file:///c:/KING/kingx/king_corp.xml')//customers/customer
+    where $a/customer/@id = $b/@id
+return concat($b/name,' - ',$a/name)
+</pre>
+<hr>
+Результат:
+<p><img src=xq57.jpg>
+</td></tr></table>
+<p> Пример демонстрирует нечто вроде "естественного соединения" - мы соединяем данные, лежащие на разных ветвях нашего дерева (это могли бы быть данные и из разных источников). 
+Но говорить о "естественном соединении" мы можем только с кавычками, так как внешние ключи в базе данных XML не заданы.
+<p>Два оператора <code>for</code> создают два разных контекста.
+<p>Это может рассматриваться как вложенный цикл.
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq56.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq58.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

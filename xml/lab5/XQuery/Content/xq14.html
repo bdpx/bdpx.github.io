@@ -1,0 +1,75 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr>
+<td valign=top><img src=i1.jpg>&nbsp;</td><td valign=top>
+<h3 align=center>Оси адресации</h3>
+<p>В таблице показаны некоторые возможные оси адресации (XQuery использует не все оси адресации XPath)
+<p><table border align=center>
+<tr>
+<td>&nbsp;<code>self::<i>name</i></code></td>
+<td>&nbsp;Сам контекстный узел</td>
+<td>&nbsp;<code>.</code></td>
+</tr>
+<tr>
+<td>&nbsp;<code>child::<i>name</i></code></td>
+<td>&nbsp;Непосредственный потомок контекстного узла&nbsp;</td>
+<td>&nbsp;<code><i>name</i></code></td>
+</tr>
+<tr>
+<td>&nbsp;<code>parent::<i>name</i></code></td>
+<td>&nbsp;Непосредственный предок контекстного узла&nbsp;</td>
+<td>&nbsp;<code>..</code></td>
+</tr>
+<tr>
+<td>&nbsp;<code>descendant::<i>name</i></code></td>
+<td>&nbsp;Все потомки контекстного узла</td>
+<td>&nbsp;<code>//<i>name</i>&nbsp;</code></td>
+</tr>
+<tr>
+<td>&nbsp;<code>descendant-or-self::<i>name</i>&nbsp;</code></td>
+<td>&nbsp;Контекстный узел и все его потомки </td>
+<td>&nbsp;&nbsp;</td>
+</tr>
+<tr>
+<td>&nbsp;<code>ancestor::<i>name</i></code></td>
+<td>&nbsp;Все предки контекстного узла</td>
+<td>&nbsp;&nbsp;</td>
+</tr>
+<tr>
+<td>&nbsp;<code>ancestor-or-self::<i>name</i></code></td>
+<td>&nbsp;Контекстный узел и все его предки</td>
+<td>&nbsp;&nbsp;</td>
+</tr>
+<tr>
+<td>&nbsp;<code>attribute::<i>name</i></code></td>
+<td>&nbsp;Атрибут контекстного узла</td>
+<td>&nbsp;<code>@<i>name</i></code></td>
+</tr>
+</table>
+<p> Запись осей адресации весьма громоздкая. Но на практике используется сокращенная запись, показанная в правом столбце таблицы. Сокращенную запись имеют самые популярные оси, вы увидите, что во всех наших примерах нам ни разу не пришлось воспользоваться полной записью осей.
+
+
+
+
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq13.html><img src=prev.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq15.html><img src=next.jpg BORDER=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

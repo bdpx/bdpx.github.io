@@ -1,0 +1,51 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j2.jpg>&nbsp;
+<br><br><img src=j2.jpg>
+<br><br><img src=j2.jpg></td><td valign=top>
+<h4 align=center>Определить, на какую сумму подорожал товар 'DUNK HOOP' с того момента, когда он был выставлен на продажу  
+ </h4>
+
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+for $b in
+&lt;x&gt;{
+  for $a in 
+    doc('file:///c:/KING/kingx/king_corp.xml')
+    //product[description='DUNK HOOP']/price/list
+  order by $a/../string(@start)
+  return $a
+  }&lt;/x&gt;
+return ($b/list[last()] - $b/list[1])
+</pre>
+<hr>
+Результат:
+<p><img src=xq73.jpg>
+</td></tr></table>
+<p>Опять-таки, в SQL решение было довольно громоздким.
+<p>Здесь же мы просто упорядочиваем цены по времени установления и выбираем разность между последней и первой ценами.
+<hr>
+
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq72.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq74.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

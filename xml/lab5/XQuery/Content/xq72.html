@@ -1,0 +1,52 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table width=100%><tr><td valign=top>
+<img src=j1.jpg>&nbsp;
+<br><br><img src=j1.jpg>
+<br><br><img src=j1.jpg></td><td valign=top>
+<h4 align=center>Выбрать имена и зарплаты 10 самых высокооплачиваемых сотрудников фирмы (без учета комиссионных) 
+ </h4>
+
+<p><table border align=center><tr><td>
+Запрос:
+<pre>
+let $x:=&lt;x&gt;{
+ for $a in 
+   doc('file:///c:/KING/kingx/king_corp.xml')
+   //employee
+ order by xs:decimal($a/salary) descending
+ return &lt;y&gt;{$a/name, $a/salary}&lt;/y&gt;
+ }&lt;/x&gt;
+for $b in $x/y[position()<=10]
+return concat($b/name,' - ',$b/salary)
+</pre>
+<hr>
+Результат:
+<p><img src=xq72.jpg>
+</td></tr></table>
+<p>Этот запрос представлял для нас некоторую трудность в SQL. Мы не могли решить эту задачу иначе, чем коррелированным запросом.
+<p>Здесь же мы просто формируем список, упорядоченный по зарплатам и выбираем из него первые 10 позиций.
+<p>Но обратите внимание: если в фирме есть еще кто-то, получающий 2750, то этот сотрудник не попал в список.
+Правильно ли это? (В SQL этот сотрудник был бы выбран 11-ым.)
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq71.html><img src=prev.jpg border=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg border=0></a></td>
+<td width=33% align=center><a href=xq73.html><img src=next.jpg border=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

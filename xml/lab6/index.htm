@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="/styles.css" type="text/css">
+<link href="/js/codemirror/lib/codemirror.css" rel="stylesheet" type="text/css" />
+<link href="/js/codemirror/theme/default.css" rel="stylesheet" type="text/css" />
+<script src="/js/codemirror/lib/codemirror.js" type="text/javascript"></script>
+<script src="/js/codemirror/mode/xml/xml.js" type="text/javascript"></script>
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/main.js"></script>
+
+<title>Лабораторная работа №6</title>
+</head>
+<body>
+
+<h1>Лабораторная работа № 6: XSLT</h1>
+<p>Цель лабораторной работы: Познакомиться c языком преобразований XSLT.</p>
+<p>Время для выполнения: 4 академических часа.</p>
+
+<p><b>Содержание работы.</b></p>
+
+<p><strong>Тема: </strong>Использование языка XSLT для преобразования XML документа в формат HTML.</p>
+
+<p><strong>Задание:</strong> Взять в качестве исходного документа XML документ, созданый в лабораторной работе №1.
+Используя Пример, представленый ниже, лекции и теоретические сведения,
+написать коммандный файл для получения из XML документа, согласно XSL правил (необходимо также Вам создать),
+документа HTML, представляющего в виде гипертекста указаную в первоначальном документе информацию.</p>
+
+<p><strong>Замечание</strong>.
+Для работы потребуются инструментальные средства: любой текстовый редактор (подойдет блокнот),
+парсер XSLT шаблонов Xalan (<a href="../dist/xalan-j_2_7_1-bin.zip" target="_blank">скачать</a>),</p>
+
+<p><strong>Теоретические сведения</strong>.
+Данные о языке XSLT можно почитать <a href="http://zvon.org/xxl/XSLTutorial/Output_rus/index.htm" target="_blank">здесь</a>
+и <a href="http://www.rol.ru/news/it/helpdesk/xslt01.htm" target="_blank">здесь</a>.</p>
+<p><strong>Практический пример.</strong></p>
+<p>Пусть имеется созданый XML документ.</p>
+
+<textarea class="xml">
+&lt;?xml version="1.0"?>
+&lt;sonnet type="Shakespearean">
+  &lt;author>
+    &lt;lastName>Shakespeare&lt;/lastName>
+    &lt;firstName>William&lt;/firstName>
+    &lt;nationality>British&lt;/nationality>
+    &lt;yearOfBirth>1564&lt;/yearOfBirth>
+    &lt;yearOfDeath>1616&lt;/yearOfDeath>
+  &lt;/author>
+  &lt;title>Sonnet 130&lt;/title>
+  &lt;lines>
+    &lt;line>My mistress' eyes are nothing like the sun,&lt;/line>
+    &lt;line>Coral is far more red than her lips red.&lt;/line>
+    &lt;line>If snow be white, why then her breasts are dun,&lt;/line>
+    &lt;line>If hairs be wires, black wires grow on her head.&lt;/line>
+    &lt;line>I have seen roses damasked, red and white,&lt;/line>
+    &lt;line>But no such roses see I in her cheeks.&lt;/line>
+    &lt;line>And in some perfumes is there more delight&lt;/line>
+    &lt;line>Than in the breath that from my mistress reeks.&lt;/line>
+    &lt;line>I love to hear her speak, yet well I know&lt;/line>
+    &lt;line>That music hath a far more pleasing sound.&lt;/line>
+    &lt;line>I grant I never saw a goddess go,&lt;/line>
+    &lt;line>My mistress when she walks, treads on the ground.&lt;/line>
+    &lt;line>And yet, by Heaven, I think my love as rare&lt;/line>
+    &lt;line>As any she belied with false compare.&lt;/line>
+  &lt;/lines>
+&lt;/sonnet>
+</textarea>
+
+<p>Для преобразования в HTML мы создали шаблон</p>
+
+<textarea class="xml">
+&lt;?xml version="1.0" ?>
+&lt;xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+
+&lt;xsl:template match="/sonnet">
+ &lt;html>&lt;head>&lt;title>Shakespearean sonnet&lt;/title>&lt;/head>
+ &lt;body>
+ &lt;xsl:apply-templates/>
+ &lt;/body>
+ &lt;/html>
+&lt;/xsl:template>
+
+&lt;xsl:template match="author">
+ &lt;h1>&lt;xsl:value-of select="lastName"/>,&lt;xsl:value-of select="firstName"/>
+ (&lt;xsl:value-of select="yearOfBirth"/>-&lt;xsl:value-of select="yearOfDeath"/>),
+  &lt;xsl:value-of select="nationality"/>&lt;/h1>&lt;br/>&lt;hr/>
+&lt;/xsl:template> 
+
+&lt;xsl:template match="lines">
+  &lt;xsl:for-each select="line">
+    &lt;xsl:value-of select="."/>&lt;br/>
+  &lt;/xsl:for-each>
+&lt;/xsl:template>
+
+&lt;/xsl:stylesheet>
+</textarea>
+
+<p>Пусть исходный XML документ, а также XSL шаблоны находятся в одной текущей директории.
+Соответсвенно в поддиректории <em>classes</em> находятся класс <strong>xalan</strong> в директории с таким же названиями.</p>
+
+<p>Тогда комманда для преобразования могут выглядеть следующим образом:</p>
+
+<code>
+java -cp classes\xalan\xalan.jar org.apache.xalan.xslt.Process -IN sonnet.xml -XSL sonnetrules.xsl -OUT sonnet_tesult_html.htm
+</code>
+
+<br/><br/>
+<p>Получаем результирующий файл</p>
+<p><img src="image001.png" alt="" width="620" height="571" /></p>
+<p>&nbsp;</p>
+
+</body>
+</html>

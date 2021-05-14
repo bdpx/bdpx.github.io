@@ -1,0 +1,526 @@
+<html xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+<title>XML-Data Reduced</title>
+<style>
+<!--
+h2 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:16.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+h4 {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	font-size:13.0pt;
+	font-family:"Times New Roman";
+	font-weight:bold;
+}
+p {
+	text-align:justify;
+	text-indent:6.0pt;
+	line-height:15.6pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+}
+pre {
+	text-align:left;
+	text-indent:0cm;
+	line-height:normal;
+	tab-stops:45.8pt 91.6pt 137.4pt 183.2pt 229.0pt 274.8pt 320.6pt 366.4pt 412.2pt 458.0pt 503.8pt 549.6pt 595.4pt 641.2pt 687.0pt 732.8pt;
+	font-size:10.0pt;
+	font-family:"Lucida Console";
+}
+span.xmlattr {
+	color:#006600;
+}
+-->
+</style>
+</head>
+<body bgcolor="#FFFFFF" lang=RU>
+<div class=Section1>
+  <h2><span style='font-family:Verdana'>XML-Data Reduced</span></h2>
+  <h4><span style='font-family:Verdana'>Schema</span></h4>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Элемент <b>Schema</b> языка XML-DR выполняет следующие функции: </span></p>
+  <ul type=square>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Содержит декларации элементов
+      и атрибутов </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Дает схеме имя </span></li>
+    <li style='text-align:
+     justify;'><span
+     style='font-size:9.0pt;font-family:Verdana'>Декларирует используемые в
+      схеме пространства имен</span></li>
+  </ul>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>В каждой схеме XML-DR
+    необходимо объявить пространство имен типов данных Microsoft и <b>XML-Data</b>.
+    Пример объявления схемы приводится ниже:</span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span style='font-family:Courier'>&lt;<b>Schema name</b>=<span
+class=xmlattr>&quot;SchemaExample.xml&quot;</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span style='font-family:
+Courier'>    xmlns</span></b><span
+style='font-family:Courier'>=<span class=xmlattr>&quot;urn:schemas-microsoft-com:xml-data&quot;</span></span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span style='font-family:
+Courier'>    </span></b><b><span
+lang=EN-US style='font-family:Courier;'>xmlns:dt</span></b><span
+lang=EN-US style='font-family:Courier;'>=<span
+class=xmlattr>&quot;urn:schemas-microsoft-com:datatypes&quot;</span>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    </span><span
+style='font-family:Courier;color:#666666'>&lt;!-- Содержание схемы --&gt;</span></pre>
+    <pre style='line-height:
+13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span style='font-family:
+Courier'>&lt;<b>/Schema</b>&gt;</span></pre>
+  </div>
+  <h4><span style='font-family:Verdana'>Элементы</span></h4>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Элементы объявляются в
+    элементах <b>ElementType</b>. Ниже приводится пример объявления элемента: </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span style='font-family:Courier;color:black'>Объявление</span></b><b><span
+style='font-family:Courier;color:black;'> </span></b><b><span
+style='font-family:Courier;color:black'>в</span></b><b><span style='font-family:
+Courier;color:black;'> </span></b><b><span
+style='font-family:Courier;color:black'>схеме</span></b></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>ElementType name</b>=<span
+class=xmlattr>&quot;book&quot;</span>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    ...</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>/ElementType</b>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span style='font-family:
+Courier;color:black'>Аналог</span></b><b><span style='font-family:Courier;
+color:black;'> </span></b><b><span style='font-family:
+Courier;color:black'>в</span></b><b><span lang=EN-US style='font-family:Courier;
+color:black;'> DTD</span></b></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;!<b>ELEMENT</b> book ...&gt;</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Элемент <b>ElementType</b> может содержать пять важных атрибутов: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Атрибут</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Значение</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>name</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Имя
+            элемента</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>content</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Описание
+            содержания элемента: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>empty</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            пустой </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>textOnly</span></b><span style='font-size:9.0pt;font-family:Verdana'> - только текст (#PCDATA) </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>eltOnly</span></b><span style='font-size:9.0pt;font-family:Verdana'> - только элементы </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>mixed</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            смешанное содержание (#PCDATA и элементы)</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>dt:type</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Отмечает
+            тип элемента. Допустимые значения данного атрибута рассматриваются далее.</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>model</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Открытая
+            (<b>open</b>) или закрытая (<b>close</b>) модель содержания.</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>order</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Базовый
+            порядок дочерних элементов: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>one</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            один из списка элементов </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>seq</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            указанная последовательность </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>many</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            указанные элементы могут присутствовать или не присутствовать, причем в любом
+            порядке.</span></p></td>
+      </tr>
+    </table>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Содержание элемента
+    описывается при помощи элементов &lt;<b>element</b> &gt; и &lt;<b>attribute</b> &gt;. Элемент &lt;<b>element</b> &gt; задает дочерние элементы описываемого
+    элемента. Он может содержать три атрибута: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Атрибут</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Значение</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>type</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Соответствует
+            значению атрибута <b>name</b> элемента <b>elementType</b>, объявленного в
+            схеме</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>minOccurs</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Минимальное
+            количество появлений элемента в данном элементе. Принимаемые значения: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>0</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            элемент необязателен </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>1</span></b><span style='font-size:9.0pt;font-family:Verdana'> - (по
+            умолчанию) элемент должен присутствовать минимум один раз</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>maxOccurs</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Максимальное
+            количество появлений элемента в данном элементе. Принимаемые значения: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>1</span></b><span style='font-size:9.0pt;font-family:Verdana'> - (по
+            умолчанию) элемент должен присутствовать не более одного раза </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>*</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            число вхождений элемента не ограниченно</span></p></td>
+      </tr>
+    </table>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Пример: объявление
+    элемента <b>elt1</b> со смешанным содержанием (текст и/или <b>elt2</b>) </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span style='font-family:Courier;color:black'>Объявление</span></b><b><span
+style='font-family:Courier;color:black;'> </span></b><b><span
+style='font-family:Courier;color:black'>в</span></b><b><span style='font-family:
+Courier;color:black;'> </span></b><b><span
+style='font-family:Courier;color:black'>схеме</span></b></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>ElementType name</b>=<span
+class=xmlattr>&quot;elt1&quot; </span><b>content</b>=<span class=xmlattr>&quot;mixed&quot; </span><b>order</b>=<span
+class=xmlattr>&quot;many&quot;</span>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    &lt;<b>element type</b>=<span
+class=xmlattr>&quot;elt2&quot;</span> /&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>ElementType</b>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span style='font-family:
+Courier;color:black'>Аналог</span></b><b><span style='font-family:Courier;
+color:black;'> </span></b><b><span style='font-family:
+Courier;color:black'>в</span></b><b><span lang=EN-US style='font-family:Courier;
+color:black;'> DTD</span></b></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;!<b>ELEMENT</b> elt1 (<b>#PCDATA</b>|elt2)* &gt;</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Элемент &lt;</span><b><span
+lang=EN-US style='font-size:9.0pt;font-family:Verdana;'>attribute</span></b><b><span
+lang=EN-US style='font-size:9.0pt;font-family:Verdana'> </span></b><span
+style='font-size:9.0pt;font-family:Verdana'>&gt; так же содержит три атрибута</span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Атрибут</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Значение</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>type</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>соответствует
+            значению атрибута <b>name</b> элемента &lt;<b>AttributeType</b> &gt; (см.
+            далее в уроке), определенному в этой схеме</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>default</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Значение
+            атрибута по умолчанию. Переопределяет любое значение по умолчанию, заданное в
+            элементе &lt;<b>AttributeType</b> &gt;, на который он ссылается.</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>required</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Показывает,
+            является ли атрибут обязательным. Принимает значение <span class=xmlattr>&quot;yes&quot;</span>,
+            если да. Не требуется, если определен в элементе &lt;<b>AttributeType</b> &gt;</span></p></td>
+      </tr>
+    </table>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>и служит для указания
+    атрибутов описываемого элемента.</span></p>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Пример: описание элемента
+    с пустым содержимым, имеющего обязательный атрибут <b>id</b> типа <b>ID</b>:</span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><b><span style='font-family:Courier;color:black'>Объявление</span></b><b><span
+style='font-family:Courier;color:black;'> </span></b><b><span
+style='font-family:Courier;color:black'>в</span></b><b><span style='font-family:
+Courier;color:black;'> </span></b><b><span
+style='font-family:Courier;color:black'>схеме</span></b></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>ElementType name</b>=<span
+class=xmlattr>&quot;elt1&quot; </span><b>content</b>=<span class=xmlattr>&quot;empty&quot; </span>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    &lt;<b>attribute type</b>=<span
+class=xmlattr>&quot;id&quot; </span><b>required</b>=<span class=xmlattr>&quot;yes&quot; </span><b>dt:type</b>=<span
+class=xmlattr>&quot;id&quot; </span>/&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;<b>ElementType</b>&gt;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&nbsp;</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><b><span style='font-family:
+Courier;color:black'>Аналог</span></b><b><span style='font-family:Courier;
+color:black;'> </span></b><b><span style='font-family:
+Courier;color:black'>в</span></b><b><span lang=EN-US style='font-family:Courier;
+color:black;'> DTD</span></b></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>&lt;!<b>ATTLIST</b> elt1</span></pre>
+    <pre
+style='line-height:13.2pt;background:#FFFFFF;border:none;padding:0cm;'><span lang=EN-US
+style='font-family:Courier;'>    id <b>ID #REQUIRED</b>&gt;</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Для описания сложных
+    моделей содержания часто применяют элемент &lt;<b>group</b> &gt;, выполняющий
+    роль круглых скобок &quot;(&quot; и &quot;)&quot; в DTD. Вот его атрибуты:</span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Атрибут</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Значение</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>minOccurs</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Минимальное
+            количество появлений элемента в данном элементе. Принимаемые значения: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>0</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            элемент необязателен </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>1</span></b><span style='font-size:9.0pt;font-family:Verdana'> - (по
+            умолчанию) элемент должен присутствовать минимум один раз</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>maxOccurs</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Максимальное
+            количество появлений элемента в данном элементе. Принимаемые значения: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>1</span></b><span style='font-size:9.0pt;font-family:Verdana'> - (по
+            умолчанию) элемент должен присутствовать не более одного раза </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>*</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            число вхождений элемента не ограниченно</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>order</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Базовый
+            порядок дочерних элементов: </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>one</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            один из списка элементов </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>seq</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            указанная последовательность </span></p>
+          <p style='text-align:justify;'><span
+  style='font-size:10.0pt;font-family:Wingdings;
+  '>§<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><b><span style='font-size:9.0pt;font-family:
+  Verdana'>many</span></b><span style='font-size:9.0pt;font-family:Verdana'> -
+            указанные элементы могут присутствовать или не присутствовать, причем в любом
+            порядке.</span></p></td>
+      </tr>
+    </table>
+  </div>
+  <h4><span style='font-family:Verdana'>Атрибуты</span></h4>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Описание атрибутов
+    осуществляется при помощи элемента &lt;<b>AttributeType</b> &gt; </span></p>
+  <div style='border:solid windowtext 1.0pt;
+padding:6.0pt 6.0pt 6.0pt 6.0pt;
+background:#FFFFFF'>
+    <pre style='line-height:13.2pt;background:#FFFFFF;
+border:none;padding:0cm;'><span lang=EN-US style='font-family:Courier;
+'>&lt;<b>AttributeType name</b>=<span class=xmlattr>&quot;title&quot;</span><b> required</b>=<span
+class=xmlattr>&quot;yes&quot;</span>/&gt;</span></pre>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Элемент может иметь пять
+    атрибутов: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Атрибут</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Значение</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>name</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Обязательный
+            атрибут, указывающий имя описываемого атрибута</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>default</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Значение
+            атрибута по умолчанию, должно соответствовать типу, заданному атрибутом <b>dt:type</b></span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>dt:type</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Тип
+            данных описываемого атрибута</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>dt:value</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Список
+            возможных значений (если тип перечислимый)</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>required</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Указывает,
+            является ли атрибут обязательным (<span class=xmlattr>&quot;yes&quot;</span> - да, <span class=xmlattr>&quot;no&quot;</span> - нет)</span></p></td>
+      </tr>
+    </table>
+  </div>
+  <h4><span style='font-family:Verdana'>Типы данных</span></h4>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>В целях облегчения
+    понимания схем, мы не будем глубоко вдаваться в типизацию данных, описываемых
+    при помощи XML-DR. Приведем лишь перечени основных базовых типов данных: </span></p>
+  <div align=center>
+    <table border=1 cellspacing=0 cellpadding=0 width="90%">
+      <tr>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Атрибут</span></b></p></td>
+        <td bgcolor="black"><p align=center style='text-align:center'><b><span
+  style='font-size:9.0pt;font-family:Verdana;color:white'>Значение</span></b></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>id,
+            idref, idrefs</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Идентификатор,
+            ссылка на id, несколько разделенных пробелами ссылок на id (см. DTD)</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>entity,
+            entityes</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Имя
+            сущности, несколько имен сущностей, разделенных пробелами (см. DTD)</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>nmtoken,
+            nmtokens</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Имя,
+            последовательность имен, разделенных пробклами (см. DTD)</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>enumeration</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Перечисление</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>string</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Строка
+            символов</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>int</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Целочисленный
+            тип</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>number</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Число с
+            плавающей точкой (разрешается запись в экспоненциальной форме)</span></p></td>
+      </tr>
+      <tr>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>boolean</span></p></td>
+        <td><p><span style='font-size:9.0pt;font-family:Verdana'>Логический
+            тип: 0-ложь, 1-истина</span></p></td>
+      </tr>
+    </table>
+  </div>
+  <p><span style='font-size:9.0pt;font-family:Verdana'>Данный перечень можно
+    продолжать, однако это не имеет особого смысла. Приведенного списка типов
+    данных вполне достаточно для решения большинства задач в плане &quot;XML для
+    WEB&quot;. </span></p>
+</div>
+</body>
+</html>

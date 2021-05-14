@@ -1,0 +1,85 @@
+<HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="Generator" content="Far Editor">
+   <meta name="Description" content="xquery,xpath">
+   <meta name="Owner" content="derev@mipk.kharkiv.edu">
+   <meta name="Keywords" content="xquery,xpath">
+
+<TITLE>Язык запросов XQuery</TITLE>
+<!--                                                                   -->
+<!-- (C) Owner: Alexander S. Derevjanko (web-design only)-->
+<!-- (C) НТУ "ХПИ". Каф.Информатики и интеллектуальной собственности, 2008. -->
+
+</head>
+
+<body bgcolor="FFFFB0">
+<table><tr><td valign=top>
+<img src=j1.jpg>&nbsp;
+<br><br><img src=j1.jpg>
+<br><br><img src=j1.jpg></td><td valign=top>
+<h4 align=center>Прочитать весь документ</h4>
+<table border align=center><tr><td>
+Запрос:
+<pre>
+doc('file:///c:/KING/kingx/king_corp.xml')
+</pre>
+<hr>
+Результат, сохраненный в файле:
+<pre>
+&lt;?xml version='1.0' encoding='UTF-8'?&gt;
+&lt;king_corp&gt;
+  &lt;departments&gt;
+    &lt;department id="<font color=green>10</font>"&gt;
+      &lt;name&gt;<font color=blue>ACCOUNTING</font>&lt;/name&gt;
+      &lt;location&gt;<font color=blue>NEW YORK</font>&lt;/location&gt;
+      &lt;employees&gt;
+        &lt;employee id="<font color=green>7782</font>"&gt;
+          &lt;name&gt;<font color=blue>CAROL F. CLARK</font>&lt;/name&gt;
+          &lt;manager_id&gt;<font color=blue>7839</font>&lt;/manager_id&gt;
+          &lt;function&gt;<font color=blue>MANAGER</font>&lt;/function&gt;
+          &lt;hire_date&gt;<font color=blue>1985-06-09</font>&lt;/hire_date&gt;
+          &lt;salary&gt;<font color=blue>2450.00</font>&lt;/salary&gt;
+        &lt;/employee&gt;
+        &lt;employee id="<font color=green>7839</font>"&gt;
+          &lt;name&gt;<font color=blue>FRANCIS A. KING</font>&lt;/name&gt;
+          &lt;function&gt;<font color=blue>PRESIDENT</font>&lt;/function&gt;
+          &lt;hire_date&gt;<font color=blue>1985-11-17</font>&lt;/hire_date&gt;
+          &lt;salary&gt;<font color=blue>5000.00</font>&lt;/salary&gt;
+        &lt;/employee&gt;
+        &lt;employee id="<font color=green>7934</font>"&gt;
+          &lt;name&gt;<font color=blue>BARBARA M. MILLER</font>&lt;/name&gt;
+          &lt;manager_id&gt;<font color=blue>7782</font>&lt;/manager_id&gt;
+          &lt;function&gt;<font color=blue>CLERK</font>&lt;/function&gt;
+          &lt;hire_date&gt;<font color=blue>1986-01-23</font>&lt;/hire_date&gt;
+          &lt;salary&gt;<font color=blue>1300.00</font>&lt;/salary&gt;
+        &lt;/employee&gt;
+        &lt;employee id="<font color=green>8001</font>"&gt;
+          &lt;name&gt;<font color=blue>JAMES B. KING</font>&lt;/name&gt;
+          &lt;manager_id&gt;<font color=blue>7560</font>&lt;/manager_id&gt;
+          &lt;function&gt;<font color=blue>CLERK</font>&lt;/function&gt;
+          &lt;hire_date&gt;<font color=blue>1990-01-12</font>&lt;/hire_date&gt;
+          &lt;salary&gt;<font color=blue>2500.00</font>&lt;/salary&gt;
+          &lt;customer id="<font color=green>100</font>"/&gt;
+        &lt;/employee&gt;
+      &lt;/employees&gt;
+    &lt;/department&gt;
+    &lt;department id="<font color=green>12</font>"&gt;
+      &lt;name&gt;<font color=blue>RESEARCH</font>&lt;/name&gt;
+      &lt;location&gt;<font color=blue>NEW YORK</font>&lt;/location&gt;
+      &lt;employees&gt;
+        &lt;employee id="<font color=green>7569</font>"&gt;
+. . .
+</pre></td></tr></table>
+<p>Просто читаем весь файл king_corp.xml. С этого текста будут начинаться операторы во всех последующих примерах. Не обращайте пока на него внимания.
+
+
+
+<hr>
+<table align=center width=70%><tr>
+<td width=33% align=center><a href=xq16.html><img src=prev.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq01.html><img src=top.jpg BORDER=0></a></td>
+<td width=33% align=center><a href=xq18.html><img src=next.jpg BORDER=0></a></td>
+</tr></table>
+</td></tr></table>
+</body>
+</html>

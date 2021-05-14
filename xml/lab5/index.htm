@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<link href="/js/codemirror/lib/codemirror.css" rel="stylesheet" type="text/css" />
+<link href="/js/codemirror/theme/default.css" rel="stylesheet" type="text/css" />
+<script src="/js/codemirror/lib/codemirror.js" type="text/javascript"></script>
+<script src="/js/codemirror/mode/xml/xml.js" type="text/javascript"></script>
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/main.js"></script>
+<link rel="stylesheet" href="/styles.css" type="text/css" />
+
+<title>Схема данных XDR</title>
+</head>
+<body>
+
+<h1>Лабораторная работа № 5: XPath, XQuery</h1>
+
+<p>Цель лабораторной работы:</p>
+<p>Познакомиться c технологиями XPath, XQuery.</p>
+
+<h2>I. Теоретические сведения</h2>
+
+<p>Краткое описание XPath и XQuery можно прочитать в лекции №5 или в <a href="XQuery/index.htm" target="_blank">этой презентации</a>
+(&copy;&nbsp;А.С.&nbsp;Деревянко).
+Технология XPath предназначена для адресации какой-либо части дерева XML, и, чаще всего, используется вместе с технологией XSLT.
+XQuery является своего рода расширением языка XPath, и позволяет строить более сложные запросы к дереву XML документа (например, к разным его веткам).</p>
+
+<p>Программирование XPath и XQuery запросов является с программной точки зрения нелегкой задачей,
+поэтому для их создания воспользуемся freeware open source утилитой qizx/open. Утилита написана на Java.
+Ее можно скачать с <a href="http://www.xmlmind.com/qizxopen/" target="_blank">официального сайта</a>,
+или портативную (не требующую инсталляции) версию <a href="../dist/qizxopen.rar" target="_blank">отсюда</a>.
+В случае, если дистрибутив взят с официального сайта, то для запуска воспользуйтесь документацией.
+Если дистрибутив скачан с сайта кафедры, то достаточно  распаковать содержимое архива,
+и в поддиректории BIN запустить файл <strong>start.bat</strong>.
+Естественно, что в обоих случаях для работы программы необходима установленная в системе машина Java (тестировалось с jre 6 upd 22).</p>
+
+<h2>Практический пример</h2>
+<p>Пусть мы имеем XML документ sonnet.xml следующего содержания:</p>
+
+<textarea class="xml">&lt;?xml version="1.0"?>
+&lt;sonnet type="Shakespearean">
+  &lt;author>
+    &lt;lastName>Shakespeare&lt;/lastName>
+    &lt;firstName>William&lt;/firstName>
+    &lt;nationality>British&lt;/nationality>
+    &lt;yearOfBirth>1564&lt;/yearOfBirth>
+    &lt;yearOfDeath>1616&lt;/yearOfDeath>
+  &lt;/author>
+  &lt;title>Sonnet 130&lt;/title>
+  &lt;lines>
+    &lt;line>My mistress' eyes are nothing like the sun,&lt;/line>
+    &lt;line>Coral is far more red than her lips red.&lt;/line>
+    &lt;line>If snow be white, why then her breasts are dun,&lt;/line>
+    &lt;line>If hairs be wires, black wires grow on her head.&lt;/line>
+    &lt;line>I have seen roses damasked, red and white,&lt;/line>
+    &lt;line>But no such roses see I in her cheeks.&lt;/line>
+    &lt;line>And in some perfumes is there more delight&lt;/line>
+    &lt;line>Than in the breath that from my mistress reeks.&lt;/line>
+    &lt;line>I love to hear her speak, yet well I know&lt;/line>
+    &lt;line>That music hath a far more pleasing sound.&lt;/line>
+    &lt;line>I grant I never saw a goddess go,&lt;/line>
+    &lt;line>My mistress when she walks, treads on the ground.&lt;/line>
+    &lt;line>And yet, by Heaven, I think my love as rare&lt;/line>
+    &lt;line>As any she belied with false compare.&lt;/line>
+  &lt;/lines>
+&lt;/sonnet>
+</textarea>
+
+<p>Общий вид запущеного приложения qizx </p>
+<img src="img/image001.png" width="1117" height="814">
+<p>Чтобы загрузить XML документ для разбора парсером, необходимо выполнить комманду</p>
+<p><code>doc('file:///полный_путь/sonnet.xml');</code></p>
+<p> например,</p>
+<p><code>doc('file:///d:/devj/xml/sonnet.xml');</code></p>
+<p>Если необходимо &quot;выполнить&quot; выражение XPath, необходимо воспользоваться коммандой</p>
+<p><code>doc(...) XPath_выражение</code></p>
+<p>Например, выражение</p>
+<p><code>doc('file:///d:/devj/xml/sonnet.xml')<br/>&nbsp;&nbsp;//line/text()</code></p>
+<p>Выдаст построчно содержимое соннета.</p>
+
+<img src="img/image003.png" width="1117" height="814">
+
+<h2>Задание на лабораторную работу</h2>
+
+<p>Необходимо для XML документа, созданого в первой лабораторной работе, выполнить такие запросы:</p>
+  <ol>
+    <li>Запрос на поиск любого элемента в любом месте, независимо от уровня и места нахождения.</li>
+    <li>Запрос на поиск элемента, относительно корня.</li>
+    <li>Запрос на поиск элемента, относительно любой (выбранной Вами) оси.</li>
+    <li>Запрос на поиск элемента, у которого проверяется равенство аттрибута конкретному значению.</li>
+    <li>Запрос с применением строковых функций для работы с содержимым элемента.</li>
+    <li>Запрос на применение агрегирующей функции (типа avg).</li>
+    <li>Любой запрос с применением оператора XQuery.</li>
+  </ol>
+
+<h2>Отчет</h2>
+<p>Отчет должен содержать:</p>
+<ol>
+  <li>Скриншот загруженного и пропарсированного в qizx/open Вашего XML документа.</li>
+  <li>Все 7 запросов, выполненых в  qizx/open, и содержащих результат выполнения запроса.</li>
+</ol>
+
+</body>
+</html>
