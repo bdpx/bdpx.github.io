@@ -1,0 +1,78 @@
+name: deploy
+run-name: build, deploy pages
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install packages
+      run: |
+          sudo apt-get update
+          sudo apt-get install -yq \
+              libboost-regex-dev \
+              libboost-system-dev \
+              libboost-filesystem-dev \
+              libboost-serialization-dev \
+              libboost-stacktrace-dev \
+              source-highlight \
+              libsource-highlight-dev \
+              xsltproc \
+              libxml2-dev \
+              libxml2-utils \
+              w3c-sgml-lib
+
+    - name: Configure CMake
+      run: |
+          cmake -B ${{github.workspace}}/build \
+                -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+                -DCMAKE_CXX_COMPILER=g++ \
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -- -j4
+
+    - name: List project site files
+      run: find ${{github.workspace}}/build/artifacts | sort
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{github.workspace}}/build/artifacts
+        retention-days: 30
+
+######################################################################
+# separate job to deploy generated site
+######################################################################
+  deploy:
+    # Add a dependency to the build job
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      actions: read     # workaround for deploy-pages 4.0.0
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: Deploy project site on github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
