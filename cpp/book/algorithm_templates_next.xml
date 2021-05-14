@@ -1,0 +1,3972 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="xhtml.xsl"?>
+
+<chapter xmlns="http://www.example.com/postrisc"
+ id="algorithm_templates_next"
+ description="Обобщенные алгоритмы, продолжение, часть 2"
+>
+<title>Обобщенные алгоритмы в алфавитном порядке</title>
+
+<preface>
+
+<p>В этом приложении мы рассмотрим все алгоритмы. Мы решили расположить
+их в алфавитном порядке (за небольшими исключениями), чтобы проще было
+найти нужный. Каждый алгоритм представлен в следующем виде: сначала
+описывается прототип функции, затем сам алгоритм, причем особое
+внимание уделяется интуитивно неочевидным особенностям, и, наконец,
+приводится пример программы, показывающий, как можно данный алгоритм
+использовать.
+</p>
+
+</preface>
+
+<section id="common">
+<title>Общие свойсьва алгоритмов</title>
+
+<p>Первыми двумя аргументами всех обобщенных алгоритмов
+(естественно, не без исключений) является пара итераторов, обычно first
+и last, обозначающих диапазон элементов внутри контейнера или
+встроенного массива, над которым работает алгоритм. Этот диапазон
+(часто называемый интервалом с включенной левой границей), как правило,
+записывается в виде:</p>
+
+<div class="lang-cpp"><![CDATA[// следует читать: включая first и все последующие
+// элементы до last, но не включая сам last
+[first, last)]]></div>
+
+<p>Это означает, что диапазон начинается с first и заканчивается last, однако сам элемент last не включается. Если
+</p>
+
+<div class="lang-cpp"><![CDATA[first == last]]></div>
+
+<p>то говорят, что диапазон пуст.</p>
+
+<p>К паре итераторов предъявляется такое требование: last должен
+быть достижим, если начать с first и последовательно применять оператор
+инкремента. Однако компилятор не может проверить выполнение данного
+ограничения. Если требование не будет выполнено, поведение программы не
+определено; обычно это заканчивается ее крахом и дампом памяти.</p>
+
+<p>В объявлении каждого алгоритма подразумевается минимальная
+поддержка, которую должны обеспечить итераторы (краткое обсуждение пяти
+категорий итераторов см. в разделе 12.4). Например, алгоритм find(),
+реализующий однопроходный обход контейнера и выполняющий только чтение,
+требует итератора чтения InputIterator. Ему также можно передать одно-
+или двунаправленный итератор или итератор с произвольным доступом.
+Однако передача итератора записи приведет к ошибке. Не гарантируется,
+что подобные ошибки (при передаче итератора неподходящей категории)
+будут обнаружены компилятором, поскольку категории итераторов - это не
+сами типы, а лишь параметры, которыми конкретизируется шаблон функции.</p>
+
+<p>Некоторые алгоритмы существуют в нескольких вариантах: в одном
+используется тот или иной встроенный оператор, а в другом -
+объект-функция или указатель на функцию, реализующие альтернативу этому
+оператору. Например, алгоритм unique() по умолчанию сравнивает соседние
+элементы контейнера с помощью оператора равенства, определенного в
+классе, к которому данные элементы принадлежат. Но если в этом классе
+нет оператора равенства или мы хотим сравнивать элементы иным способом,
+то можем передать объект-функцию или указатель на функцию,
+поддерживающую нужную семантику. Есть и такие алгоритмы, которые
+выполняют похожие действия, но имеют различные имена. Так, имена
+предикатных версий алгоритмов всегда заканчиваются на _if, скажем
+find_if(). Например, есть вариант алгоритма replace(), где используется
+встроенный оператор равенства, и вариант с именем replace_if(),
+которому передается предикатный объект-функция или указатель на
+функцию-предикат.</p>
+
+<p>Алгоритмы, модифицирующие контейнер, обычно также существуют в
+двух вариантах: один осуществляет модификацию по месту, а второй
+возвращает копию с внесенными изменениями. Так, есть алгоритмы
+replace() и replace_copy(). Однако вариант с копированием (его имя
+всегда содержит слово _copy) имеется не для каждого алгоритма,
+модифицирующего контейнер. К примеру, для алгоритмов sort() его нет. В
+таких случаях, если нужно, чтобы алгоритм работал с копией, мы должны
+создать ее самостоятельно и передать в качестве аргумента.</p>
+
+<p>Для использования любого обобщенного алгоритма в программу необходимо включить заголовочный файл
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>]]></div>
+
+<p>Для употребления любого из четырех численных алгоритмов:
+adjacent_difference(), accumulate(), inner_product() и partial_sum() -
+нужно включить также файл
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <numeric>]]></div>
+
+<p>Приведенные в этом Приложении примеры программ, в которых
+используются алгоритмы и различные контейнерные типы, отражают
+существующую на момент написания книги реализацию. Применение
+библиотеки ввода/вывода iostream следует соглашениям, установленным до
+принятия стандарта; скажем, в программу включается заголовочный файл
+iostream, а не iostream. Шаблоны не поддерживают аргументы по
+умолчанию. Чтобы программа работала на системе, имеющейся у вас,
+возможно, придется изменить некоторые объявления.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// Алгоритм accumulate()
+template <class InputIterator, class Type>
+Type accumulate(
+   InputIterator first, InputIterator last,
+   Type init);
+
+template < class InputIterator, class Type,
+           class BinaryOperation >
+Type accumulate(
+   InputIterator first, InputIterator last,
+   Type init, BinaryOperation op);]]></div>
+
+<p>Первый вариант accumulate() вычисляет сумму значений элементов
+последовательности из диапазона, ограниченного парой итераторов
+[first,last), с начальным значением, которое задано параметром init.
+Например, если дана последовательность {1,1,2,3,5,8} и начальное
+значение 0, то результатом работы алгоритма будет 20. Во втором
+варианте вместо оператора сложения к элементам применяется переданная
+бинарная операция. Если бы мы передали алгоритму accumulate()
+объект-функцию times&lt;int&gt; и начальное значение 1, то получили бы
+результат 240. accumulate() - это один из численных алгоритмов; для его
+использования в программу необходимо включить заголовочный файл &lt;numeric&gt;.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <numeric>
+#include <list>
+#include <functional>
+#include <iostream>
+
+/*
+ * выход:
+ * accumulate()
+ *     работает с последовательностью {1,2,3,4}
+ *    результат для сложения по умолчанию: 10
+ *    результат для объекта-функции plus<int>: 10
+ */
+
+int main() {
+    int ia[] = { 1, 2, 3, 4 };
+    std::list<int> ilist(ia, ia+4);
+
+    int ia_result = std::accumulate(&ia[0], &ia[4], 0);
+    int ilist_res = std::accumulate(ilist.begin(), ilist.end(), 0, std::plus<int>());
+
+    std::cout << "accumulate()\n\t"
+         << "работает с последовательностью {1,2,3,4}\n\t"
+         << "результат для сложения по умолчанию: "
+         << ia_result << "\n\t"
+         << "результат для объекта-функции plus<int>: "
+         << ilist_res
+         << std::endl;
+
+    return 0;
+}]]></div>
+
+</section>
+
+<section id="adjacent_difference">
+<title>Алгоритм adjacent_difference()</title>
+
+<div class="lang-cpp"><![CDATA[template < class InputIterator, class OutputIterator >
+OutputIterator adjacent_difference(
+   InputIterator first, InputIterator last,
+   OutputIterator result);
+template < class InputIterator, class OutputIterator >
+           class BinaryOperation >
+OutputIterator adjacent_difference(
+   InputIterator first, InputIterator last,
+   OutputIterator result, BinaryOperation op);]]></div>
+
+<p>Первый вариант adjacent_difference() создает новую
+последовательность, в которой значение каждого элемента, кроме первого,
+равно разности между текущим и предыдущим элементами исходной
+последовательности. Например, если дано {0,1,1,2,3,5,8}, то первым
+элементом новой последовательности будет копия: 0. Вторым - разность
+первых двух элементов исходной последовательности: 1. Третий элемент
+равен разности третьего и второго элементов: 1-1=0, и т.д. В результате
+мы получим последовательность {0,1,0,1,1,2,3}.</p>
+
+<p>Во втором варианте разность соседних элементов вычисляется с
+помощью указанной бинарной операции. Возьмем ту же исходную
+последовательность и передадим объект-функцию times&lt;int&gt;. Как и
+раньше, первый элемент просто копируется. Второй элемент - это
+произведение первого и второго элементов исходной последовательности;
+он тоже равен 0. Третий элемент - произведение второго и третьего
+элементов исходной последовательности: 1 * 1 = 1, и т.д. Результат -
+{0,1,2,6,15,40}.</p>
+
+<p>В обоих вариантах итератор OutputIterator указывает на элемент,
+расположенный за последним элементом новой последовательности.
+adjacent_difference() - это один из численных алгоритмов, для его
+использования в программу необходимо включить заголовочный файл <numeric>.
+</numeric>
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <numeric>
+#include <list>
+#include <functional>
+#include <iterator>
+#include <iostream>
+
+int main() {
+    int ia[] = { 1, 1, 2, 3, 5, 8 };
+
+    std::list<int> ilist(ia, ia+6);
+    std::list<int> ilist_result(ilist.size());
+
+    std::adjacent_difference(ilist.begin(), ilist.end(), ilist_result.begin());
+
+    // на выходе печатается:
+    // 1 0 1 1 2 3
+    std::copy(ilist_result.begin(), ilist_result.end(), ostream_iterator<int>(std::cout," "));
+    std::cout << std::endl;
+
+    std::adjacent_difference(ilist.begin(), ilist.end(), ilist_result.begin(), times<int>());
+
+    // на выходе печатается:
+    // 1 1 2 6 15 40
+    std::copy(ilist_result.begin(), ilist_result.end(), ostream_iterator<int>(std::cout," "));
+    std::cout << std::endl;
+}
+
+//Алгоритм adjacent_find()
+template < class ForwardIterator >
+ForwardIterator
+adjacent_find(ForwardIterator first, ForwardIterator last);
+
+template < class ForwardIterator, class BinaryPredicate >
+ForwardIterator
+adjacent_find(ForwardIterator first,
+               ForwardIterator last, Predicate pred);]]></div>
+
+<p>adjacent_find() ищет первую пару одинаковых соседних элементов в
+диапазоне, ограниченном итераторами [first,last). Если соседние
+дубликаты найдены, то алгоритм возвращает однонаправленный итератор,
+указывающий на первый элемент пары, в противном случае возвращается
+last. Например, если дана последовательность {0,1,1,2,2,4}, то будет
+найдена пара [1,1] и возвращен итератор, указывающий на первую единицу.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include <cassert>
+
+class TwiceOver {
+public:
+    bool operator() (int val1, int val2)
+         { return val1 == val2/2 ? true : false; }
+};
+
+int main() {
+    int ia[] = { 1, 4, 4, 8 };
+    std::vector<int> vec(ia, ia+4);
+
+     int *piter;
+    std::vector<int>::iterator iter;
+
+    // piter указывает на ia[1]
+    piter = std::adjacent_find(ia, ia+4);
+    assert(*piter == ia[1]);
+
+    // iter указывает на vec[2]
+    iter = std::adjacent_find(vec.begin(), vec.end(), TwiceOver());
+    assert(*iter == vec[2]);
+
+    // пришли сюда: все хорошо
+    std::cout <<"ok: adjacent-find() завершился успешно!\n";
+    return 0;
+}
+]]></div>
+
+</section>
+
+<section id="binary_search">
+<title>Алгоритм binary_search()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class Type>
+bool
+binary_search(ForwardIterator first,
+              ForwardIterator last, const Type &value);
+
+template<class ForwardIterator, class Type>
+bool
+binary_search(ForwardIterator first,
+              ForwardIterator last, const Type &value,
+              Compare comp);
+]]></div>
+
+<p>binary_search() ищет значение value в отсортированной
+последовательности, ограниченной парой итераторов [first,last). Если
+это значение найдено, возвращается true, иначе - false. В первом
+варианте предполагается, что контейнер отсортирован с помощью оператора
+"меньше". Во втором варианте порядок определяется указанным
+объектом-функцией.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <cassert>
+
+int main() {
+    int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};
+    std::vector<int> vec(ia, ia+12);
+
+    std::sort(&ia[0], &ia[12]);
+    bool found_it = binary_search(&ia[0], &ia[12], 18);
+    assert(found_it == false);
+
+    std::vector<int> vec(ia, ia+12);
+    std::sort(vec.begin(), vec.end(), std::greater<int>());
+    found_it = std::binary_search(vec.begin(), vec.end(), 26, std::greater<int>());
+    assert(found_it == true);
+}
+]]></div>
+
+</section>
+
+<section id="copy">
+<title>Алгоритм copy()</title>
+
+<div class="lang-cpp"><![CDATA[
+template < class InputIterator, class OutputIterator >
+OutputIterator
+copy(InputIterator first1, InputIterator last,
+      OutputIterator first2)
+]]></div>
+
+<p>copy() копирует последовательность элементов, ограниченную парой
+итераторов [first,last), в другой контейнер, начиная с позиции, на
+которую указывает first2. Алгоритм возвращает итератор, указывающий на
+элемент второго контейнера, следующий за последним вставленным.
+Например, если дана последовательность {0,1,2,3,4,5}, мы можем сдвинуть
+элементы на один влево с помощью такого вызова:</p>
+
+<div class="lang-cpp"><![CDATA[int ia[] = {0, 1, 2, 3, 4, 5 };
+// сдвинуть элементы влево на один, получится {1,2,3,4,5,5}
+copy(ia+1, ia+6, ia);]]></div>
+
+<p>copy() начинает копирование со второго элемента ia, копируя 1 в
+первую позицию, и так далее, пока каждый элемент не окажется в позиции
+на одну левее исходной.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iterator>
+#include <iostream>
+
+/* печатается:
+   0 1 1 3 5 8 13
+   сдвиг массива влево на 1:
+   1 1 3 5 8 13 13
+   сдвиг вектора влево на 2:
+   1 3 5 8 13 8 13
+*/
+
+int main() {
+    int ia[] = { 0, 1, 1, 3, 5, 8, 13 };
+    std::vector<int> vec(ia, ia+7);
+    ostream_iterator<int>  ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность элементов:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    // сдвиг влево на один элемент
+    std::copy(ia+1, ia+7, ia);
+
+    std::cout << "сдвиг массива влево на 1:\n";
+    std::copy(ia, ia+7, ofile); std::cout << '\n';
+
+    // сдвиг влево на два элемента
+    std::copy(vec.begin()+2, vec.end(), vec.begin());
+
+    std::cout << "сдвиг вектора влево на 2:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="copy_backward">
+<title>Алгоритм copy_backward()</title>
+
+
+<div class="lang-cpp"><![CDATA[
+template < class BidirectionalIterator1,
+           class BidirectionalIterator2 >
+BidirectionalIterator2
+copy_backward(BidirectionalIterator1 first,
+               BidirectionalIterator1 last1,
+               BidirectionalIterator2 last2)
+]]></div>
+
+<p>copy_backward() ведет себя так же, как copy(), только элементы
+копируются в обратном порядке: копирование начинается с last1-1 и
+продолжается до first. Кроме того, элементы помещаются в целевой
+контейнер с конца, от позиции last2-1, пока не будет скопировано
+last1-first элементов.</p>
+
+<p>Например, если дана последовательность {0,1,2,3,4,5}, мы можем
+скопировать последние три элемента (3,4,5) на место первых трех
+(0,1,2), установив first равным адресу значения 0, last1 - адресу
+значения 3, а last2 - адресу значения 5. Тогда элемент 5 попадает на
+место элемента 2, элемент 4 - на место 1, а элемент 3 - на место 0. В
+результате получим последовательность {3,4,5,3,4,5}.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iterator>
+#include <iostream>
+
+class print_elements {
+public:
+   void operator()(std::string elem) {
+        std::cout <<elem
+             <<(_line_cnt++%8 ? " " : "\n\t");
+   }
+   static void reset_line_cnt() { _line_cnt = 1; }
+
+private:
+   static int _line_cnt;
+};
+
+int print_elements::_line_cnt = 1;
+
+/* печатается:
+   исходный список строк:
+   The light untonsured hair grained and hued like
+   pale oak
+
+   после copy_backward(begin+1, end-3, end):
+   The light untonsured hair light untonsured hair grained
+   and hued
+*/
+
+int main() {
+   std::string sa[] = {
+      "The", "light", "untonsured", "hair",
+     "grained", "and", "hued", "like", "pale", "oak" };
+
+   std::vector<std::string> svec(sa, sa+10);
+
+   std::cout <<"исходный список строк:\n\t";
+   std::for_each(svec.begin(), svec.end(), print_elements());
+   std::cout << "\n\n";
+
+   std::copy_backward(svec.begin()+1, svec.end()-3, svec.end());
+
+   print_elements::reset_line_cnt();
+
+   std::cout << "после copy_backward(begin+1, end-3, end):\n";
+   std::for_each(svec.begin(), svec.end(), print_elements());
+   std::cout << "\n";
+}
+]]></div>
+
+</section>
+
+<section id="count">
+<title>Алгоритм count()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class InputIterator, class Type>
+iterator_traits<InputIterator>::distance_type
+count(InputIterator first,
+      InputIterator last, const Type& value);
+]]></div>
+
+<p>count() сравнивает каждый элемент со значением value в диапазоне,
+ограниченном парой итераторов [first,last), с помощью оператора
+равенства. Алгоритм возвращает число элементов, равных value. (Отметим,
+что в имеющейся у нас реализации стандартной библиотеки поддерживается
+более ранняя спецификация count().)</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <string>
+#include <list>
+#include <iterator>
+
+#include <cassert>
+#include <iostream>
+#include <fstream.h>
+
+/***********************************************************************
+* прочитанный текст:
+Alice Emma has long flowing red hair. Her Daddy says
+when the wind blows through her hair, it looks almost alive,
+like a fiery bird in flight. A beautiful fiery bird, he tells her,
+magical but untamed. "Daddy, shush, there is no such thing,"
+she tells him, at the same time wanting him to tell her more.
+Shyly, she asks, "I mean, Daddy, is there?"
+************************************************************************
+* программа выводит:
+* count(): fiery встречается 2 раз(а)
+************************************************************************
+*/
+
+int main() {
+
+   ifstream infile("alice_emma");
+   assert (infile != 0);
+
+   std::list<std::string,allocator> textlines;
+
+   typedef std::list<std::string,allocator>::difference_type diff_type;
+   istream_iterator< std::string, diff_type > instream(infile),
+                     eos;
+
+   copy(instream, eos, back_inserter(textlines));
+
+   std::string search_item("fiery");
+
+   /*********************************************************************
+    * примечание: ниже показан интерфейс count(), принятый в
+    *             стандартной библиотеке. В текущей реализации библиотеки
+    *       от RogueWave поддерживается более ранняя версия, в которой
+    *       типа distance_type еще не было, так что count()
+    *       возвращала результат в последнем аргументе
+    *
+    * вот как должен выглядеть вызов:
+    *
+    * typedef iterator_traits<InputIterator>::
+    *        distance_type dis_type;
+    *
+    * dis_type elem_count;
+    * elem_count = count(textlines.begin(), textlines.end(),
+    *                     search_item);
+    ***********************************************************************
+
+   int elem_count = 0;
+   std::list<std::string>::iterator
+        ibegin = textlines.begin(),
+        iend   = textlines.end();
+
+   // устаревшая форма count()
+   std::count(ibegin, iend, search_item, elem_count);
+
+   std::cout <<"count(): " << search_item
+       <<" встречается "  << elem_count << " раз(а)\n";
+}
+]]></div>
+
+</section>
+
+<section id="count_if">
+<title>Алгоритм count_if()</title>
+
+<div class="lang-cpp"><![CDATA[
+template < class InputIterator, class Predicate >
+iterator_traits<InputIterator>::distance_type
+count_if(InputIterator first,
+          InputIterator last, Predicate pred);
+]]></div>
+
+<p>count_if() применяет предикат pred к каждому элементу из диапазона,
+ограниченного парой итераторов [first,last). Алгоритм сообщает, сколько
+раз предикат оказался равным true.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <iostream>
+
+class Even {
+public:
+    bool operator()(int val)
+          { return val%2 ? false : true; }
+};
+
+int main() {
+   int ia[] = {0,1,1,2,3,5,8,13,21,34};
+   std::list<int> ilist(ia, ia+10);
+
+   /*
+    * не поддерживается в текущей реализации
+    *****************************************************
+    typedef
+       iterator_traits<InputIterator>::distance_type
+      distance_type;
+
+      distance_type ia_count, list_count;
+
+      // счетчик четных элементов: 4
+       ia_count = count_if(&ia[0], &ia[10], Even());
+      list_count = count_if(ilist.begin(), ilist_end(),
+                             bind2nd(std::less<int>(),10));
+    *******************************************************/
+   int ia_count = 0;
+   std::count_if(&ia[0], &ia[10], Even(), ia_count);
+
+   // печатается:
+   // count_if(): есть 4 четных элемент(а).
+   std::cout << "count_if(): есть " << ia_count << " четных элемент(а).\n";
+
+   int list_count = 0;
+   std::count_if(ilist.begin(), ilist.end(),
+             bind2nd(std::less<int>(),10), list_count);
+
+   // печатается:
+   // count_if(): есть 7 элемент(ов), меньших 10.
+   std::cout << "count_if(): есть " << list_count << " элемент(ов), меньших 10.\n";
+}]]></div>
+
+</section>
+
+<section id="equal">
+<title>Алгоритм equal()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2 >
+bool
+equal(InputIterator1 first1,
+       InputIterator1 last, InputIterator2 first2);
+
+template< class InputIterator1, class InputIterator2,
+          class BinaryPredicate >
+bool
+equal(InputIterator1 first1, InputIterator1 last,
+       InputIterator2 first2, BinaryPredicate pred);]]></div>
+
+<p>equal() возвращает true, если обе последовательности одинаковы в
+диапазоне, ограниченном парой итераторов [first,last). Если вторая
+последовательность содержит дополнительные элементы, они игнорируются.
+Чтобы убедиться в тождественности данных последовательностей,
+необходимо написать:</p>
+
+<div class="lang-cpp"><![CDATA[
+if (vec1.size() == vec2.size() &&
+     equal(vec1.begin(), vec1.end(), vec2.begin());
+]]></div>
+
+<p>или воспользоваться оператором равенства, определенном в классе
+самого контейнера: vec1 == vec2. Если второй контейнер содержит меньше
+элементов, чем первый, и алгоритму приходится просматривать элементы за
+концом контейнера, то поведение программы не определено. По умолчанию
+для сравнения применяется оператор равенства в классе элементов
+контейнера, а во втором варианте алгоритма - указанный предикат pred.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <iostream>
+
+class equal_and_odd {
+public:
+    bool operator()(int val1, int val2) {
+        return (val1 == val2 &&
+               (val1 == 0 || val1 % 2))
+                ? true : false;
+    }
+};
+
+int main() {
+   int ia[] =  { 0,1,1,2,3,5,8,13 };
+   int ia2[] = { 0,1,1,2,3,5,8,13,21,34 };
+
+   bool res;
+
+   // true: обе последовательности совпадают до длины ia
+   // печатается: int ia[7] равно int ia2[9]? Да.
+
+   res = equal(&ia[0], &ia[7], &ia2[0]);
+   std::cout << "int ia[7] равно int ia2[9]? "
+        <<(res ? "Да" : "Нет") << ".\n";
+
+   std::list<int> ilist(ia,  ia+7);
+   std::list<int> ilist2(ia2, ia2+9);
+
+   // печатается: список ilist равен ilist2? Да.
+   res = std::equal(ilist.begin(), ilist.end(), ilist2.begin());
+   std::cout << "список ilist равен ilist2? "
+        << (res ? "Да" : "Нет") << ".\n";
+
+   // false: 0, 2, 8 не являются равными и нечетными
+   // печатается: список ilist equal_and_odd() ilist2? Нет.
+   res = std::equal(ilist.begin(), ilist.end(), ilist2.begin(), equal_and_odd());
+   std::cout << "список ilist equal_and_odd() ilist2? "
+        << (res ? "Да" : "Нет") << ".\n";
+
+   return 0;
+}
+]]></div>
+
+</section>
+
+<section id="equal_range">
+<title>Алгоритм equal_range()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class Type>
+pair<ForwardIterator, ForwardIterator>
+equal_range(ForwardIterator first,
+            ForwardIterator last, const Type &value);
+
+template<class ForwardIterator, class Type, class Compare>
+pair<ForwardIterator, ForwardIterator >
+equal_range(ForwardIterator first,
+            ForwardIterator last, const Type &value,
+            Compare comp);
+]]></div>
+
+<p>equal_range() возвращает пару итераторов: первый представляет
+значение итератора, возвращаемое алгоритмом lower_bound(), второй -
+алгоритмом upper_bound(). (О семантике этих алгоритмов рассказано в их
+описаниях.) Например, дана последовательность:</p>
+
+<div class="lang-cpp"><![CDATA[int ia[] = {12,15,17,19,20,22,23,26,29,35,40,51};]]></div>
+
+<p>Обращение к equal_range() со значением 21 возвращает пару
+итераторов, в которой оба указывают на значение 22. Обращение же со
+значением 22 возвращает пару итераторов, где first указывает на 22, а
+second - на 23. В первом варианте при сравнении используется оператор
+"меньше", определенный для типа элементов контейнера; во втором -
+предикат comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <utility>
+#include <iostream>
+
+/* печатается:
+   последовательность элементов массива после сортировки:
+   12 15 17 19 20 22 23 26 29 35 40 51
+
+   результат equal_range при поиске значения 23:
+        *ia_iter.first: 23      *ia_iter.second: 26
+
+   результат equal_range при поиске отсутствующего значения 21:
+        *ia_iter.first: 22      *ia_iter.second: 22
+
+   последовательность элементов вектора после сортировки:
+   51 40 35 29 26 23 22 20 19 17 15 12
+
+   результат equal_range при поиске значения 26:
+        *ivec_iter.first: 26    *ivec_iter.second: 23
+
+   результат equal_range при поиске отсутствующего значения 21:
+        *ivec_iter.first: 20    *ivec_iter.second: 20
+*/
+
+int main() {
+   int ia[] = { 29,23,20,22,17,15,26,51,19,12,35,40 };
+   std::vector<int> ivec(ia, ia+12);
+   ostream_iterator<int> ofile(std::cout, " ");
+
+   std::sort(&ia[0], &ia[12]);
+
+   std::cout << "последовательность элементов массива после сортировки:\n";
+   std::copy(ia, ia+12, ofile); std::cout << "\n\n";
+
+   std::pair<int*, int*> ia_iter;
+   ia_iter = std::equal_range(&ia[0], &ia[12], 23);
+
+   std::cout << "результат equal_range при поиске значения 23:\n\t"
+        << "*ia_iter.first: "  << *ia_iter.first << "\t"
+        << "*ia_iter.second: " << *ia_iter.second <<"\n\n";
+
+   ia_iter = std::equal_range(&ia[0], &ia[12], 21);
+
+   std::cout << "результат equal_range при поиске "
+        << "отсутствующего значения 21:\n\t"
+        << "*ia_iter.first: "  << *ia_iter.first << "\t"
+        << "*ia_iter.second: " << *ia_iter.second << "\n\n";
+
+   std::sort(ivec.begin(), ivec.end(), std::greater<int>());
+
+   std::cout << "последовательность элементов вектора после сортировки:\n";
+   std::copy(ivec.begin(), ivec.end(), ofile); std::cout << "\n\n";
+
+   typedef std::vector<int>::iterator iter_ivec;
+   std::pair<iter_ivec, iter_ivec> ivec_iter;
+
+   ivec_iter = std::equal_range(ivec.begin(), ivec.end(), 26, std::greater<int>());
+
+   std::cout << "результат equal_range при поиске значения 26:\n\t"
+        << "*ivec_iter.first: "  << *ivec_iter.first <<"\t"
+       <<"*ivec_iter.second: " << *ivec_iter.second
+        << "\n\n";
+
+   ivec_iter = std::equal_range(ivec.begin(), ivec.end(), 21, std::greater<int>());
+
+   std::cout << "результат equal_range при поиске отсутствующего значения 21:\n\t"
+        << "*ivec_iter.first: "  << *ivec_iter.first << "\t"
+       << "*ivec_iter.second: " << *ivec_iter.second
+        << "\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="fill">
+<title>Алгоритм fill()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator, class Type >
+void
+fill(ForwardIterator first,
+      ForwardIterator last, const Type& value);
+]]></div>
+
+<p>fill() помещает копию значения value в каждый элемент диапазона,
+ограниченного парой итераторов [first,last).</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <string>
+#include <iostream>
+
+/* печатается:
+   исходная последовательность элементов массива:
+   0 1 1 2 3 5 8
+
+   массив после fill(ia+1,ia+6):
+   0 9 9 9 9 9 8
+
+   исходная последовательность элементов списка:
+   c eiffel java ada perl
+
+   список после fill(++ibegin,--iend):
+   c c++ c++ c++ perl
+*/
+
+int main() {
+   const int value = 9;
+   int ia[]  = { 0, 1, 1, 2, 3, 5, 8 };
+   ostream_iterator<int> ofile(std::cout, " ");
+
+   std::cout << "исходная последовательность элементов массива:\n";
+   copy(ia, ia+7, ofile); std::cout << "\n\n";
+
+   std::fill(ia+1, ia+6, value);
+
+   std::cout << "массив после fill(ia+1,ia+6):\n";
+   std::copy(ia, ia+7, ofile); std::cout << "\n\n";
+
+   std::string the_lang("c++");
+   std::string langs[5] = { "c", "eiffel", "java", "ada", "perl" };
+
+   std::list<std::string> il(langs, langs+5);
+   ostream_iterator<std::string>  sofile(std::cout, " ");
+
+   std::cout << "исходная последовательность элементов списка:\n";
+   std::copy(il.begin(), il.end(), sofile); std::cout << "\n\n";
+
+   typedef std::list<std::string,allocator> ::iterator iterator;
+
+   iterator ibegin = il.begin(), iend = il.end();
+   std::fill(++ibegin, --iend, the_lang);
+
+   std::cout << "список после fill(++ibegin,--iend):\n";
+   std::copy(il.begin(), il.end(), sofile); std::cout << "\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="fill_n">
+<title>Алгоритм fill_n()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator, class Size, class Type>
+void
+fill_n(ForwardIterator first,
+        Size n, const Type& value);
+]]></div>
+
+<p>fill_n() присваивает count элементам из диапазона [first,first+count) значение value.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <iostream>
+
+class print_elements {
+public:
+   void operator()(std::string elem) {
+      std::cout << elem
+           <<(_line_cnt++%8 ? " " : "\n\t");
+   }
+   static void reset_line_cnt() { _line_cnt = 1; }
+
+private:
+   static int _line_cnt;
+};
+
+int print_elements::_line_cnt = 1;
+
+/* печатается:
+исходная последовательность элементов массива:
+0 1 1 2 3 5 8
+
+массив после fill_n(ia+2, 3, 9):
+0 1 9 9 9 5 8
+исходная последовательность строк:
+        Stephen closed his eyes to hear his boots
+        crush crackling wrack and shells
+
+последовательность после применения fill_n():
+        Stephen closed his xxxxx xxxxx xxxxx xxxxx xxxxx
+        xxxxx crackling wrack and shells
+*/
+
+int main() {
+   int value = 9; int count = 3;
+   int ia[]  = { 0, 1, 1, 2, 3, 5, 8 };
+   ostream_iterator<int> iofile(std::cout, " ");
+
+   std::cout << "исходная последовательность элементов массива:\n";
+   std::copy(ia, ia+7, iofile); std::cout << "\n\n";
+
+   std::fill_n(ia+2, count, value);
+
+   std::cout << "массив после fill_n(ia+2, 3, 9):\n";
+   std::copy(ia, ia+7, iofile); std::cout << "\n\n";
+
+   std::string replacement("xxxxx");
+   std::string sa[] = { "Stephen", "closed", "his", "eyes", "to",
+         "hear", "his", "boots", "crush", "crackling",
+         "wrack", "and", "shells" };
+
+   std::vector<std::string> svec(sa, sa+13);
+
+   std::cout << "исходная последовательность строк:\n\t";
+   std::for_each(svec.begin(), svec.end(), print_elements());
+   std::cout << "\n\n";
+
+   fill_n(svec.begin()+3, count*2, replacement);
+
+   print_elements::reset_line_cnt();
+
+   std::cout << "последовательность после применения fill_n():\n\t";
+   std::for_each(svec.begin(), svec.end(), print_elements());
+   std::cout << "\n";
+}]]></div>
+
+</section>
+
+<section id="find">
+<title>Алгоритм find()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class InputIterator, class T >
+InputIterator
+find(InputIterator first,
+      InputIterator last, const T& value);
+]]></div>
+
+<p>Элементы из диапазона, ограниченного парой итераторов [first,last),
+сравниваются со значением value с помощью оператора равенства,
+определенного для типа элементов контейнера. Как только соответствие
+найдено, поиск прекращается. find() возвращает итератор типа
+InputIterator, указывающий на найденный элемент; в противном случае
+возвращается last.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <iostream>
+#include <list>
+#include <string>
+
+int main() {
+    int array[17] = { 7,3,3,7,6,5,8,7,2,1,3,8,7,3,8,4,3 };
+
+    int elem = array[9];
+    int *found_it;
+
+    found_it = std::find(&array[0], &array[17], elem);
+
+    // печатается: поиск первого вхождения 1 найдено!
+
+    std::cout << "поиск первого вхождения "
+         << elem <<"\t"
+         << (found_it ? "найдено!\n" : "не найдено!\n");
+
+     std::string beethoven[] = {
+        "Sonata31", "Sonata32", "Quartet14", "Quartet15",
+       "Archduke", "Symphony7" };
+
+    std::string s_elem(beethoven[1]);
+
+    std::list<std::string> slist(beethoven, beethoven+6);
+    std::list<std::string>::iterator iter;
+
+    iter = std::find(slist.begin(), slist.end(), s_elem);
+
+    // печатается: поиск первого вхождения Sonata32 найдено!
+
+    std::cout << "поиск первого вхождения "
+         << s_elem << "\t"
+         << (found_it ? "найдено!\n" : "не найдено!\n");
+}
+]]></div>
+
+</section>
+
+<section id="find_if">
+<title>Алгоритм find_if()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class InputIterator, class Predicate >
+InputIterator
+find_if(InputIterator first,
+         InputIterator last, Predicate pred);
+]]></div>
+
+<p>К каждому элементу из диапазона [first,last) последовательно
+применяется предикат pred. Если он возвращает true, поиск прекращается.
+find_if() возвращает итератор типа InputIterator, указывающий на
+найденный элемент; в противном случае возвращается last.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <set>
+#include <string>
+#include <iostream>
+
+// альтернатива оператору равенства
+// возвращает true, если строка содержится в объекте-члене FriendSet    
+class OurFriends {     // наши друзья
+public:
+    bool operator()(const std::string& str) {
+       return (friendset.count(str));
+    }
+
+    static void
+    FriendSet(const std::string *fs, int count) {
+       std::copy(fs, fs+count, std::inserter(friendset, friendset.end()));
+    }
+
+private:
+    static std::set<std::string, std::less<std::string>> friendset;
+};
+
+std::set<std::string, std::less<std::string>> OurFriends::friendset;
+
+int main()
+{
+    std::string Pooh_friends[] = { "Пятачок", "Тигра", "Иа-Иа"  };
+    std::string more_friends[] = { "Квазимодо", "Чип", "Пятачок" };
+    std::list<std::string> lf(more_friends, more_friends+3);
+
+    // заполнить список друзей Пуха
+    OurFriends::FriendSet(Pooh_friends, 3);
+
+    std::list<std::string,allocator>::iterator our_mutual_friend;
+    our_mutual_friend = std::find_if(lf.begin(), lf.end(), OurFriends());
+
+    // печатается:
+    //   Представьте-ка, наш друг Пятачок - также друг Пуха.
+    if (our_mutual_friend != lf.end())
+         std::cout << "Представьте-ка, наш друг "
+              << *our_mutual_friend
+              << " также друг Пуха.\n";
+
+    return 0;
+}
+]]></div>
+
+</section>
+
+<section id="find_end">
+<title>Алгоритм find_end()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator1, class ForwardIterator2 >
+ForwardIterator1
+find_end(ForwardIterator1 first1, ForwardIterator1 last1,
+          ForwardIterator2 first2, ForwardIterator2 last2);
+
+template< class ForwardIterator1, class ForwardIterator2,
+          class BinaryPredicate >
+ForwardIterator1
+find_end(ForwardIterator1 first1, ForwardIterator1 last1,
+          ForwardIterator2 first2, ForwardIterator2 last2,
+          BinaryPredicate pred);
+]]></div>
+
+<p>В последовательности, ограниченной итераторами [first1,last1),
+ведется поиск последнего вхождения последовательности, ограниченной
+парой [first2,last2). Например, если первая последовательность - это
+Mississippi, а вторая - ss, то find_end() возвращает итератор,
+указывающий на первую s во втором вхождении ss. Если вторая
+последовательность не входит в первую, то возвращается last1. В первом
+варианте используется оператор равенства, определенный для типа
+элементов контейнера, а во втором - бинарный предикат, переданный
+пользователем.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+#include <cassert>
+
+int main() {
+    int array[17]   = { 7,3,3,7,6,5,8,7,2,1,3,7,6,3,8,4,3 };
+    int subarray[3] = { 3, 7, 6 };
+
+    int *found_it;
+
+    // find найти последнее вхождение последовательности 3,7,6
+    // в массив и вернуть адрес первого ее элемента ...
+
+    found_it = std::find_end(&array[0], &array[17],
+                    &subarray[0], &subarray[3]);
+
+    assert(found_it == &array[10]);
+
+    std::vector<int> ivec(array, array+17);
+    std::vector<int> subvec(subarray, subarray+3);
+    std::vector<int>::iterator found_it2;
+
+    found_it2 = std::find_end(ivec.begin(), ivec.end(),
+                           subvec.begin(), subvec.end(),
+                           std::equal_to<int>());
+
+    assert(found_it2 == ivec.begin()+10);
+
+    std::cout << "ok: find_end правильно вернула начало "
+         << "последнего вхождения последовательности: 3,7,6!\n";
+}
+]]></div>
+
+</section>
+
+<section id="find_first_of">
+<title>Алгоритм find_first_of()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator1, class ForwardIterator2 >
+ForwardIterator1
+find_first_of(ForwardIterator1 first1, ForwardIterator1 last1,
+               ForwardIterator2 first2, ForwardIterator2 last2);
+
+template< class ForwardIterator1, class ForwardIterator2,
+          class BinaryPredicate >
+ForwardIterator1
+find_first_of(ForwardIterator1 first1, ForwardIterator1 last1,
+               ForwardIterator2 first2, ForwardIterator2 last2,
+               BinaryPredicate pred);
+]]></div>
+
+<p>Последовательность, ограниченная парой [first2,last2), содержит
+элементы, поиск которых ведется в последовательности, ограниченной
+итераторами [first1,last1). Допустим, нужно найти первую гласную в
+последовательности символов synesthesia. Для этого определим вторую
+последовательность как aeiou. find_first_of() возвращает итератор,
+указывающий на первое вхождение любого элемента последовательности
+гласных букв, в данном случае e. Если же первая последовательность не
+содержит ни одного элемента из второй, то возвращается last1. В первом
+варианте используется оператор равенства, определенный для типа
+элементов контейнера, а во втором - бинарный предикат pred.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <iostream>
+
+int main() {
+    std::string s_array[] = { "Ee", "eE", "ee", "Oo", "oo", "ee" };
+
+    // возвращает первое вхождение "ee" -- &s_array[2]
+    std::string to_find[] = { "oo", "gg", "ee" };
+
+    std::string *found_it =
+        std::find_first_of(s_array, s_array+6, to_find, to_find+3);
+    // печатается:
+    // найдено: ee
+    //        &s_array[2]:    0x7fff2dac
+    //        &found_it:      0x7fff2dac
+
+    if (found_it != &s_array[6])
+       std::cout << "найдено: "      << *found_it     << "\n\t"
+          << "&s_array[2]:\t" << &s_array[2]   << "\n\t"
+          << "&found_it:\t"   << found_it      << "\n\n";
+
+    std::vector<std::string> svec(s_array, s_array+6);
+    std::vector<std::string> svec_find(to_find, to_find+2);
+
+    // возвращает вхождение "oo" -- svec.end()-2
+    std::vector<std::string>::iterator found_it2;
+
+    found_it2 = std::find_first_of(
+                     svec.begin(), svec.end(),
+                     svec_find.begin(), svec_find.end(),
+                std::equal_to<std::string>());
+
+    // печатает:
+    // тоже найдено: oo
+    //         &svec.end()-2:  0x100067b0
+    //         &found_it2:     0x100067b0
+
+    if (found_it2 != svec.end())
+       std::cout << "тоже найдено: "   << *found_it2   << "\n\t"
+          << "&svec.end()-2:\t" << svec.end()-2 << "\n\t"
+          << "&found_it2:\t"    << found_it2    << "\n";
+}
+]]></div>
+
+</section>
+
+<section id="for_each">
+<title>Алгоритм for_each()</title>
+
+<div class="lang-cpp"><![CDATA[template< class  InputIterator, class Function >
+Function
+for_each(InputIterator first,
+          InputIterator last, Function func);]]></div>
+
+<p>for_each() применяет объект-функцию func к каждому элементу в
+диапазоне [first,last). func не может изменять элементы, поскольку
+итератор записи не гарантирует поддержки присваивания. Если же
+модификация необходима, следует воспользоваться алгоритмом transform().
+func может возвращать значение, но оно игнорируется.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem <<" "; }
+
+int main() {
+    std::vector<int> ivec;
+    for (int ix = 0; ix < 10; ix++)
+       ivec.push_back(ix);
+
+    void (*pfi)(int) = print_elements;
+    std::for_each(ivec.begin(), ivec.end(), pfi);
+    return 0;
+}
+]]></div>
+
+</section>
+
+<section id="generate">
+<title>Алгоритм generate()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator, class Generator >
+void
+generate(ForwardIterator first,
+          ForwardIterator last, Generator gen);
+]]></div>
+
+<p>generate() заполняет диапазон, ограниченный парой итераторов
+[first,last), путем последовательного вызова gen, который может быть
+объектом-функцией или указателем на функцию.</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>
+#include <list>
+#include <iostream>
+
+int odd_by_twos() {
+    static int seed = -1;
+    return seed += 2;
+}
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+int main() {
+    std::list<int> ilist(10);
+    void (*pfi)(int) = print_elements;
+
+    std::generate(ilist.begin(), ilist.end(), odd_by_twos);
+
+    // печатается:
+    // элементы в списке, первый вызов:
+    // 1 3 5 7 9 11 13 15 17 19
+
+    std::cout << "элементы в списке, первый вызов:\n";
+    std::for_each(ilist.begin(), ilist.end(), pfi);
+    std::generate(ilist.begin(), ilist.end(), odd_by_twos);
+
+    // печатается:
+    // элементы в списке, второй вызов:
+    // 21 23 25 27 29 31 33 35 37 39
+    std::cout <<"\n\nэлементы в списке, второй вызов:\n";
+    std::for_each(ilist.begin(), ilist.end(), pfi);
+    return 0;
+}
+]]></div>
+
+</section>
+
+<section id="generate_n">
+<title>Алгоритм generate_n()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class OutputIterator,
+          class Size, class Generator >
+void
+generate_n(OutputIterator first, Size n, Generator gen);
+]]></div>
+
+<p>generate_n() заполняет последовательность, начиная с first, n раз
+вызывая gen, который может быть объектом-функцией или указателем на
+функцию.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <iostream>
+#include <list>
+
+class even_by_twos {
+public:
+    even_by_twos(int seed = 0) : _seed(seed){}
+    int operator()() { return _seed += 2; }
+private:
+    int _seed;
+};
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+int main() {
+    std::list<int> ilist(10);
+    void (*pfi)(int) = print_elements;
+
+    generate_n(ilist.begin(), ilist.size(), even_by_twos());
+
+    // печатается:
+    // generate_n с even_by_twos():
+    // 2 4 6 8 10 12 14 16 18 20
+
+   std::cout << "generate_n с even_by_twos():\n";
+   std::for_each(ilist.begin(), ilist.end(), pfi); std::cout << "\n";
+   std::generate_n(ilist.begin(), ilist.size(), even_by_twos(100));
+
+   // печатается:
+   // generate_n с even_by_twos(100):
+   // 102 104 106 108 110 112 114 116 118 120
+
+   std::cout << "generate_n с even_by_twos(100):\n";
+   std::for_each(ilist.begin(), ilist.end(), pfi);
+}
+]]></div>
+
+</section>
+
+<section id="includes">
+<title>Алгоритм includes()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2 >
+bool
+includes(InputIterator1 first1, InputIterator1 last1,
+          InputIterator2 first2, InputIterator2 last2);
+
+template< class InputIterator1, class InputIterator2,
+          class Compare >
+bool
+includes(InputIterator1 first1, InputIterator1 last1,
+          InputIterator2 first2, InputIterator2 last2,
+          Compare comp);]]></div>
+
+<p>includes() проверяет, каждый ли элемент последовательности
+[first1,last1) входит в последовательность [first2,last2).
+Первый вариант предполагает, что последовательности отсортированы в порядке,
+определяемом оператором <q>меньше</q>; второй - что порядок задается параметром-типом comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+int main() {
+    int ia1[] = { 13, 1, 21, 2, 0, 34, 5, 1, 8, 3, 21, 34 };
+    int ia2[] = { 21, 2, 8, 3, 5, 1 };
+
+    // алгоритму includes следует передавать отсортированные контейнеры
+    std::sort(ia1, ia1+12); sort(ia2, ia2+6);
+
+    // печатает: каждый элемент ia2 входит в ia1? Да
+
+    bool res = includes(ia1, ia1+12, ia2, ia2+6);
+    std::cout << "каждый элемент ia2 входит в ia1? "
+         <<(res ? "Да" : "Нет") << std::endl;
+
+    std::vector<int> ivect1(ia1, ia1+12);
+    std::vector<int> ivect2(ia2, ia2+6);
+
+    // отсортирован в порядке убывания
+    std::sort(ivect1.begin(), ivect1.end(), std::greater<int>());
+    std::sort(ivect2.begin(), ivect2.end(), std::greater<int>());
+
+    res = std::includes(ivect1.begin(), ivect1.end(),
+                     ivect2.begin(), ivect2.end(),
+                     std::greater<int>());
+
+    // печатает: каждый элемент ivect2 входит в ivect1? Да
+    std::cout << "каждый элемент ivect2 входит в ivect1? "
+         << (res ? "Да" : "Нет") << std::endl;
+
+}
+]]></div>
+
+</section>
+
+<section id="inner_product">
+<title>Алгоритм inner_product()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2
+          class Type >
+Type
+inner_product(
+   InputIterator1 first1, InputIterator1 last,
+   InputIterator2 first2, Type init);
+
+template< class InputIterator1, class InputIterator2
+          class Type,
+          class BinaryOperation1, class BinaryOperation2 >
+Type
+inner_product(
+   InputIterator1 first1, InputIterator1 last,
+   InputIterator2 first2, Type init,
+   BinaryOperation1 op1, BinaryOperation2 op2);]]></div>
+
+<p>Первый вариант суммирует произведения соответственных членов обеих
+последовательностей и прибавляет результат к начальному значению init.
+Первая последовательность ограничена итераторами [first1,last1), вторая
+начинается с first2 и обходится синхронно с первой. Например, если даны
+последовательности {2,3,5,8} и {1,2,3,4}, то результат вычисляется
+следующим образом:</p>
+
+<div class="lang-cpp"><![CDATA[2*1 + 3*2 + 5*3 + 8*4]]></div>
+
+<p>Если начальное значение равно 0, алгоритм вернет 55.</p>
+
+<p>Во втором варианте вместо сложения используется бинарная
+операция op1, а вместо умножения - бинарная операция op1. Например,
+если для приведенных выше последовательностей применить вычитание в
+качестве op1 и сложение в качестве op2, то результат будет вычисляться
+так:</p>
+
+<div class="lang-cpp"><![CDATA[(2+1) - (3+2) - (5+3) - (8+4)]]></div>
+
+<p>inner_product() - это один из численных алгоритмов.
+Для его использования в программу необходимо включить заголовочный файл &lt;numeric>.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <numeric>
+#include <vector>
+#include <iostream>
+
+int main() {
+    int ia[] =  { 2, 3, 5, 8 };
+    int ia2[] = { 1, 2, 3, 4 };
+
+    // перемножить пары элементов из обоих массивов,
+    // сложить и добавить начальное значение: 0
+
+    int res = std::inner_product(&ia[0], &ia[4], &ia2[0], 0);
+
+    // печатает: скалярное произведение массивов: 55
+    std::cout << "скалярное произведение массивов: " << res << std::endl;
+
+    std::vector<int> vec(ia,  ia+4);
+    std::vector<int> vec2(ia2, ia2+4);
+
+    // сложить пары элементов из обоих векторов,
+    // вычесть из начального значения: 0
+
+    res = std::inner_product(vec.begin(), vec.end(),
+                 vec2.begin(), 0,
+                 minus<int>(), plus<int>());
+
+    // печатает: скалярное произведение векторов: -28
+    std::cout << "скалярное произведение векторов: " << res << std::endl;
+
+    return 0;
+}
+]]></div>
+
+</section>
+
+<section id="inplace_merge">
+<title>Алгоритм inplace_merge()</title>
+
+<div class="lang-cpp"><![CDATA[
+template <class BidirectionalIterator >
+void
+inplace_merge(BidirectionalIterator first,
+               BidirectionalIterator middle,
+               BidirectionalIterator last);
+
+template< class BidirectionalIterator, class Compare >
+void
+inplace_merge(BidirectionalIterator first,
+               BidirectionalIterator middle,
+               BidirectionalIterator last, Compare comp);
+]]></div>
+
+<p>inplace_merge() объединяет две соседние отсортированные
+последовательности, ограниченные парами итераторов [first,middle) и
+[middle,last). Результирующая последовательность затирает исходные,
+начиная с позиции first. В первом варианте для упорядочения элементов
+используется оператор <q>меньше</q>, определенный для типа элементов
+контейнера, во втором - операция сравнения, переданная программистом.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+/*
+ * печатает:
+ia разбит на два отсортированных подмассива:
+12 15 17 20 23 26 29 35 40 51 10 16 21 41 44 54 62 65 71 74
+
+ia inplace_merge:
+10 12 15 16 17 20 21 23 26 29 35 40 41 44 51 54 62 65 71 74
+
+ivec разбит на два отсортированных подвектора:
+51 40 35 29 26 23 20 17 15 12 74 71 65 62 54 44 41 21 16 10
+
+ivec inplace_merge:
+74 71 65 62 54 51 44 41 40 35 29 26 23 21 20 17 16 15 12 10
+*/
+
+int main() {
+    int ia[] = { 29,23,20,17,15,26,51,12,35,40,
+                 74,16,54,21,44,62,10,41,65,71 };
+
+    std::vector<int> ivec(ia, ia+20);
+    void (*pfi)(int) = print_elements;
+
+    // отсортировать обе подпоследовательности
+    std::sort(&ia[0], &ia[10]);
+    std::sort(&ia[10], &ia[20]);
+
+    std::cout << "ia разбит на два отсортированных подмассива: \n";
+    std::for_each(ia, ia+20, pfi); std::cout << "\n\n";
+
+    std::inplace_merge(ia, ia+10, ia+20);
+
+    std::cout << "ia inplace_merge:\n";
+    std::for_each(ia, ia+20, pfi); std::cout << "\n\n";
+
+    std::sort(ivec.begin(),    ivec.begin()+10, std::greater<int>());
+    std::sort(ivec.begin()+10, ivec.end(),      std::greater<int>());
+
+    std::cout << "ivec разбит на два отсортированных подвектора: \n";
+    std::for_each(ivec.begin(), ivec.end(), pfi); std::cout << "\n\n";
+
+    std::inplace_merge(ivec.begin(), ivec.begin()+10,
+                    ivec.end(),   std::greater<int>());
+
+    std::cout << "ivec inplace_merge:\n";
+    std::for_each(ivec.begin(), ivec.end(), pfi); std::cout << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="iter_swap">
+<title>Алгоритм iter_swap()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator1, class ForwardIterator2 >
+void
+iter_swap(ForwardIterator1 a, ForwardIterator2 b);
+// iter_swap() обменивает значения элементов, на которые указывают итераторы a и b.
+#include <algorithm>
+#include <list>
+#include <iostream>
+
+int main()
+{
+    int ia[]  = { 5, 4, 3, 2, 1, 0 };
+    std::list<int> ilist(ia, ia+6);
+
+    typedef std::list<int>::iterator iterator;
+    iterator iter1 = ilist.begin(), iter2, iter_end = ilist.end();
+
+    // отсортировать список "пузырьком" ...
+    for (; iter1 != iter_end; ++iter1)
+          for (iter2 = iter1; iter2 != iter_end; ++iter2)
+            if (*iter2 < *iter1)
+                   iter_swap(iter1, iter2);
+
+    // печатается:
+    // ilist после сортировки "пузырьком" с помощью iter_swap():
+     // { 0 1 2 3 4 5 }
+
+    std::cout << "ilist после сортировки "пузырьком" с помощью iter_swap(): { ";
+    for (iter1 = ilist.begin(); iter1 != iter_end; ++iter1)
+          std::cout << *iter1 << " ";
+        std::cout << "}\n";
+
+    return 0;
+}
+]]></div>
+
+</section>
+
+<section id="lexicographical_compare">
+<title>Алгоритм lexicographical_compare()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2 >
+bool
+lexicographical_compare(
+   InputIterator1 first1, InputIterator1 last1,
+   InputIterator1 first2, InputIterator2 last2);
+template< class InputIterator1, class InputIterator2,
+          class Compare >
+bool
+lexicographical_compare(
+   InputIterator1 first1, InputIterator1 last1,
+   InputIterator1 first2, InputIterator2 last2,
+   Compare comp);]]></div>
+
+<p>lexicographical_compare() сравнивает соответственные пары элементов
+из двух последовательностей, ограниченных диапазонами [first1,last1) и
+[first2,last2). Сравнение продолжается, пока не будет найдена первая
+пара различных элементов, не достигнута пара [last1,last2] или хотя бы
+один из элементов last1 или last2 (если последовательности имеют разные
+длины). При обнаружении первой пары различных элементов алгоритм
+возвращает:</p>
+
+<p>если меньше элемент первой последовательности, то true, иначе false;
+</p>
+
+<p>если last1 достигнут, а last2 нет, то true;
+</p>
+
+<p>если last2 достигнут, а last1 нет, то false;
+</p>
+
+<p>если достигнуты и last1, и last2 (т.е. все элементы одинаковы),
+то false. Иными словами, первая последовательность лексикографически не
+меньше второй.
+</p>
+
+<p>Например, даны такие последовательности:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::string arr1[] = { "Piglet", "Pooh", "Tigger" };
+std::string arr2[] = { "Piglet", "Pooch", "Eeyore" };
+]]></div>
+
+<p>В них первая пара элементов одинакова, а вторая различна. Pooh
+считается больше, чем Pooch, так как c лексикографически меньше h
+(такой способ сравнения применяется при составлении словарей). В этом
+месте алгоритм заканчивается (третья пара элементов не сравнивается).
+Результатом сравнения будет false.</p>
+
+<p>Во втором варианте алгоритма вместо оператора сравнения используется предикатный объект:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <string>
+#include <cassert>
+#include <iostream>
+
+class size_compare {
+public:
+    bool operator()(const std::string &a, const std::string &b) {
+         return a.length() <= b.length();
+    }
+};
+
+int main() {
+    std::string arr1[] = { "Piglet", "Pooh", "Tigger" };
+    std::string arr2[] = { "Piglet", "Pooch", "Eeyore" };
+
+    bool res;
+
+    // на втором элементе получаем false
+    // Pooch меньше Pooh
+    // на третьем элементе тоже получили бы false
+
+    res = std::lexicographical_compare(arr1, arr1+3, arr2, arr2+3);
+    assert(res == false);
+
+    // получаем true: длина каждого элемента ilist2
+    // меньше либо равна длине соответственного
+    // элемента ilist1
+
+    std::list<std::string> ilist1(arr1, arr1+3);
+    std::list<std::string> ilist2(arr2, arr2+3);
+
+    res = std::lexicographical_compare(
+             ilist1.begin(), ilist1.end(),
+             ilist2.begin(), ilist2.end(), size_compare());
+
+    assert(res == true);
+
+    std::cout << "ok: lexicographical_compare завершился успешно!\n";
+}
+]]></div>
+
+</section>
+
+<section id="lower_bound">
+<title>Алгоритм lower_bound()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class Type>
+ForwardIterator
+lower_bound(ForwardIterator first,
+             ForwardIterator last, const Type &value);
+
+template< class ForwardIterator, class Type, class Compare >
+ForwardIterator
+lower_bound(ForwardIterator first,
+             ForwardIterator last, const Type &value,
+             class Compare);
+]]></div>
+
+<p>lower_bound() возвращает итератор, указывающий на первую позицию в
+отсортированной последовательности, ограниченной диапазоном
+[first,last), в которую можно вставить значение value, не нарушая
+упорядоченности. В этой позиции находится значение, большее либо равное
+value. Например, если дана такая последовательность:</p>
+
+<div class="lang-cpp"><![CDATA[int ia = = {12,15,17,19,20,22,23,26,29,35,40,51};]]></div>
+
+<p>то обращение к lower_bound() с аргументом value=21 возвращает
+итератор, указывающий на 23. Обращение с аргументом 22 возвращает тот
+же итератор. В первом варианте алгоритма используется оператор
+<q>меньше</q>, определенный для типа элементов контейнера, а во втором для упорядочения элементов применяется объект comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+int main() {
+    int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};
+    sort(&ia[0], &ia[12]);
+
+    int search_value = 18;
+    int *ptr = lower_bound(ia, ia+12, search_value);
+    // печатается:
+    // Первый элемент, перед которым можно вставить 18, - это 19
+    // Предыдущее значение равно 17
+    std::cout << "Первый элемент, перед которым можно вставить "
+         << search_value
+         << ", - это "
+         << *ptr << std::endl
+         << "Предыдущее значение равно "
+         << *(ptr-1) << std::endl;
+
+    std::vector<int> ivec(ia, ia+12);
+    // отсортировать в порядке возрастания ...
+    std::sort(ivec.begin(), ivec.end(), std::greater<int>());
+
+    search_value = 26;
+    std::vector<int>::iterator iter;
+    // необходимо указать, как именно осуществлялась сортировка ...
+    iter = std::lower_bound(ivec.begin(), ivec.end(),
+                         search_value, std::greater<int>());
+    // печатается:
+    // Первый элемент, перед которым можно вставить 26, - это 26
+    // Предыдущее значение равно 29
+    std::cout << "Первый элемент, перед которым можно вставить "
+         << search_value
+         << ", - это "
+         << *iter << std::endl
+         << "Предыдущее значение равно "
+         << *(iter-1) << std::endl;
+        return 0;
+}]]></div>
+
+</section>
+
+<section id="max">
+<title>Алгоритм max()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class Type>
+const Type&
+max(const Type &aval, const Type &bval);
+
+template< class Type, class Compare >
+const Type&
+max(const Type &aval, const Type &bval, Compare comp);
+]]></div>
+
+<p>max() возвращает наибольшее из двух значений aval и bval. В первом
+варианте используется оператор "больше", определенный в классе Type; во
+втором - операция сравнения comp.</p>
+
+</section>
+
+<section id="max_element">
+<title>Алгоритм max_element()</title>
+
+<div class="lang-cpp"><![CDATA[template< class ForwardIterator >
+ForwardIterator
+max_element(ForwardIterator first,
+             ForwardIterator last);
+
+template< class ForwardIterator, class Compare >
+ForwardIterator
+max_element(ForwardIterator first,
+             ForwardIterator last, Compare comp);]]></div>
+
+<p>max_element() возвращает итератор, указывающий на элемент, который
+содержит наибольшее значение в последовательности, ограниченной
+диапазоном [first,last). В первом варианте используется оператор
+"больше", определенный для типа элементов контейнера; во втором -
+операция сравнения comp.</p>
+
+</section>
+
+<section id="min">
+<title>Алгоритм min()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class Type>
+const Type&
+min(const Type &aval, const Type &bval);
+
+template< class Type, class Compare >
+const Type&
+min(const Type &aval, const Type &bval, Compare comp);
+]]></div>
+
+<p>min() возвращает меньшее из двух значений aval и bval. В первом
+варианте используется оператор <q>меньше</q>, определенный для типа Type; во
+втором - операция сравнения comp.</p>
+
+</section>
+
+<section id="min_element">
+<title>Алгоритм min_element()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator >
+ForwardIterator
+min_element(ForwardIterator first,
+             ForwardIterator last);
+template<class ForwardIterator, class Compare >
+ForwardIterator
+min_element(ForwardIterator first,
+             ForwardIterator last, Compare comp);
+]]></div>
+
+<p>max_element() возвращает итератор, указывающий на элемент, который
+содержит наименьшее значение последовательности, ограниченной
+диапазоном [first,last). В первом варианте используется оператор
+"меньше", определенный для типа элементов контейнера; во втором -
+операция сравнения comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+// иллюстрирует max(), min(), max_element(), min_element()
+#include <algorithm>
+#include <vector>
+#include <iostream>
+int main() {
+    int ia[] = { 7, 5, 2, 4, 3 };
+    const std::vector<int> ivec(ia, ia+5);
+    int mval = std::max(std::max(std::max(std::max(ivec[4], ivec[3]), ivec[2]), ivec[1]), ivec[0]);
+    // вывод: результат вложенных вызовов max() равен: 7
+    std::cout << "результат вложенных вызовов max() равен: " << mval << std::endl;
+    int mval = std::min(std::min(std::min(std::min(ivec[4], ivec[3]), ivec[2]), ivec[1]), ivec[0]);
+
+    // вывод: результат вложенных вызовов min() равен: 2
+    std::cout << "результат вложенных вызовов min() равен: " << mval << std::endl;
+
+    std::vector<int>::const_iterator iter;
+    iter = std::max_element(ivec.begin(), ivec.end());
+
+    // вывод: результат вложенных вызовов max_element() также равен: 7
+    std::cout << "результат вложенных вызовов max_element() также равен: " << *iter << std::endl;
+
+    iter = std::min_element(ivec.begin(), ivec.end());
+
+    // вывод: результат вложенных вызовов min_element() также равен: 2
+    std::cout << "результат вложенных вызовов min_element() также равен: " << *iter << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="merge">
+<title>Алгоритм merge()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class InputIterator1, class InputIterator2, class OutputIterator>
+OutputIterator
+merge(InputIterator1 first1, InputIterator1 last1,
+       InputIterator2 first2, InputIterator2 last2,
+       OutputIterator result);
+
+template< class InputIterator1, class InputIterator2,
+          class OutputIterator, class Compare >
+OutputIterator
+merge(InputIterator1 first1, InputIterator1 last1,
+       InputIterator2 first2, InputIterator2 last2,
+       OutputIterator result, Compare comp);
+]]></div>
+
+<p>merge() объединяет две отсортированные последовательности,
+ограниченные диапазонами [first1,last1) и [first2,last2), в единую
+отсортированную последовательность, начинающуюся с позиции result.
+Результирующий итератор записи указывает на элемент за концом новой
+последовательности. В первом варианте для упорядочения используется
+оператор "меньше", определенный для типа элементов контейнера; во
+втором - операция сравнения comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <list>
+#include <deque>
+#include <iostream>
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+void (*pfi)(int) = print_elements;
+
+int main() {
+    int ia[] =  {29,23,20,22,17,15,26,51,19,12,35,40};
+    int ia2[] = {74,16,39,54,21,44,62,10,27,41,65,71};
+
+    std::vector<int> vec1(ia, ia +12), vec2(ia2, ia2+12);
+    int ia_result[24];
+    std::vector<int> vec_result(vec1.size()+vec2.size());
+
+    std::sort(ia,  ia +12);
+    std::sort(ia2, ia2+12);
+
+    // печатается:
+    // 10 12 15 16 17 19 20 21 22 23 26 27 29 35
+    //             39 40 41 44 51 54 62 65 71 74
+
+    std::merge(ia, ia+12, ia2, ia2+12, ia_result);
+    std::for_each(ia_result, ia_result+24, pfi); std::cout << "\n\n";
+
+    std::sort(vec1.begin(), vec1.end(), std::greater<int>());
+    std::sort(vec2.begin(), vec2.end(), std::greater<int>());
+
+    std::merge(vec1.begin(), vec1.end(),
+            vec2.begin(), vec2.end(),
+            vec_result.begin(), std::greater<int>());
+
+    // печатается: 74 71 65 62 54 51 44 41 40 39 35 29 27 26 23 22
+    //                                     21 20 19 17 16 15 12 10
+    std::for_each(vec_result.begin(), vec_result.end(), pfi);
+    std::cout <<"\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="mismatch">
+<title>Алгоритм mismatch()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class InputIterator1, class InputIterator2 >
+pair<InputIterator1, InputIterator2>
+mismatch(InputIterator1 first,
+          InputIterator1 last, InputIterator2 first2);
+
+template< class InputIterator1, class InputIterator2,
+          class BinaryPredicate >
+pair<InputIterator1, InputIterator2>
+mismatch(InputIterator1 first, InputIterator1 last,
+          InputIterator2 first2, BinaryPredicate pred);
+]]></div>
+
+<p>mismatch() сравнивает две последовательности и находит первую
+позицию, где элементы различны. Возвращается пара итераторов, каждый из
+которых указывает на эту позицию в соответствующей последовательности.
+Если все элементы одинаковы, то каждый итератор в паре указывает на
+элемент last в своем контейнере. Так, если даны последовательности meet
+и meat, то оба итератора указывают на третий элемент. В первом варианте
+для сравнения элементов применяется оператор равенства, а во втором -
+операция сравнения, заданная пользователем. Если вторая
+последовательность длиннее первой, "лишние" элементы игнорируются; если
+же она короче, то поведение программы не определено.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <utility>
+#include <iostream>
+
+class equal_and_odd {
+public:
+    bool operator()(int ival1, int ival2) {
+        // оба значения равны друг другу?
+        // оба равны нулю? оба нечетны?
+
+        return (ival1 == ival2 &&
+               (ival1 == 0 || ival1%2));
+    }
+};
+
+int main() {
+    int ia[] =  { 0,1,1,2,3,5,8,13 };
+    int ia2[] = { 0,1,1,2,4,6,10   };
+
+    std::pair<int*,int*> pair_ia = mismatch(ia, ia+7, ia2);
+
+    // печатается: первая пара неодинаковых: ia: 3 и ia2: 4
+    std::cout << "первая пара неодинаковых: ia: "
+        <<*pair_ia.first << " и ia2: "
+        << *pair_ia.second << std::endl;
+
+    std::list<int> ilist(ia,  ia+7);
+    std::list<int> ilist2(ia2, ia2+7);
+
+    typedef std::list<int>::iterator iter;
+    std::pair<iter,iter> pair_ilist =
+        std::mismatch(ilist.begin(), ilist.end(),
+                     ilist2.begin(), equal_and_odd());
+
+    // печатается: первая пара неодинаковых: либо не равны, либо не нечетны:
+    //             ilist: 2 и ilist2: 2
+    std::cout << "первая пара неодинаковых: либо не равны, "
+        << "либо не нечетны: \n\tilist: "
+        << *pair_ilist.first << " и ilist2: "
+        << *pair_ilist.second << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="next_permutation">
+<title>Алгоритм next_permutation()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class BidirectionalIterator>
+bool next_permutation(BidirectionalIterator first, BidirectionalIterator last);
+
+template<class BidirectionalIterator, class Compare>
+bool next_permutation(BidirectionalIterator first, BidirectionalIterator last, class Compare);
+]]></div>
+
+<p>next_permutation() берет последовательность, ограниченную диапазоном
+[first,last), и, считая ее перестановкой, возвращает следующую за ней
+(о том, как упорядочиваются перестановки, говорилось в разделе 12.5).
+Если следующей перестановки не существует, алгоритм возвращает false,
+иначе - true. В первом варианте для определения следующей перестановки
+используется оператор <q>меньше</q> в классе элементов контейнера, а во
+втором - операция сравнения comp. Последовательные обращения к
+next_permutation() генерируют все возможные перестановки только в том
+случае, когда исходная последовательность отсортирована. Если бы в
+показанной ниже программе мы предварительно не отсортировали строку
+musil, получив ilmsu, то не удалось бы сгенерировать все перестановки.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+void print_char(char elem) { std::cout << elem ; }
+void (*ppc)(char) = print_char;
+/* печатается:
+ilmsu   ilmus   ilsmu   ilsum   ilums   ilusm   imlsu   imlus
+imslu   imsul   imuls   imusl   islmu   islum   ismlu   ismul
+isulm   isuml   iulms   iulsm   iumls   iumsl   iuslm   iusml
+limsu   limus   lismu   lisum   liums   liusm   lmisu   lmius
+lmsiu   lmsui   lmuis   lmusi   lsimu   lsium   lsmiu   lsmui
+lsuim   lsumi   luims   luism   lumis   lumsi   lusim   lusmi
+milsu   milus   mislu   misul   miuls   miusl   mlisu   mlius
+mlsiu   mlsui   mluis   mlusi   msilu   msiul   msliu   mslui
+msuil   msuli   muils   muisl   mulis   mulsi   musil   musli
+silmu   silum   simlu   simul   siulm   siuml   slimu   slium
+slmiu   slmui   sluim   slumi   smilu   smiul   smliu   smlui
+smuil   smuli   suilm   suiml   sulim   sulmi   sumil   sumli
+uilms   uilsm   uimls   uimsl   uislm   uisml   ulims   ulism
+ulmis   ulmsi   ulsim   ulsmi   umils   umisl   umlis   umlsi
+umsil   umsli   usilm   usiml   uslim   uslmi   usmil   usmli
+*/
+int main() {
+    std::vector<char> vec(5);
+
+    // последовательность символов: musil
+    vec[0] = 'm'; vec[1] = 'u'; vec[2] = 's';
+    vec[3] = 'i'; vec[4] = 'l';
+
+    int cnt = 2;
+    sort(vec.begin(), vec.end());
+    std::for_each(vec.begin(), vec.end(), ppc); std::cout << "\t";
+    // генерируются все перестановки строки "musil"
+    while (std::next_permutation(vec.begin(), vec.end())) {
+        std::for_each(vec.begin(), vec.end(), ppc);
+        std::cout << "\t";
+
+        if (! (cnt++ % 8)) {
+             std::cout <<"\n";
+          cnt = 1;
+        }
+    }
+    std::cout << "\n\n";
+    return 0;
+}
+]]></div>
+
+
+</section>
+
+<section id="nth_element">
+<title>Алгоритм nth_element()</title>
+
+<div class="lang-cpp"><![CDATA[template < class RandomAccessIterator >
+void
+nth_element(RandomAccessIterator first,
+             RandomAccessIterator nth,
+             RandomAccessIterator last);
+
+template < class RandomAccessIterator, class Compare >
+void
+nth_element(RandomAccessIterator first,
+             RandomAccessIterator nth,
+             RandomAccessIterator last, Compare comp);]]></div>
+
+<p>nth_element() переупорядочивает последовательность, ограниченную
+диапазоном [first,last), так что все элементы, меньшие чем тот, на
+который указывает итератор nth, оказываются перед ним, а все большие
+элементы - после. Например, если есть массив</p>
+
+<div class="lang-cpp"><![CDATA[int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};]]></div>
+
+<p>то вызов nth_element(), в котором nth указывает на седьмой элемент (его значение равно 26):</p>
+
+<div class="lang-cpp"><![CDATA[nth_element(&ia[0], &ia[6], &ia[2]);]]></div>
+
+<p>генерирует последовательность, в которой семь элементов, меньших 26,
+оказываются слева от 26, а четыре элемента, больших 26, справа:</p>
+
+<div class="lang-cpp"><![CDATA[{23,20,22,17,15,19,12,26,51,35,40,29}]]></div>
+
+<p>При этом не гарантируется, что элементы, расположенные по обе
+стороны от nth, упорядочены. В первом варианте для сравнения
+используется оператор "меньше", определенный для типа элементов
+контейнера, во втором - бинарная операция сравнения, заданная
+программистом.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+    /* печатается:
+исходный вектор: 29 23 20 22 17 15 26 51 19 12 35 40
+вектор, отсортированный относительно элемента 26
+12 15 17 19 20 22 23 26 51 29 35 40
+вектор, отсортированный по убыванию относительно элемента 23
+40 35 29 51 26 23 22 20 19 17 15 12
+*/
+
+int main() {
+    int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};
+    std::vector<int> vec(ia, ia+12);
+    ostream_iterator<int> out(std::cout," ");
+
+    std::cout << "исходный вектор: ";
+    std::copy(vec.begin(), vec.end(), out); std::cout << std::endl;
+
+    std::cout << "вектор, отсортированный относительно элемента "
+         << *(vec.begin()+6) << std::endl;
+    std::nth_element(vec.begin(), vec.begin()+6, vec.end());
+    std::copy(vec.begin(), vec.end(), out); std::cout << std::endl;
+
+    std::cout << " вектор, отсортированный по убыванию "
+          << "относительно элемента "
+         << *(vec.begin()+6) << std::endl;
+    std::nth_element(vec.begin(), vec.begin()+6,
+                 vec.end(),   std::greater<int>());
+    std::copy(vec.begin(), vec.end(), out); std::cout << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="partial_sort">
+<title>Алгоритм partial_sort()</title>
+
+<div class="lang-cpp"><![CDATA[template < class RandomAccessIterator >
+void
+partial_sort(RandomAccessIterator first,
+             RandomAccessIterator middle,
+             RandomAccessIterator last);
+
+template < class RandomAccessIterator, class Compare >
+void
+partial_sort(RandomAccessIterator first,
+             RandomAccessIterator middle,
+             RandomAccessIterator last, Compare comp);]]></div>
+
+<p>partial_sort() сортирует часть последовательности, укладывающуюся в
+диапазон [first,middle). Элементы в диапазоне [middle,last) остаются
+неотсортированными. Например, если дан массив</p>
+
+<div class="lang-cpp"><![CDATA[int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};]]></div>
+
+<p>то вызов partial_sort(),где middle указывает на шестой элемент:</p>
+
+<div class="lang-cpp"><![CDATA[partial_sort(&ia[0], &ia[5], &ia[12]);]]></div>
+
+<p>генерирует последовательность, в которой наименьшие пять (т.е. middle-first) элементов отсортированы:</p>
+
+<div class="lang-cpp"><![CDATA[{12,15,17,19,20,29,23,22,26,51,35,40}.]]></div>
+
+<p>Элементы от middle до last-1 не расположены в каком-то определенном
+порядке, хотя значения каждого из них лежат вне отсортированной
+последовательности. В первом варианте для сравнения используется
+оператор "меньше", определенный для типа элементов контейнера, а во
+втором - операция сравнения comp.</p>
+
+</section>
+
+<section id="partial_sort_copy">
+<title>Алгоритм partial_sort_copy()</title>
+
+<div class="lang-cpp"><![CDATA[template < class InputIterator, class RandomAccessIterator >
+RandomAccessIterator
+partial_sort_copy(InputIterator first, InputIterator last,
+             RandomAccessIterator result_first,
+             RandomAccessIterator result_last);
+
+template < class InputIterator, class RandomAccessIterator,
+           class Compare >
+RandomAccessIterator
+partial_sort_copy(InputIterator first, InputIterator last,
+             RandomAccessIterator result_first,
+             RandomAccessIterator result_last,
+             Compare comp);]]></div>
+
+<p>partial_sort_copy() ведет себя так же, как partial_sort(), только
+частично упорядоченная последовательность копируется в контейнер,
+ограниченный диапазоном [result_first,result_last] (если мы задаем
+отдельный контейнер для копирования результата, то в нем оказывается
+упорядоченная последовательность). Например, даны два массива:</p>
+
+<div class="lang-cpp"><![CDATA[int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};
+int ia2[5];]]></div>
+
+<p>Тогда обращение к partial_sort_copy(), где в качестве middle указан восьмой элемент:</p>
+
+<div class="lang-cpp"><![CDATA[
+partial_sort_copy(&ia[0], &ia[7], &ia[12],
+                   &ia2[0], &ia2[5]);
+]]></div>
+
+<p>заполняет массив ia2 пятью отсортированными элементами: {12,15,17,19,20}. Оставшиеся два элемента отсортированы не будут.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+/*
+* печатается:
+  исходный вектор: 69 23 80 42 17 15 26 51 19 12 35 8
+  результат применения partial_sort() к вектору: семь элементов
+  8 12 15 17 19 23 26 80 69 51 42 35
+  результат применения partial_sort_copy() к первым семи
+  элементам вектора в порядке убывания
+  26 23 19 17 15 12 8
+*/
+    int main()
+{
+    int ia[] = { 69,23,80,42,17,15,26,51,19,12,35,8 };
+    std::vector<int> vec(ia, ia+12);
+    ostream_iterator<int> out(std::cout," ");
+
+    std::cout << "исходный вектор: ";
+    std::copy(vec.begin(), vec.end(), out); std::cout << std::endl;
+
+    std::cout << "результат применения partial_sort() к вектору: "
+          << "семь элементов \n";
+    std::partial_sort(vec.begin(), vec.begin()+7, vec.end());
+    std::copy(vec.begin(), vec.end(), out); std::cout << std::endl;
+
+    std::vector<int> res(7);
+    std::cout << " результат применения partial_sort_copy() к первым семи \n\t"
+         << "элементам вектора в порядке убывания \n";
+
+    std::partial_sort_copy(vec.begin(), vec.begin()+7, res.begin(),
+                        res.end(), std::greater<int>());
+    std::copy(res.begin(), res.end(), out); std::cout << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="partial_sum">
+<title>Алгоритм partial_sum()</title>
+
+<div class="lang-cpp"><![CDATA[template < class InputIterator, class OutputIterator >
+OutputIterator
+partial_sum(
+     InputIterator first, InputIterator last,
+     OutputIterator result);
+
+template < class InputIterator, class OutputIterator,
+           class BinaryOperation >
+OutputIterator
+partial_sum(
+     InputIterator first, InputIterator last,
+     OutputIterator result, BinaryOperation op);]]></div>
+
+<p>Первый вариант partial_sum() создает из последовательности,
+ограниченной диапазоном [first,last), новую последовательность, в
+которой значение каждого элемента равно сумме всех предыдущих, включая
+и данный. Так, из последовательности {0,1,1,2,3,5,8} будет создана
+{0,1,2,4,7,12,20}, где, например, четвертый элемент равен сумме трех
+предыдущих (0,1,1) и его самого (2), что дает значение 4.</p>
+
+<p>Во втором варианте вместо оператора сложения используется
+бинарная операция, заданная программистом. Предположим, мы задали
+последовательность {1,2,3,4} и объект-функцию times&lt;int&gt;.
+Результатом будет {1,2,6,24}. В обоих случаях итератор записи
+OutputIterator указывает на элемент за последним элементом новой
+последовательности.</p>
+
+<p>partial_sum() - это один из численных алгоритмов. Для его
+использования необходимо включить в программу стандартный заголовочный
+файл &lt;numeric&gt;.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <numeric>
+#include <vector>
+#include <iostream>
+
+/*
+ * печатается:
+   элементы: 1 3 4 5 7 8 9
+   частичная сумма элементов:
+   1 4 8 13 20 28 37
+   частичная сумма элементов с использованием times<int>():
+   1 3 12 60 420 3360 30240
+*/
+int main() {
+    const int ia_size = 7;
+    int ia[ia_size] = { 1, 3, 4, 5, 7, 8, 9 };
+    int ia_res[ia_size];
+
+    ostream_iterator<int> outfile(std::cout, " ");
+    std::vector<int> vec(ia, ia+ia_size);
+    std::vector<int> vec_res(vec.size());
+
+    std::cout << "элементы: ";
+    std::copy(ia, ia+ia_size, outfile); std::cout << std::endl;
+
+    std::cout << "частичная сумма элементов:\n";
+    std::partial_sum(ia, ia+ia_size, ia_res);
+    std::copy(ia_res, ia_res+ia_size, outfile); std::cout << std::endl;
+
+    std::cout <<"частичная сумма элементов с использованием times<int>():\n";
+    std::partial_sum(vec.begin(), vec.end(), vec_res.begin(), times<int>());
+
+    std::copy(vec_res.begin(), vec_res.end(), outfile);
+    std::cout <<std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="partition">
+<title>Алгоритм partition()</title>
+
+<div class="lang-cpp"><![CDATA[template < class BidirectionalIterator, class UnaryPredicate >
+BidirectionalIterator
+partition(
+     BidirectionalIterator first,
+     BidirectionalIterator last, UnaryPredicate pred);]]></div>
+
+<p>partition() переупорядочивает элементы в диапазоне [first,last). Все
+элементы, для которых предикат pred равен true, помещаются перед
+элементами, для которых он равен false. Например, если дана
+последовательность {0,1,2,3,4,5,6} и предикат, проверяющий целое число
+на четность, то мы получим две последовательности - {0,2,4,6} и
+{1,3,5}. Хотя гарантируется, что четные элементы будут помещены перед
+нечетными, их первоначальное взаимное расположение может и не
+сохраниться, т.е. 4 может оказаться перед 2, а 5 перед 1. Сохранение
+относительного порядка обеспечивает алгоритм stable_partition(),
+рассматриваемый ниже.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+class even_elem {
+public:
+    bool operator()(int elem)
+         { return elem%2 ? false : true; }
+};
+/*
+ * печатается:
+   исходная последовательность:
+   29 23 20 22 17 15 26 51 19 12 35 40
+   разбиение, основанное на четности элементов:
+   40 12 20 22 26 15 17 51 19 23 35 29
+   разбиение, основанное на сравнении с 25:
+   12 23 20 22 17 15 19 51 26 29 35 40
+*/
+
+int main() {
+    const int ia_size = 12;
+    int ia[ia_size] = { 29,23,20,22,17,15,26,51,19,12,35,40 };
+
+    std::vector<int> vec(ia, ia+ia_size);
+    ostream_iterator<int>  outfile(std::cout, " ");
+
+    std::cout << "исходная последовательность: \n";
+    std::copy(vec.begin(), vec.end(), outfile); std::cout << std::endl;
+
+    std::cout << "разбиение, основанное на четности элементов:\n";
+    std::partition(&ia[0], &ia[ia_size], even_elem());
+    std::copy(ia, ia+ia_size, outfile); std::cout << std::endl;    
+
+    std::cout << "разбиение, основанное на сравнении с 25:\n";
+    std::partition(vec.begin(), vec.end(), bind2nd(std::less<int>(),25));
+    std::copy(vec.begin(), vec.end(), outfile); std::cout << std::endl;    
+}
+]]></div>
+
+</section>
+
+<section id="prev_permutation">
+<title>Алгоритм prev_permutation()</title>
+
+<div class="lang-cpp"><![CDATA[template < class BidirectionalIterator >
+bool
+prev_permutation(BidirectionalIterator first,
+                  BidirectionalIterator last);
+
+template < class BidirectionalIterator, class Compare >
+bool
+prev_permutation(BidirectionalIterator first,
+                  BidirectionalIterator last, class Compare);]]></div>
+
+<p>prev_permutation() берет последовательность, ограниченную диапазоном
+[first,last), и, рассматривая ее как перестановку, возвращает
+предшествующую ей (о том, как упорядочиваются перестановки, говорилось
+в разделе 12.5). Если предыдущей перестановки не существует, алгоритм
+возвращает false, иначе true. В первом варианте для определения
+предыдущей перестановки используется оператор "меньше" для типа
+элементов контейнера, а во втором - бинарная операция сравнения,
+заданная программистом.</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>
+#include <vector>
+#include <iostream>
+
+// печатается:    n d a   n a d   d n a   d a n   a n d   a d n
+
+int main() {
+    std::vector<char> vec(3);
+    ostream_iterator< char > out_stream(std::cout, " ");
+
+    vec[0] = 'n'; vec[1] = 'd'; vec[2] = 'a';
+    std::copy(vec.begin(), vec.end(), out_stream); std::cout << "\t";
+
+    // сгенерировать все перестановки "dan"
+    while(std::prev_permutation(vec.begin(), vec.end())) {
+          std::copy(vec.begin(), vec.end(), out_stream);
+          std::cout << "\t";
+    }
+
+    std::cout << "\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="random_shuffle">
+<title>Алгоритм random_shuffle()</title>
+
+<div class="lang-cpp"><![CDATA[template < class RandomAccessIterator >
+void
+random_shuffle(RandomAccessIterator first,
+                RandomAccessIterator last);
+
+template < class RandomAccessIterator,
+          class RandomNumberGenerator >
+void
+random_shuffle(RandomAccessIterator first,
+                RandomAccessIterator last,
+                RandomNumberGenerator rand);]]></div>
+
+<p>random_shuffle() переставляет элементы из диапазона [first,last) в
+случайном порядке. Во втором варианте можно передать объект-функцию или
+указатель на функцию, генерирующую случайные числа. Ожидается, что
+генератор rand возвращает значение типа double в интервале [0,1].</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+int main() {
+    std::vector<int> vec;
+    for (int ix = 0; ix < 20; ix++)
+          vec.push_back(ix);
+
+    std::random_shuffle(vec.begin(), vec.end());
+
+    // печатает:
+    // random_shuffle для последовательности 1 .. 20:
+    // 6 11 9 2 18 12 17 7 0 15 4 8 10 5 1 19 13 3 14 16
+    std::cout << "random_shuffle для последовательности 1 .. 20:\n";
+    std::copy(vec.begin(), vec.end(), ostream_iterator<int>(std::cout,""));
+}
+]]></div>
+
+</section>
+
+<section id="remove">
+<title>Алгоритм remove()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator, class Type >
+ForwardIterator
+remove(ForwardIterator first,
+        ForwardIterator last, const Type &value);
+]]></div>
+
+<p>remove() удаляет из диапазона [first,last) все элементы со значением
+value. Этот алгоритм (как и remove_if()) на самом деле не исключает
+элементы из контейнера (т.е. размер контейнера сохраняется), а
+перемещает каждый оставляемый элемент в очередную позицию, начиная с
+first. Возвращаемый итератор указывает на элемент, следующий за
+позицией, в которую помещен последний неудаленный элемент. Рассмотрим,
+например, последовательность {0,1,0,2,0,3,0,4}. Предположим, что нужно
+удалить все нули. В результате получится последовательность
+{1,2,3,4,0,4,0,4}. 1 помещена в первую позицию, 2 - во вторую, 3 - в
+третью и 4 - в четвертую. Элементы, начиная с 0 в пятой позиции, - это
+"отходы" алгоритма. Возвращенный итератор указывает на 0 в пятой
+позиции. Обычно этот итератор затем передается алгоритму erase(),
+который удаляет неподходящие элементы. (При работе со встроенным
+массивом лучше использовать алгоритмы remove_copy() и remove_copy_if(),
+а не remove() и remove_if(), поскольку его размер невозможно изменить)</p>
+
+</section>
+
+<section id="remove_copy">
+<title>Алгоритм remove_copy()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class InputIterator, class OutputIterator, class Type>
+OutputIterator
+remove_copy(InputIterator first, InputIterator last,
+             OutputIterator result, const Type &value);
+]]></div>
+
+<p>remove_copy() копирует все элементы, кроме имеющих значение value, в
+контейнер, на начало которого указывает result. Возвращаемый итератор
+указывает на элемент за последним скопированным. Исходный контейнер не
+изменяется.</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>
+#include <vector>
+#include <cassert>
+#include <iostream>
+
+/* печатается:
+   исходный вектор:
+   0 1 0 2 0 3 0 4 0 5
+   вектор после remove до erase():
+   1 2 3 4 5 3 0 4 0 5
+   вектор после erase():
+   1 2 3 4 5
+   массив после remove_copy()
+   1 2 3 4 5
+*/
+int main() {
+    int value = 0;
+    int ia[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5 };
+
+    std::vector<int>  vec(ia, ia+10);
+    ostream_iterator<int> ofile(std::cout," ");
+    std::vector<int>::iterator vec_iter;
+    std::cout << "исходный вектор:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    vec_iter = std::remove(vec.begin(), vec.end(), value);
+
+    std::cout << "вектор после remove до erase():\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    // удалить из контейнера неподходящие элементы
+    vec.erase(vec_iter, vec.end());
+
+    std::cout << "вектор после erase():\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    int ia2[5];
+    std::vector<int> vec2(ia, ia+10);
+    std::remove_copy(vec2.begin(), vec2.end(), ia2, value);
+
+    std::cout << "массив после remove_copy():\n";
+    std::copy(ia2, ia2+5, ofile); std::cout << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="remove_if">
+<title>Алгоритм remove_if()</title>
+
+<div class="lang-cpp"><![CDATA[template< class ForwardIterator, class Predicate >
+ForwardIterator
+remove_if(ForwardIterator first,
+           ForwardIterator last, Predicate pred);]]></div>
+
+<p>remove_if() удаляет из диапазона [first,last) все элементы, для
+которых значение предиката pred равно true. remove_if() (как и
+remove()) фактически не исключает удаленные элементы из контейнера.
+Вместо этого каждый оставляемый элемент перемещается в очередную
+позицию, начиная с first. Возвращаемый итератор указывает на элемент,
+следующий за позицией, в которую помещен последний неудаленный элемент.
+Обычно этот итератор затем передается алгоритму erase(), который
+удаляет неподходящие элементы. (Для встроенных массивов лучше
+использовать алгоритм remove_copy_if().)</p>
+
+</section>
+
+<section id="remove_copy_if">
+<title>Алгоритм remove_copy_if()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator, class OutputIterator,
+          class Predicate >
+OutputIterator
+remove_copy_if(InputIterator first, InputIterator last,
+                OutputIterator result, Predicate pred);]]></div>
+
+<p>remove_copy_if() копирует все элементы, для которых предикат pred
+равен false, в контейнер, на начало которого указывает итератор result.
+Возвращаемый итератор указывает на элемент, расположенный за последним
+скопированным. Исходный контейнер остается без изменения.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/* печатается:
+   исходная последовательность:
+   0 1 1 2 3 5 8 13 21 34
+   последовательность после применения remove_if < 10:
+   13 21 34
+   последовательность после применения remove_copy_if четное:
+   1 1 3 5 13 21
+*/
+
+class EvenValue {
+public:
+    bool operator()(int value) {
+          return value % 2 ? false : true; }
+};
+
+int main() {
+    int ia[] = { 0, 1, 1, 2, 3, 5, 8, 13, 21, 34 };
+
+    std::vector<int>::iterator iter;
+    std::vector<int>  vec(ia, ia+10);
+    ostream_iterator<int> ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    iter = std::remove_if(vec.begin(), vec.end(),
+                  bind2nd(std::less<int>(),10));
+    vec.erase(iter, vec.end());
+
+    std::cout << "последовательность после применения remove_if < 10:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    std::vector<int> vec_res(10);
+    iter = remove_copy_if(ia, ia+10, vec_res.begin(), EvenValue());
+
+    std::cout << "последовательность после применения remove_copy_if четное:\n";
+    std::copy(vec_res.begin(), iter, ofile); std::cout << '\n';
+}
+]]></div>
+
+
+</section>
+
+<section id="replace">
+<title>Алгоритм replace()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator, class Type >
+void
+replace(ForwardIterator first, ForwardIterator last,
+         const Type& old_value, const Type& new_value);
+]]></div>
+
+<p>replace() заменяет в диапазоне [first,last) все элементы со значением old_value на new_value.</p>
+
+</section>
+
+<section id="replace_copy">
+<title>Алгоритм replace_copy()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class InputIterator, class InputIterator, class Type>
+OutputIterator
+replace_copy(InputIterator first, InputIterator last,
+              class OutputIterator result,
+              const Type& old_value, const Type& new_value);
+]]></div>
+
+<p>replace_copy() ведет себя так же, как replace(), только новая
+последовательность копируется в контейнер, начиная с result.
+Возвращаемый итератор указывает на элемент, расположенный за последним
+скопированным. Исходный контейнер остается без изменения.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/* печатается:
+   исходная последовательность:
+   Christopher Robin Mr. Winnie the Pooh Piglet Tigger Eeyore
+   последовательность после применения replace():
+   Christopher Robin Pooh Piglet Tigger Eeyore
+*/
+int main() {
+    std::string oldval("Mr. Winnie the Pooh");
+    std::string newval("Pooh");
+
+    ostream_iterator<std::string> ofile(std::cout, " ");
+    std::string sa[] = {
+        "Christopher Robin", "Mr. Winnie the Pooh",
+        "Piglet", "Tigger", "Eeyore"
+    };
+
+    std::vector<std::string> vec(sa, sa+5);
+    std::cout << "исходная последовательность:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout <<'\n';
+
+    std::replace(vec.begin(), vec.end(), oldval, newval);
+
+    std::cout << "последовательность после применения replace():\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    std::vector<std::string> vec2;
+    std::replace_copy(vec.begin(), vec.end(),
+                   inserter(vec2, vec2.begin()),
+                   newval, oldval);
+
+    std::cout << "последовательность после применения replace_copy():\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="replace_if">
+<title>Алгоритм replace_if()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class ForwardIterator, class Predicate, class Type>
+void
+replace_if(ForwardIterator first, ForwardIterator last,
+            Predicate pred, const Type& new_value);
+]]></div>
+
+<p>replace_if() заменяет значения всех элементов в диапазоне [first,last), для которых предикат pred равен true, на new_value.</p>
+
+</section>
+
+<section id="replace_copy_if">
+<title>Алгоритм replace_copy_if()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class OutputIterator,
+          class Predicate, class Type>
+OutputIterator
+replace_copy_if(ForwardIterator first, ForwardIterator last,
+                 class OutputIterator result,
+                 Predicate pred, const Type& new_value);
+]]></div>
+
+<p>replace_copy_if() ведет себя так же, как replace_if(), только новая
+последовательность копируется в контейнер, начиная с result.
+Возвращаемый итератор указывает на элемент, расположенный за последним
+скопированным. Исходный контейнер остается без изменения.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/*
+   исходная последовательность:
+   0 1 1 2 3 5 8 13 21 34
+   последовательность после применения replace_if < 10 с заменой на 0:
+   0 0 0 0 0 0 0 13 21 34
+   последовательность после применения replace_if четное с заменой на 0:
+   0 1 1 0 3 5 0 13 21 0
+*/
+
+class EvenValue {
+public:
+    bool operator()(int value) { return value % 2 == 0; }
+};
+
+int main() {
+    int new_value = 0;
+
+    int ia[] = { 0, 1, 1, 2, 3, 5, 8, 13, 21, 34 };
+    std::vector<int> vec(ia, ia+10);
+    ostream_iterator<int>  ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность:\n";
+    std::copy(ia, ia+10, ofile); std::cout << '\n';
+
+    std::replace_if(&ia[0], &ia[10], bind2nd(std::less<int>(),10), new_value);
+
+    std::cout << "последовательность после применения replace_if < 10 с заменой на 0:\n";
+    std::copy(ia, ia+10, ofile); std::cout << '\n';
+
+    std::replace_if(vec.begin(), vec.end(), EvenValue(), new_value);
+
+    std::cout << "последовательность после применения replace_if четное с заменой на 0:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout <<'\n';
+}
+]]></div>
+
+</section>
+
+<section id="reverse">
+<title>Алгоритм reverse()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class BidirectionalIterator >
+void
+reverse(BidirectionalIterator first,
+         BidirectionalIterator last);]]></div>
+
+<p>reverse() меняет порядок элементов контейнера в диапазоне
+[first,last) на противоположный. Например, если есть последовательность
+{0,1,1,2,3}, то после обращения получится {3,2,1,1,0}.
+Алгоритм reverse_copy()
+</p>
+
+<div class="lang-cpp"><![CDATA[
+template< class BidirectionalIterator, class OutputIterator >
+OutputIterator
+reverse_copy(BidirectionalIterator first, BidirectionalIterator last,
+OutputIterator result);
+]]></div>
+
+<p>reverse_copy() ведет себя так же, как reverse(), только новая
+последовательность копируется в контейнер, начиная с result.
+Возвращаемый итератор указывает на элемент, расположенный за последним
+скопированным. Исходный контейнер остается без изменения.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <list>
+#include <string>
+#include <iostream>
+/* печатается: Исходная последовательность строк: Signature of all
+things I am here to read seaspawn and seawrack that rusty boot
+Последовательность строк после применения reverse(): boot rusty that
+seawrack and seaspawn read to here am I things all of Signature
+*/
+
+class print_elements {
+public:
+  void operator()(std::string elem) {
+      std::cout << elem << (line_cnt++%8 ? " " : "\n\t");
+  }
+  static void reset_line_cnt() { _line_cnt = 1; }
+private:
+  static int _line_cnt;
+};
+
+int print_elements::_line_cnt = 1;
+
+int main() {
+    std::string sa[] = {
+       "Signature", "of", "all", "things", "I", "am",
+       "here", "to", "read", "seaspawn", "and", "seawrack",
+       "that", "rusty", "boot" };
+
+    std::list<std::string> slist(sa, sa+15);
+    std::cout << "Исходная последовательность строк:\n\t";
+    std::for_each(slist.begin(), slist.end(), print_elements());
+    std::cout << "\n\n";
+    std::reverse(slist.begin(), slist.end());
+    print_elements::reset_line_cnt();
+    std::cout << "Последовательность строк после применения reverse():\n\t";
+    std::for_each(slist.begin(), slist.end(), print_elements());
+    std::cout << "\n";
+    std::list<std::string> slist_copy(slist.size());
+    std::reverse_copy(slist.begin(), slist.end(), slist_copy.begin());
+}
+]]></div>
+
+</section>
+
+<section id="rotate">
+<title>Алгоритм rotate()</title>
+
+<div class="lang-cpp"><![CDATA[template< class ForwardIterator >
+void
+rotate(ForwardIterator first,
+        ForwardIterator middle, ForwardIterator last);]]></div>
+
+<p>rotate() перемещает элементы из диапазона [first,last) в конец
+контейнера. Элемент, на который указывает middle, становится первым.
+Например, для слова "hissboo" вращение вокруг буквы 'b' превращает
+слово в "boohiss".</p>
+
+</section>
+
+<section id="rotate_copy">
+<title>Алгоритм rotate_copy()</title>
+
+<div class="lang-cpp"><![CDATA[template< class ForwardIterator, class OutputIterator >
+OutputIterator
+rotate_copy(ForwardIterator first, ForwardIterator middle,
+             ForwardIterator last, OutputIterator result);]]></div>
+
+<p>rotate_copy() ведет себя так же, как rotate(), только новая
+последовательность копируется в контейнер, начиная с result.
+Возвращаемый итератор указывает на элемент, расположенный за последним
+скопированным. Исходный контейнер остается без изменения.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+/* печатается:
+   исходная последовательность:
+   1 3 5 7 9 0 2 4 6 8 10
+   вращение вокруг среднего элемента(0) ::
+   0 2 4 6 8 10 1 3 5 7 9
+   вращение вокруг предпоследнего элемента(8) ::
+   8 10 1 3 5 7 9 0 2 4 6
+   rotate_copy вокруг среднего элемента ::
+   7 9 0 2 4 6 8 10 1 3 5
+*/
+int main() {
+    int ia[] = { 1, 3, 5, 7, 9, 0, 2, 4, 6, 8, 10 };
+
+    std::vector<int> vec(ia, ia+11);
+    ostream_iterator<int> ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    std::rotate(&ia[0], &ia[5], &ia[11]);
+
+    std::cout << "вращение вокруг среднего элемента(0) ::\n";
+    std::copy(ia, ia+11, ofile); std::cout << '\n';
+
+    std::rotate(vec.begin(), vec.end()-2, vec.end());
+
+    std::cout << "вращение вокруг предпоследнего элемента(8) ::\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    std::vector<int> vec_res(vec.size());
+
+    std::rotate_copy(vec.begin(), vec.begin()+vec.size()/2,
+                  vec.end(), vec_res.begin());
+
+    std::cout << "rotate_copy вокруг среднего элемента ::\n";
+    std::copy(vec_res.begin(), vec_res.end(), ofile);
+    std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="search">
+<title>Алгоритм search()</title>
+
+<div class="lang-cpp"><![CDATA[template< class ForwardIterator1, class ForwardIterator2 >
+ForwardIterator
+search(ForwardIterator1 first1, ForwardIterator1 last1,
+        ForwardIterator2 first2, ForwardIterator2 last2);
+
+template< class ForwardIterator1, class ForwardIterator2,
+          class BinaryPredicate >
+ForwardIterator
+search(ForwardIterator1 first1, ForwardIterator1 last1,
+        ForwardIterator2 first2, ForwardIterator2 last2,
+        BinaryPredicate pred);]]></div>
+
+<p>Если даны два диапазона, то search() возвращает итератор,
+указывающий на первую позицию в диапазоне [first1,last1), начиная с
+которой второй диапазон входит как подпоследовательность. Если
+подпоследовательность не найдена, возвращается last1. Например, в слове
+Mississippi подпоследовательность iss встречается дважды, и search()
+возвращает итератор, указывающий на начало первого вхождения. В первом
+варианте для сравнения элементов используется оператор равенства, во
+втором - указанная программистом операция сравнения.</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/* печатается:
+   Ожидаем найти подстроку 'ate': a t e
+   Ожидаем найти подстроку 'vat': v a t
+*/
+
+int main()
+{
+     ostream_iterator< char >  ofile(std::cout, " ");
+
+    char str[25]   = "a fine and private place";
+    char substr[] = "ate";
+
+    char *found_str = search(str,str+25,substr,substr+3);
+
+    std::cout << "Ожидаем найти подстроку 'ate': ";
+    std::copy(found_str, found_str+3, ofile); std::cout << '\n';
+
+    std::vector<char> vec(str, str+24);
+    std::vector<char> subvec(3);
+
+    subvec[0]='v'; subvec[1]='a'; subvec[2]='t';
+
+    std::vector<char>::iterator iter;
+    iter = std::search(vec.begin(), vec.end(),
+                    subvec.begin(), subvec.end(),
+                    equal_to< char >());
+
+    std::cout << "Ожидаем найти подстроку 'vat': ";
+    std::copy(iter, iter+3, ofile); std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="search_n">
+<title>Алгоритм search_n()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class Size, class Type>
+ForwardIterator
+search_n(ForwardIterator first, ForwardIterator last,
+          Size count, const Type &value);
+
+template< class ForwardIterator, class Size,
+          class Type, class BinaryPredicate >
+ForwardIterator
+search_n(ForwardIterator first, ForwardIterator last,
+          Size count, const Type &value, BinaryPredicate pred);
+]]></div>
+
+<p>search_n() ищет в последовательности [first,last)
+подпоследовательность, состоящую из count повторений значения value.
+Если она не найдена, возвращается last. Например, для поиска подстроки
+ss в строке Mississippi следует задать value равным 's', а count равным
+2. Если же нужно найти две расположенные подряд подстроки ssi, то value
+задается равным "ssi", а count снова 2. search_n() возвращает итератор
+на первый элемент со значением value. В первом варианте для сравнения
+элементов используется оператор равенства, во втором - указанная
+программистом операция сравнения.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/* печатается:
+   Ожидаем найти два вхождения 'o': o o
+   Ожидаем найти подстроку 'mou':  m o u
+*/
+int main() {
+    ostream_iterator< char >  ofile(std::cout, " ");
+
+    const char blank = ' ';
+    const char oh    = 'o';
+
+    char str[26]  = "oh my a mouse ate a moose";
+    char *found_str = search_n(str, str+25, 2, oh);
+
+    std::cout << "Ожидаем найти два вхождения 'o': ";
+    std::copy(found_str, found_str+2, ofile); std::cout <<'\n';
+
+    std::vector<char> vec(str, str+25);
+
+    // найти первую последовательность из трех символов,
+    // ни один из которых не равен пробелу: mou of mouse
+
+    std::vector<char>::iterator iter;
+    iter = std::search_n(vec.begin(), vec.end(), 3,
+                     blank, not_equal_to< char >());
+
+    std::cout <<"Ожидаем найти подстроку 'mou':  ";
+    std::copy(iter, iter+3, ofile); std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="set_difference">
+<title>Алгоритм set_difference()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2,
+          class OutputIterator >
+OutputIterator
+set_difference(InputIterator1 first1, InputIterator1 last1,
+                InputIterator2 first2, InputIterator2 last2,
+                OutputIterator result);
+
+template< class InputIterator1, class InputIterator2,
+          class OutputIterator, class Compare >
+OutputIterator
+set_difference(InputIterator1 first1, InputIterator1 last1,
+                InputIterator2 first2, InputIterator2 last2,
+                OutputIterator result, Compare comp);]]></div>
+
+<p>set_difference() строит отсортированную последовательность из
+элементов, имеющихся в первой последовательности [first1,last1), но
+отсутствующих во второй - [first2,last2). Например, разность
+последовательностей {0,1,2,3} и {0,2,4,6} равна {1,3}. Возвращаемый
+итератор указывает на элемент за последним помещенным в выходной
+контейнер result. В первом варианте предполагается, что обе
+последовательности были отсортированы с помощью оператора "меньше",
+определенного для типа элементов контейнера; во втором для упорядочения
+используется указанная программистом операция comp.</p>
+
+</section>
+
+<section id="set_intersection">
+<title>Алгоритм set_intersection()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2,
+          class OutputIterator >
+OutputIterator
+set_intersection(InputIterator1 first1, InputIterator1 last1,
+                  InputIterator2 first2, InputIterator2 last2,
+                  OutputIterator result);
+
+template< class InputIterator1, class InputIterator2,
+          class OutputIterator, class Compare >
+OutputIterator
+set_intersection(InputIterator1 first1, InputIterator1 last1,
+                  InputIterator2 first2, InputIterator2 last2,
+                  OutputIterator result, Compare comp);]]></div>
+
+<p>set_intersection() строит отсортированную последовательность из
+элементов, встречающихся в обеих последовательностях - [first1,last1) и
+[first2,last2). Например, пересечение последовательностей {0,1,2,3} и
+{0,2,4,6} равно {0,2}. Возвращаемый итератор указывает на элемент за
+последним помещенным в выходной контейнер result. В первом варианте
+предполагается, что обе последовательности были отсортированы с помощью
+оператора "меньше", определенного для типа элементов контейнера; во
+втором для упорядочения используется указанная программистом операция
+comp.</p>
+
+
+</section>
+
+<section id="set_symmetric_difference">
+<title>Алгоритм set_symmetric_difference()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2,
+          class OutputIterator >
+OutputIterator
+set_symmetric_difference(
+       InputIterator1 first1, InputIterator1 last1,
+       InputIterator2 first2, InputIterator2 last2,
+       OutputIterator result);
+
+template< class InputIterator1, class InputIterator2,
+          class OutputIterator, class Compare >
+OutputIterator
+set_symmetric_difference(
+       InputIterator1 first1, InputIterator1 last1,
+       InputIterator2 first2, InputIterator2 last2,
+       OutputIterator result, Compare comp);]]></div>
+
+<p>set_symmetric_difference() строит отсортированную последовательность
+из элементов, которые встречаются только в первой последовательности
+[first1,last1) или только во второй - [first2,last2). Например,
+симметрическая разность последовательностей {0,1,2,3} и {0,2,4,6} равна
+{1,3,4,6}. Возвращаемый итератор указывает на элемент за последним
+помещенным в выходной контейнер result. В первом варианте
+предполагается, что обе последовательности были отсортированы с помощью
+оператора <q>меньше</q>, определенного для типа элементов контейнера; во
+втором для упорядочения используется указанная программистом операция
+comp.</p>
+
+</section>
+
+<section id="set_union">
+<title>Алгоритм set_union()</title>
+
+<div class="lang-cpp"><![CDATA[template< class InputIterator1, class InputIterator2,
+          class OutputIterator >
+OutputIterator
+set_union(InputIterator1 first1, InputIterator1 last1,
+          InputIterator2 first2, InputIterator2 last2,
+          OutputIterator result);
+
+template< class InputIterator1, class InputIterator2,
+          class OutputIterator, class Compare >
+OutputIterator
+set_union(InputIterator1 first1, InputIterator1 last1,
+          InputIterator2 first2, InputIterator2 last2,
+          OutputIterator result, Compare comp);]]></div>
+
+<p>set_union() строит отсортированную последовательность из элементов,
+которые встречаются либо в первой последовательности [first1,last1),
+либо во второй - [first2,last2), либо в обеих. Например, объединение
+последовательностей {0,1,2,3} и {0,2,4,6} равно {0,1,2,3,4,6}. Если
+элемент присутствует в обеих последовательностях, то копируется
+экземпляр из первой. Возвращаемый итератор указывает на элемент за
+последним помещенным в выходной контейнер result. В первом варианте
+предполагается, что обе последовательности были отсортированы с помощью
+оператора <q>меньше</q>, определенного для типа элементов контейнера; во
+втором для упорядочения используется указанная программистом операция
+comp.</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>
+#include <set>
+#include <string>
+#include <iostream>
+/* печатается:
+   элементы множества #1:
+        Иа-Иа Пух Пятачок Тигра
+   элементы множества #2:
+        Бука Пух Слонопотам
+   элементы set_union():
+        Бука Иа-Иа Пух Пятачок Слонопотам Тигра
+   элементы set_intersection():
+        Пух
+   элементы set_difference():
+        Иа-Иа Пятачок Тигра
+   элементы_symmetric_difference():
+       Бука Иа-Иа Пятачок Слонопотам Тигра
+*/
+int main()
+{
+    std::string str1[] = { "Пух", "Пятачок", "Тигра", "Иа-Иа" };
+    std::string str2[] = { "Пух", "Слонопотам", "Бука" };
+    ostream_iterator<std::string> ofile(std::cout, " ");
+
+    std::set<std::string,std::less<std::string>> set1(str1, str1+4);
+    std::set<std::string,std::less<std::string>> set2(str2, str2+3);
+
+    std::cout << "элементы множества #1:\n\t";
+    std::copy(set1.begin(), set1.end(), ofile); std::cout << "\n\n";
+    std::cout << "элементы множества #2:\n\t";
+    std::copy(set2.begin(), set2.end(), ofile); std::cout << "\n\n";
+
+    std::set<std::string, std::less<std::string>> res;
+    std::set_union(set1.begin(), set1.end(),
+                set2.begin(), set2.end(),
+                inserter(res, res.begin()));
+
+    std::cout << "элементы set_union():\n\t";
+    std::copy(res.begin(), res.end(), ofile); std::cout << "\n\n";
+
+    res.clear();
+    std::set_intersection(set1.begin(), set1.end(),
+                       set2.begin(), set2.end(),
+                       inserter(res, res.begin()));
+
+    std::cout << "элементы set_intersection():\n\t";
+    std::copy(res.begin(), res.end(), ofile); std::cout << "\n\n";
+
+    res.clear();
+    std::set_difference(set1.begin(), set1.end(),
+                     set2.begin(), set2.end(),
+                     inserter(res, res.begin()));
+
+    std::cout << "элементы set_difference():\n\t";
+    std::copy(res.begin(), res.end(), ofile); std::cout << "\n\n";
+
+    res.clear();
+    std::set_symmetric_difference(set1.begin(), set1.end(),
+                               set2.begin(), set2.end(),
+                               inserter(res, res.begin()));
+
+    std::cout << "элементы set_symmetric_difference():\n\t";
+    std::copy(res.begin(), res.end(), ofile); std::cout << "\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="sort">
+<title>Алгоритм sort()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class RandomAccessIterator>
+void sort(RandomAccessIterator first, RandomAccessIterator last);
+
+template<class RandomAccessIterator, class Compare>
+void sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+]]></div>
+
+<p>sort() переупорядочивает элементы в диапазоне [first,last) по
+возрастанию, используя оператор "меньше", определенный для типа
+элементов контейнера. Во втором варианте порядок устанавливается
+операцией сравнения comp. (Для сохранения относительного порядка равных
+элементов пользуйтесь алгоритмом stable_sort().) Мы не приводим пример,
+специально иллюстрирующий применение алгоритма sort(), поскольку его
+можно найти во многих других программах, в частности в binary_search(),
+equal_range() и inplace_merge().</p>
+
+</section>
+
+<section id="stable_partition">
+<title>Алгоритм stable_partition()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class BidirectionalIterator, class Predicate>
+BidirectionalIterator
+stable_partition(BidirectionalIterator first,
+                  BidirectionalIterator last,
+                  Predicate pred);]]></div>
+
+<p>stable_partition() ведет себя так же, как partition(), но
+гарантированно сохраняет относительный порядок элементов контейнера.
+Вот та же программа, что и для алгоритма partition(), но с
+использованием stable_partition().</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+/* печатается:
+   исходная последовательность:
+   29 23 20 22 17 15 26 51 19 12 35 40
+   устойчивое разбиение по четным элементам:
+   20 22 26 12 40 29 23 17 15 51 19
+   устойчивое разбиение по элементам, меньшим 25:
+   23 20 22 17 15 19 12 29 26 51 35 40
+*/
+    class even_elem {
+public:
+    bool operator()(int elem) {
+          return elem%2 ? false : true;
+    }
+};
+
+int main() {
+    int ia[] = { 29,23,20,22,17,15,26,51,19,12,35,40 };
+    std::vector<int> vec(ia, ia+12);
+    ostream_iterator<int>  ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    std::stable_partition(&ia[0], &ia[12], even_elem());
+
+    std::cout << "устойчивое разбиение по четным элементам:\n";
+    std::copy(ia, ia+11, ofile); std::cout << '\n';
+
+    std::stable_partition(vec.begin(), vec.end(), bind2nd(std::less<int>(),25));
+
+    std::cout << "устойчивое разбиение по элементам, меньшим 25:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="stable_sort">
+<title>Алгоритм stable_sort()</title>
+
+<div class="lang-cpp"><![CDATA[template<class RandomAccessIterator >
+void
+stable_sort(RandomAccessIterator first,
+      RandomAccessIterator last);
+
+template< class RandomAccessIterator, class Compare >
+void
+stable_sort(RandomAccessIterator first,
+      RandomAccessIterator last, Compare comp);]]></div>
+
+<p>stable_sort() ведет себя так же, как sort(), но гарантированно
+сохраняет относительный порядок равных элементов контейнера. Второй
+вариант упорядочивает элементы на основе заданной программистом
+операции сравнения comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+/* печатается:
+   исходная последовательность:
+   29 23 20 22 12 17 15 26 51 19 12 23 35 40
+   устойчивая сортировка - по умолчанию в порядке возрастания:
+   12 12 15 17 19 20 22 23 23 26 29 35 40 51
+   устойчивая сортировка: в порядке убывания:
+   51 40 35 29 26 23 23 22 20 19 17 15 12 12
+*/
+int main() {
+    int ia[] = { 29,23,20,22,12,17,15,26,51,19,12,23,35,40 };
+    std::vector<int> vec(ia, ia+14);
+    ostream_iterator<int>  ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+
+    std::stable_sort(&ia[0], &ia[14]);
+
+    std::cout << "устойчивая сортировка - по умолчанию в порядке возрастания:\n";
+    std::copy(ia, ia+14, ofile); std::cout << '\n';
+
+    std::stable_sort(vec.begin(), vec.end(), std::greater<int>());
+
+    std::cout << "устойчивая сортировка: в порядке убывания:\n";
+    std::copy(vec.begin(), vec.end(), ofile);
+    std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="swap">
+<title>Алгоритм swap()</title>
+
+<div class="lang-cpp"><![CDATA[
+template< class Type>
+void swap(Type &ob1, Type &ob2);
+
+// swap() обменивает значения объектов ob1 и ob2.
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/* печатается:
+   исходная последовательность:
+   3 4 5 0 1 2
+   после применения swap() в процедуре пузырьковой сортировки:
+   0 1 2 3 4 5
+*/
+int main()
+{
+    int ia[]  = { 3, 4, 5, 0, 1, 2 };
+    std::vector<int, allocator > vec(ia, ia+6);
+
+    for (int ix = 0; ix < 6; ++ix)
+        for (int iy = ix; iy < 6; ++iy) {
+            if (vec[iy] < vec[ix])
+                std::swap(vec[iy], vec[ix]);
+        }
+
+    ostream_iterator<int>  ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность:\n";
+    std::copy(ia, ia+6, ofile); std::cout <<'\n';
+
+    std::cout << "после применения swap() в процедуре пузырьковой сортировки:\n";
+    std::copy(vec.begin(), vec.end(), ofile); std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="swap_ranges">
+<title>Алгоритм swap_ranges()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator1, class ForwardIterator2>
+ForwardIterator2
+swap_ranges(ForwardIterator1 first1, ForwardIterator1 last,
+            ForwardIterator2 first2);
+]]></div>
+
+<p>swap_ranges() обменивает элементы из диапазона [first1,last) с
+элементами другого диапазона, начиная с first2. Эти последовательности
+могут находиться в одном контейнере или в разных. Поведение программы
+не определено, если они находятся в одном контейнере и при этом
+частично перекрываются, а также в случае, когда вторая
+последовательность короче первой. Алгоритм возвращает итератор,
+указывающий на элемент за последним переставленным.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+/* печатается:
+   исходная последовательность элементов первого контейнера:
+   0 1 2 3 4 5 6 7 8 9
+   исходная последовательность элементов второго контейнера:
+   5 6 7 8 9
+   массив после перестановки двух половин:
+   5 6 7 8 9 0 1 2 3 4
+   первый контейнер после перестановки двух векторов:
+   5 6 7 8 9 5 6 7 8 9
+   второй контейнер после перестановки двух векторов:
+   0 1 2 3 4
+*/
+int main() {
+    int ia[]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    int ia2[] = { 5, 6, 7, 8, 9 };
+
+    std::vector<int> vec(ia, ia+10);
+    std::vector<int> vec2(ia2, ia2+5);
+
+    ostream_iterator<int> ofile(std::cout, " ");
+
+    std::cout << "исходная последовательность элементов первого контейнера:\n";
+    std::copy(vec.begin(), vec.end(), ofile);
+    std::cout << '\n';
+
+    std::cout << "исходная последовательность элементов второго контейнера:\n";
+    std::copy(vec2.begin(), vec2.end(), ofile);
+    std::cout << '\n';
+
+    // перестановка внутри одного контейнера
+    std::swap_ranges(&ia[0], &ia[5], &ia[5]);
+
+    std::cout << "массив после перестановки двух половин:\n";
+    std::copy(ia, ia+10, ofile);
+    std::cout << '\n';
+
+    // перестановка разных контейнеров
+    std::vector<int>::iterator last = std::find(vec.begin(), vec.end(), 5);
+
+    swap_ranges(vec.begin(), last, vec2.begin());
+
+    std::cout << "первый контейнер после перестановки двух векторов:\n";
+    std::copy(vec.begin(), vec.end(), ofile);
+    std::cout << '\n';
+
+    std::cout << "второй контейнер после перестановки двух векторов:\n";
+    std::copy(vec2.begin(), vec2.end(), ofile);
+    std::cout << '\n';
+}
+]]></div>
+
+</section>
+
+<section id="transform">
+<title>Алгоритм transform()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class InputIterator,
+    class OutputIterator, class UnaryOperation>
+OutputIterator
+transform(InputIterator first, InputIterator last,
+          OutputIterator result, UnaryOperation op);
+
+template<class InputIterator1, class InputIterator2,
+    class OutputIterator, class BinaryOperation>
+OutputIterator
+transform(InputIterator1 first1, InputIterator1 last,
+          InputIterator2 first2, OutputIterator result,
+          BinaryOperation bop);
+]]></div>
+
+<p>Первый вариант transform() генерирует новую последовательность,
+применяя операцию op к каждому элементу из диапазона [first,last).
+Например, если есть последовательность {0,1,1,2,3,5} и объект-функция
+Double, удваивающий свой аргумент, то в результате получим
+{0,2,2,4,6,10}.</p>
+
+<p>Второй вариант генерирует новую последовательность, применяя
+бинарную операцию bop к паре элементов, один из которых взят из
+диапазона [first1,last1), а второй - из последовательности,
+начинающейся с first2. Поведение программы не определено, если во
+второй последовательности меньше элементов, чем в первой. Например, для
+двух последовательностей {1,3,5,9} и {2,4,6,8} и объекта-функции
+AddAndDouble, которая складывает два элемента и удваивает их сумму,
+результатом будет {6,14,22,34}.</p>
+
+<p>Оба варианта transform() помещают результирующую
+последовательность в контейнер с элемента, на который указывает
+итератор result. Этот итератор может адресовать и элемент любого из
+входных контейнеров, в таком случае исходные элементы будут заменены на
+результат выполнения transform(). Выходной итератор указывает на
+элемент за последним помещенным в результирующий контейнер.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <cmath>
+#include <iostream>
+
+/*
+* печатается:
+  исходный массив: 3 5 8 13 21
+  преобразование элементов путем удваивания: 6 10 16 26 42
+  преобразование элементов путем взятия разности: 3 5 8 13 21
+*/
+
+int double_val(int val) { return val + val; }
+int difference(int val1, int val2) {
+    return abs(val1 - val2); }
+
+int main() {
+    int ia[]  = { 3, 5, 8, 13, 21 };
+    std::vector<int, allocator> vec(5);
+    ostream_iterator<int> outfile(std::cout, " ");
+
+    std::cout << "исходный массив: ";
+    std::copy(ia, ia+5, outfile); std::cout << std::endl;
+
+    std::cout << "преобразование элементов путем удваивания: ";
+    std::transform(ia, ia+5, vec.begin(), double_val);
+    copy(vec.begin(), vec.end(), outfile); std::cout << std::endl;
+
+    std::cout << "преобразование элементов путем взятия разности: ";
+    std::transform(ia, ia+5, vec.begin(), outfile, difference);
+    std::cout << std::endl;
+}
+]]></div>
+
+</section>
+
+<section id="unique">
+<title>Алгоритм unique()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator>
+ForwardIterator
+unique(ForwardIterator first,
+       ForwardIterator last);
+
+template<class ForwardIterator, class BinaryPredicate>
+ForwardIterator
+unique(ForwardIterator first,
+       ForwardIterator last, BinaryPredicate pred);
+]]></div>
+
+<p>Все группы равных соседних элементов заменяются одним. В первом
+варианте при сравнении используется оператор равенства, определенный
+для типа элементов в контейнере. Во втором варианте два элемента равны,
+если бинарный предикат pred для них возвращает true. Таким образом,
+слово mississippi будет преобразовано в misisipi. Обратите внимание,
+что три буквы 'i' не являются соседними, поэтому они не заменяются
+одной, как и две пары несоседних 's'. Если нужно, чтобы все одинаковые
+элементы были заменены одним, придется сначала отсортировать контейнер.</p>
+
+<p>На самом деле поведение unique() интуитивно не совсем очевидно
+и напоминает remove(). В обоих случаях размер контейнера не изменяется:
+каждый уникальный элемент помещается в очередную позицию, начиная с
+first.</p>
+
+<p>В нашем примере физически будет получено слово misisipippi, где
+ppi - остаток, "отходы" алгоритма. Возвращаемый итератор указывает на
+начало этого остатка и обычно передается алгоритму erase() для удаления
+ненужных элементов. (Поскольку для встроенного массива операция erase()
+не поддерживается, то лучше воспользоваться алгоритмом unique_copy().)</p>
+
+</section>
+
+<section id="unique_copy">
+<title>Алгоритм unique_copy()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class InputIterator, class OutputIterator>
+OutputIterator
+unique_copy(InputIterator first, InputIterator last,
+             OutputIterator result);
+
+template< class InputIterator, class OutputIterator,
+          class BinaryPredicate >
+OutputIterator
+unique_copy(InputIterator first, InputIterator last,
+             OutputIterator result, BinaryPredicate pred);
+]]></div>
+
+<p>unique_copy() копирует входной контейнер в выходной, заменяя группы
+одинаковых соседних элементов на один элемент с тем же значением. О
+том, что понимается под равными элементами, говорилось при описании
+алгоритма unique(). Чтобы все дубликаты были гарантированно удалены,
+входной контейнер необходимо предварительно отсортировать. Возвращаемый
+итератор указывает на элемент за последним скопированным.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <iterator>
+#include <cassert>
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+void (*pfi)(int) = print_elements;
+void (*pfs)(std::string) = print_elements;
+
+int main() {
+    int ia[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5 };
+
+    std::vector<int> vec(ia, ia+10);
+    std::vector<int>::iterator vec_iter;
+
+    // последовательность не изменяется: нули не стоят рядом
+    // печатается: 0 1 0 2 0 3 0 4 0 5
+    vec_iter = std::unique(vec.begin(), vec.end());
+    std::for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+
+    // отсортировать вектор, затем применить unique: модифицируется
+    // печатается: 0 1 2 3 4 5 2 3 4 5
+    std::sort(vec.begin(), vec.end());
+    vec_iter = std::unique(vec.begin(), vec.end());
+    std::for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+
+    // удалить из контейнера ненужные элементы
+    // печатается: 0 1 2 3 4 5
+    vec.erase(vec_iter, vec.end());
+    std::for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+
+    std::string sa[] = { "enough", "is", "enough",
+                     "enough", "is", "good" };
+
+    std::vector<std::string> svec(sa, sa+6);
+    std::vector<std::string> vec_result(svec.size());
+    std::vector<std::string>::iterator svec_iter;
+
+    std::sort(svec.begin(), svec.end());
+    svec_iter = std::unique_copy(svec.begin(), svec.end(), vec_result.begin());
+
+    // печатается: enough good is
+    std::for_each(vec_result.begin(), svec_iter, pfs);
+    std::cout << "\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="upper_bound">
+<title>Алгоритм upper_bound()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class Type>
+ForwardIterator
+upper_bound(ForwardIterator first,
+             ForwardIterator last, const Type &value);
+template<class ForwardIterator, class Type, class Compare>
+ForwardIterator
+upper_bound(ForwardIterator first,
+             ForwardIterator last, const Type &value,
+             Compare comp);
+]]></div>
+
+<p>upper_bound() возвращает итератор, указывающий на последнюю позицию
+в отсортированной последовательности [first,last), в которую еще можно
+вставить значение value, не нарушая упорядоченности. Значения всех
+элементов, начиная с этой позиции и далее, будут больше, чем value.
+Например, если дана последовательность:</p>
+
+<div class="lang-cpp"><![CDATA[
+int ia[] = {12,15,17,19,20,22,23,26,29,35,40,51};
+]]></div>
+
+<p>то обращение к upper_bound() с value=21 вернет итератор, указывающий
+на значение 22, а обращение с value=22 - на значение 23. В первом
+варианте для сравнения используется оператор "меньше", определенный для
+типа элементов контейнера; во втором - заданная программистом операция
+comp.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <cassert>
+#include <iostream>
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+void (*pfi)(int) = print_elements;
+
+int main() {
+    int ia[] = {29,23,20,22,17,15,26,51,19,12,35,40};
+    std::vector<int> vec(ia,ia+12);
+
+    std::sort(ia,ia+12);
+    int *iter = std::upper_bound(ia,ia+12,19);
+    assert(*iter == 20);
+
+    std::sort(vec.begin(), vec.end(), std::greater<int>());
+    std::vector<int>::iterator iter_vec;
+
+    iter_vec = upper_bound(vec.begin(), vec.end(), 27, std::greater<int>());
+
+    assert(*iter_vec == 26);
+
+    // печатается: 51 40 35 29 27 26 23 22 20 19 17 15 12
+    vec.insert(iter_vec, 27);
+    std::for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+}
+]]></div>
+
+</section>
+
+<section id="heap">
+<title>Алгоритмы для работы с хипом</title>
+
+<p>В стандартной библиотеке используется макс-хип. Макс-хип - это
+представленное в виде массива двоичное дерево, для которого значение
+ключа в каждом узле больше либо равно значению ключа в каждом из
+узлов-потомков. (Подробное обсуждение макс-хипа можно найти в
+[SEDGEWICK88]. Альтернативой ему является мин-хип, для которого
+значение ключа в каждом узле меньше либо равно значению ключа в каждом
+из узлов-потомков.) В реализации из стандартной библиотеки самое
+большое значение (корень дерева) всегда оказывается в начале массива.
+Например, приведенная последовательность букв удовлетворяет
+требованиям, накладываемым на хип:</p>
+
+<div class="lang-cpp"><![CDATA[X T O G S M N A E R A I]]></div>
+
+<p>В данном примере X - это корневой узел, слева от него находится T, а
+справа - O. Обратите внимание, что потомки не обязательно должны быть
+упорядочены (т.е. значение в левом узле не обязано быть меньше, чем в
+правом). G и S - потомки узла T, а M и N - потомки узла O. Аналогично A
+и E - потомки G, R и A - потомки S, I - левый потомок M, а N - листовой
+узел без потомков.</p>
+
+<p>Четыре обобщенных алгоритма для работы с хипом: make_heap(),
+pop_heap(), push_heap() и sort_heap() - поддерживают его создание и
+различные манипуляции. В последних трех алгоритмах предполагается, что
+последовательность, ограниченная парой итераторов, - действительно хип
+(в противном случае поведение программы не определено). Заметим, что
+список нельзя использовать как контейнер для хранения хипа, поскольку
+он не поддерживает произвольный доступ. Встроенный массив для
+размещения хипа использовать можно, но в этом случае трудно применять
+алгоритмы pop_heap() и push_heap(), так как они требуют изменения
+размера контейнера. Мы опишем все четыре алгоритма, а затем
+проиллюстрируем их работу на примере небольшой программы.</p>
+
+</section>
+
+<section id="make_heap">
+<title>Алгоритм make_heap()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class RandomAccessIterator>
+void
+make_heap(RandomAccessIterator first,
+          RandomAccessIterator last);
+
+template<class RandomAccessIterator, class Compare>
+void
+make_heap(RandomAccessIterator first,
+          RandomAccessIterator last, Compare comp);
+]]></div>
+
+<p>make_heap() преобразует в хип последовательность, ограниченную
+диапазоном [first,last). В первом варианте для сравнения используется
+оператор "меньше", определенный для типа элементов контейнера, а во
+втором - операция comp.</p>
+
+
+</section>
+
+<section id="pop_heap">
+<title>Алгоритм pop_heap()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class RandomAccessIterator>
+void pop_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template<class RandomAccessIterator, class Compare>
+void pop_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+]]></div>
+
+<p>pop_heap() в действительности не исключает наибольший элемент, а
+переупорядочивает хип. Он переставляет элементы в позициях first и
+last-1, а затем перестраивает в хип последовательность в диапазоне
+[first,last-1). После этого <q>вытолкнутый</q> элемент можно получить
+посредством функции-члена back() контейнера либо по-настоящему
+исключить его с помощью pop_back(). В первом варианте при сравнении
+используется оператор "меньше", определенный для типа элементов
+контейнера, а во втором - операция comp.</p>
+
+</section>
+
+<section id="push_heap">
+<title>Алгоритм push_heap()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class RandomAccessIterator>
+void push_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template< class RandomAccessIterator, class Compare >
+void push_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+]]></div>
+
+<p>push_heap() предполагает, что последовательность, ограниченная
+диапазоном [first,last-1), - хип и что новый добавляемый к хипу элемент
+находится в позиции last-1. Все элементы в диапазоне [first,last)
+реорганизуются в новый хип. Перед вызовом push_heap() необходимо
+вставить новый элемент в конец контейнера, возможно, применив функцию
+push_back() (это показано в примере ниже). В первом варианте при
+сравнении используется оператор "меньше", определенный для типа
+элементов контейнера; во втором - операция comp.</p>
+
+</section>
+
+<section id="sort_heap">
+<title>Алгоритм sort_heap()</title>
+
+<div class="lang-cpp"><![CDATA[
+template<class RandomAccessIterator>
+void sort_heap(RandomAccessIterator first, RandomAccessIterator last);
+
+template< class RandomAccessIterator, class Compare >
+void sort_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+]]></div>
+
+<p>sort_heap() сортирует последовательность в диапазоне [first,last),
+предполагая, что это правильно построенный хип; в противном случае поведение программы не определено.
+(Разумеется, после сортировки хип перестает быть хипом!)
+В первом варианте при сравнении используется оператор "меньше", определенный для типа элементов контейнера, а во втором - операция comp.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <cassert>
+
+template <class Type>
+void print_elements(Type elem) { std::cout << elem << " "; }
+
+int main() {
+    int ia[] = { 29,23,20,22,17,15,26,51,19,12,35,40 };
+    std::vector<int, allocator > vec(ia, ia+12);
+
+    // печатается: 51 35 40 23 29 20 26 22 19 12 17 15
+    make_heap(&ia[0], &ia[12]);
+    void (*pfi)(int) = print_elements;
+    for_each(ia, ia+12, pfi); std::cout << "\n\n";
+
+    // печатается: 12 17 15 19 23 20 26 51 22 29 35 40
+    // минимальный хип: в корне наименьший элемент
+    make_heap(vec.begin(), vec.end(), std::greater<int>());
+    for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+
+    // печатается: 12 15 17 19 20 22 23 26 29 35 40 51
+    sort_heap(ia, ia+12);
+    for_each(ia, ia+12, pfi); std::cout <<"\n\n";
+
+    // добавим новый наименьший элемент
+    vec.push_back(8);
+
+    // печатается: 8 17 12 19 23 15 26 51 22 29 35 40 20
+    // новый наименьший элемент должен оказаться в корне
+    push_heap(vec.begin(), vec.end(), std::greater<int>());
+    for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+
+    // печатается: 12 17 15 19 23 20 26 51 22 29 35 40 8
+    // наименьший элемент должен быть заменен на следующий по порядку
+
+    pop_heap(vec.begin(), vec.end(), std::greater<int>());
+    for_each(vec.begin(), vec.end(), pfi); std::cout << "\n\n";
+}
+]]></div>
+
+</section>
+</chapter>
