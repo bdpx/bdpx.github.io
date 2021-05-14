@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Tralfamador</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+  <meta http-equiv="content-language" content="en"/>
+  <meta http-equiv="Content-Style-Type" content="text/css"/>
+  <meta name="description" content="Tralfamador"/>
+  <meta name="viewport" content="width=device-width"/>
+  <meta name="language" content="en"/>
+  <link href="styles.css" rel="stylesheet" type="text/css"/>
+
+<style>
+svg {
+  height: auto;
+  max-width: 100%;
+}
+.line {
+  fill: none;
+  stroke-width: 2px;
+}
+</style>
+</head>
+<body>
+<h1>SuperEarth simulation</h1>
+
+<!-- load the d3.js library -->    	
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+function draw(data1, data2) {
+
+// set the dimensions and margins of the graph
+var margin = { top: 20, right: 10, bottom: 30, left: 60 },
+    width = 700 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+// set the ranges
+var x = d3.scaleLinear().range([0, width]);
+var y = d3.scaleLinear().range([height, 0]);
+
+// define the 1st line
+var valueline1 = d3.line()
+    .x(function(d) { return x(d.x); })
+    .y(function(d) { return y(d.y); });
+
+// define the 2nd line
+var valueline2 = d3.line()
+    .x(function(d) { return x(d.x); })
+    .y(function(d) { return y(d.y); });
+
+// append the svg obgect to the body of the page
+// appends a 'group' element to 'svg'
+// moves the 'group' element to the top left margin
+var svg = d3.select("body").append("svg")
+    // .attr("width", width + margin.left + margin.right)
+    .attr("width", "90%")
+    .attr("height", height + margin.top + margin.bottom)
+    .attr("viewBox", "0 0 700 400")
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+  // Scale the range of the data
+  x.domain(d3.extent(data1, function(d) { return d.x; }));
+  x.domain(d3.extent(data2, function(d) { return d.x; }));
+  y.domain([0, Math.max(d3.max(data1, function(d) { return d.y; }),
+                        d3.max(data2, function(d) { return d.y; }))]);
+
+  // Add the valueline1 path.
+  svg.append("path")
+      .data([data1])
+      .attr("class", "line")
+      .style("stroke", "steelblue")
+      .attr("d", valueline1);
+
+  // Add the valueline2 path.
+  svg.append("path")
+      .data([data2])
+      .attr("class", "line")
+      .style("stroke", "red")
+      .attr("d", valueline2);
+
+  // Add the X Axis
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x).tickFormat(d3.format(".1f")));
+
+  // Add the Y Axis
+  svg.append("g")
+      .call(d3.axisLeft(y).tickFormat(d3.format(".3f")));
+}
+
+const G = 6.6743e-11;
+const H = 500.0;
+const ATM = 101325.0;
+const molar_mass = 0.0291;
+const atm_temperature = 273.0 + 20.0;
+const R = 8.31446261815324;
+const mercury_pascals_per_mm = 133.322387415;
+const water_pascals_per_mm = 9.80665;
+
+const M_SUN_RADIUS = 6.9551e+8;
+const M_SUN = 1.98847e+30;
+const L_SUN = 3.827e+26;
+const R_SUN = 149597870691;
+
+const Area = (radius) => 4.0 * Math.PI * radius * radius;
+const Volume = (radius) => (4.0 / 3.0) * Math.PI * radius * radius * radius;
+const AngularDiameter = (radius, orbit_radius) => 2.0 * Math.atan(radius / orbit_radius);
+const OrbitalPeriod = (radius, mass) => 2.0 * Math.PI * Math.sqrt(Math.pow(radius, 3) / (G * mass));
+const OrbitalRadius = (period, mass) => Math.cbrt(G * mass * period * period / (4.0 * Math.PI * Math.PI));
+const TidalAcceleration = (mass, orbit_radius, planet_radius) => (2.0 * G * mass * planet_radius) / Math.pow(orbit_radius, 3);
+
+class Star {
+    constructor(_radius, _mass, _lumen, _orbit_radius) {
+        this.radius = _radius;
+        this.mass = _mass;
+        this.lumen = _lumen;
+        this.orbit_radius = _orbit_radius;
+        this.density = this.mass / Volume(this.radius);
+        this.orbit_lumen = this.lumen / Area(this.orbit_radius);
+        this.angular_diameter = AngularDiameter(this.radius, this.orbit_radius);
+        this.orbit_period = OrbitalPeriod(this.orbit_radius, this.mass);
+        this.tidal_acceleration = TidalAcceleration(this.mass, this.orbit_radius, 1.0);
+    }
+}
+
+class DensityPoint {
+    constructor(radius, density) {
+        this.radius = radius;
+        this.density = density;
+    }
+}
+
+class Planet {
+    constructor(name, radius, period, points, land_part, atmosphere_mass) {
+        while (radius % H > 0.0) radius++;
+
+        this.name = name;
+        this.radius = radius;
+        this.period = period;
+        this.points = points;
+        this.land_part = land_part;
+        this.atmosphere_mass = atmosphere_mass;
+
+        this.area = Area(radius);
+        this.volume = Volume(radius);
+        this.land_area = this.land_part * this.area;
+        this.sea_area = this.area - this.land_part * this.area;
+        this.mass = this.Mass(radius);
+        this.density = this.mass / this.volume;
+        this.g = G * this.mass / (radius * radius);
+        this.center_pressure = this.Pressure(0.0);
+
+        this.moment_inertia = this.MomentInertia(radius);
+        this.moment_inertia_normalized = this.moment_inertia / (this.mass * radius * radius);
+
+        this.equator_speed = 2.0 * Math.PI * radius / this.period;
+        this.omega = 2.0 * Math.PI / this.period;
+        this.centrifugal_acceleration = this.omega * this.omega * radius;
+        this.rotation_energy = this.moment_inertia * this.omega * this.omega / 2.0;
+
+        this.stationary_orbit = Math.cbrt(G * this.mass / (this.omega * this.omega));
+        this.s1_speed = Math.sqrt(G * this.mass / radius);
+
+        const moon_density = 3300.0;
+        this.roche_limit = 2.44 * radius * Math.cbrt(this.density / moon_density);
+        this.atm_pressure = this.g * this.atmosphere_mass / this.area;
+        this.atm_density = this.atm_pressure * molar_mass / R / atm_temperature;
+    }
+
+    spline(x, x_begin, x_end, z_begin, z_end) {
+        return ((x_end - x) * z_begin + (x - x_begin) * z_end) / (x_end - x_begin);
+    }
+
+    Density(radius) {
+        if (radius >= 1.0) return 0.0;
+        for (let i = 1; i < this.points.length; i++) {
+            if (radius >= this.points[i].radius) {
+                return this.spline(radius, this.points[i].radius, this.points[i-1].radius,
+                                           this.points[i].density, this.points[i-1].density);
+            }
+        }
+        throw new Error("Density calculation failed");
+    }
+
+    Mass(r) {
+        let mass = 0.0;
+        for (let radius = 0.0; radius <= r; radius += H) {
+            mass += Area(radius) * H * this.Density(radius / r);
+        }
+        return mass;
+    }
+
+    MomentInertia(r) {
+        let sum = 0.0;
+        for (let radius = 0.0; radius <= r; radius += H) {
+            sum += Area(radius) * H * this.Density(radius / r) * (2.0 / 3.0) * radius * radius;
+        }
+        return sum;
+    }
+
+    Pressure(depth) {
+        let mass = this.Mass(this.radius);
+        let pressure = 0.0;
+        for (let r = this.radius; r > depth; r -= H) {
+            const density = this.Density(r / this.radius);
+            pressure += density * H * G * mass / (r * r);
+            mass -= Area(r) * H * density;
+        }
+        return pressure;
+    }
+
+    static Compare(body, v1, v2, scale, name) {
+       var tr = body.append("tr");
+       tr.append("td").text((v1 / scale).toPrecision(8));
+       tr.append("td").text((v2 / scale).toPrecision(8));
+       tr.append("td").text((v2 / v1).toPrecision(6));
+       tr.append("td").html(name);
+       // console.log( (v1 / scale).toPrecision(8), (v2 / scale).toPrecision(8), (v2 / v1).toFixed(8) );
+    }
+
+    static report(s1, p1, m1, s2, p2, m2) {
+
+    var table = d3.select("body").append("table");
+    table.append("caption").text("Planet comparison");
+    var thead = table.append("thead");
+    var trh = thead.append("tr");
+    trh.append("th").text(p1.name);
+    trh.append("th").text(p2.name);
+    trh.append("th").text("v2/v1");
+    trh.append("th").text("name");
+
+    var tbody = table.append("tbody");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("geometry");
+    Planet.Compare(tbody, p1.radius, p2.radius, 1.0e+3, "radius (km)");
+    Planet.Compare(tbody, p1.area, p2.area, 1.0e+6 * 1.0e+6, "surface area (millions km<sup>2</sup>)");
+    Planet.Compare(tbody, p1.land_part, p2.land_part, 1.0, "land part");
+    Planet.Compare(tbody, p1.land_area, p2.land_area, 1.0e+6 * 1.0e+6, "land area (millions km<sup>2</sup>)");
+    Planet.Compare(tbody, p1.sea_area, p2.sea_area, 1.0e+6 * 1.0e+6, "sea area (millions km<sup>2</sup>)");
+    Planet.Compare(tbody, p1.volume, p2.volume, 1.0e+9 * 1.0e+9, "volume (milliards km<sup>3</sup>)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("mass");
+    Planet.Compare(tbody, p1.mass, p2.mass, 1.0e+9 * 1.0e+9 * 1.0e+3, "mass (mlrd mlrd tonnes)");
+    Planet.Compare(tbody, p1.density, p2.density, 1.0, "average density (kg/m<sup>3</sup>)");
+    Planet.Compare(tbody, p1.moment_inertia, p2.moment_inertia, 1.0, "moment of inertia (kg*m<sup>2</sup>)");
+    Planet.Compare(tbody, p1.moment_inertia_normalized, p2.moment_inertia_normalized, 1.0, "normalized moment of inertia");
+    Planet.Compare(tbody, p1.moment_inertia_normalized, p2.moment_inertia_normalized, 0.4, "normalized to homogeneous (0.4)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("gravitation");
+    Planet.Compare(tbody, p1.g, p2.g, 1.0, "g (m/s<sup>2</sup>)");
+    Planet.Compare(tbody, p1.center_pressure, p2.center_pressure, 1.0e+9, "pressure in center (giga-pascals)");
+    Planet.Compare(tbody, p1.center_pressure, p2.center_pressure, 1.0e+6 * ATM, "pressure in center (millions atmospheres)");
+    Planet.Compare(tbody, p1.roche_limit, p2.roche_limit, 1.0e+3, "radius of Roche limit (km)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("rotation");
+    Planet.Compare(tbody, p1.period, p2.period, 3600.0, "period (hours)");
+    Planet.Compare(tbody, p1.equator_speed, p2.equator_speed, 1.0, "equator speed (m/s<sup>2</sup>)");
+    Planet.Compare(tbody, p1.omega, p2.omega, 1.0e-3, "omega (milli-rad/s)");
+    Planet.Compare(tbody, p1.rotation_energy, p2.rotation_energy, 1.0, "rotation energy (J)");
+    Planet.Compare(tbody, p1.centrifugal_acceleration, p2.centrifugal_acceleration, 1.0, "equator centrifugal acceleration (m/s<sup>2</sup>)");
+    Planet.Compare(tbody, p1.g - p1.centrifugal_acceleration, p2.g - p2.centrifugal_acceleration, 1.0, "g on equator (m/s<sup>2</sup>)");
+    Planet.Compare(tbody, p1.s1_speed, p2.s1_speed, 1.0, "s1 speed (m/s)");
+
+    Planet.Compare(tbody, p1.s1_speed - p1.equator_speed, p2.s1_speed - p2.equator_speed, 1.0, "s1 speed on equator (m/s)");
+    Planet.Compare(tbody, p1.stationary_orbit, p2.stationary_orbit, 1.0e+3, "radius of stationary orbit (km)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("star");
+    Planet.Compare(tbody, s1.radius, s2.radius, 1.0e+6 * 1.0e+3, "star radius (mln km)");
+    Planet.Compare(tbody, s1.mass, s2.mass, 1.0, "star mass (kg)");
+    Planet.Compare(tbody, s1.density, s2.density, 1.0, "star density (kg/m<sup>3</sup>)");
+    Planet.Compare(tbody, s1.lumen, s2.lumen, 1.0, "star full lumenance (watt)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("planet orbit");
+    Planet.Compare(tbody, s1.orbit_radius, s2.orbit_radius, 1.0e+6 * 1.0e+3, "orbital radius (millions km)");
+    Planet.Compare(tbody, s1.orbit_lumen, s2.orbit_lumen, 1.0, "orbit lumenance (watt/m<sup>2</sup>)");
+    Planet.Compare(tbody, s1.orbit_period, s2.orbit_period, 24 * 3600, "orbit period (in 24 hours)");
+    Planet.Compare(tbody, s1.orbit_period / p1.period, s2.orbit_period / p2.period, 1.0, "orbit period (own days)");
+    Planet.Compare(tbody, s1.tidal_acceleration * p1.radius, s2.tidal_acceleration * p2.radius, 1.0, "tidal acceleration on surface (m/s<sup>2</sup>)");
+    Planet.Compare(tbody, s1.angular_diameter, s2.angular_diameter, 2.0 * Math.PI / 360.0, "star diameter from planet (degrees)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("moon");
+    Planet.Compare(tbody, m1.radius, m2.radius, 1.0e+3, "radius (km)");
+    Planet.Compare(tbody, m1.mass, m2.mass, 1.0e+9 * 1.0e+9 * 1.0e+3, "mass (mlrd mlrd tonn)");
+    Planet.Compare(tbody, p1.mass / m1.mass, p2.mass / m2.mass, 1.0, "mass planet/moon");
+    Planet.Compare(tbody, m1.density, m2.density, 1.0, "average density (kg/m<sup>3</sup>)");
+    Planet.Compare(tbody, m1.g, m2.g, 1.0, "g (m/s<sup>2</sup>)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("moon orbit");
+    Planet.Compare(tbody, m1.period, m2.period, 24 * 3600.0, "period (24 hours)");
+    Planet.Compare(tbody, OrbitalRadius(m1.period, p1.mass),
+                          OrbitalRadius(m2.period, p2.mass), 1.0e+3, "orbital radius (km)");
+    Planet.Compare(tbody, AngularDiameter(m1.radius, OrbitalRadius(m1.period, p1.mass)),
+                          AngularDiameter(m2.radius, OrbitalRadius(m2.period, p2.mass)), 2.0 * Math.PI / 360.0, "moon diameter from planet (degrees)");
+
+    Planet.Compare(tbody, TidalAcceleration(m1.mass, OrbitalRadius(m1.period, p1.mass), p1.radius),
+                          TidalAcceleration(m2.mass, OrbitalRadius(m2.period, p2.mass), p2.radius), 1.0, "moon tidal accel on planet (m/s<sup>2</sup>)");
+
+    Planet.Compare(tbody, TidalAcceleration(p1.mass, OrbitalRadius(m1.period, p1.mass), m1.radius),
+                          TidalAcceleration(p2.mass, OrbitalRadius(m2.period, p2.mass), m2.radius), 1.0, "planet tidal accel on moon (m/s<sup>2</sup>)");
+
+    if (p1.atmosphere_mass > 0.0 && p2.atmosphere_mass > 0.0) {
+        tbody.append("tr").append("th").attr("colspan", "4").text("atmosphere");
+        Planet.Compare(tbody, p1.atmosphere_mass, p2.atmosphere_mass, 1.0e+12 * 1.0e+3, "mass (teratonnes)");
+        Planet.Compare(tbody, p1.atmosphere_mass / p1.area,
+                p2.atmosphere_mass / p2.area, 1.0, "column pressure (kg/m<sup>2</sup>)");
+        Planet.Compare(tbody, p1.atm_density, p2.atm_density, 1.0, "density on surface (kg/m<sup>3</sup>)");
+        Planet.Compare(tbody, p1.atm_pressure, p2.atm_pressure, mercury_pascals_per_mm, "pressure (0m, mm, mercury column)");
+        Planet.Compare(tbody, p1.atm_pressure, p2.atm_pressure, water_pascals_per_mm, "pressure (0m, mm, water column)");
+        Planet.Compare(tbody, p1.atm_pressure, p2.atm_pressure, 1.0, "pressure (0m, pascals)");
+
+        const hhh = [ 1000.0, 2000.0, 3000.0, 4000.0, 5000.0, 10000.0, 20000.0, 30000.0, 50000.0 ];
+
+        for (const h of hhh) {
+            const p1_h_atm_pressure = p1.atm_pressure * Math.exp(-p1.g * h * molar_mass / R / atm_temperature);
+            const p2_h_atm_pressure = p2.atm_pressure * Math.exp(-p2.g * h * molar_mass / R / atm_temperature);
+            Planet.Compare(tbody, p1_h_atm_pressure, p2_h_atm_pressure, 1.0, "pressure (" + h + "m, pascals)");
+        }
+    }
+
+    let density = function(p) {
+        var data = [];
+        for (let radius = 0.0; radius < p.radius; radius += H) {
+             data.push({ x:radius * 1.0e-3, y:1.0e-3 * p.Density(radius / p.radius) });
+        }
+        return data;
+    }
+    d3.select("body").append("p").html("Planet density (tonnes/m<sup>3</sup>) per radius (km)");
+    draw(density(p1), density(p2));
+
+    let ggg = function(p) {
+        var data = [];
+        let mass = 0.0;
+        for (let radius = H; radius < p.radius; radius += H) {
+            mass += Area(radius) * H * p.Density(radius / p.radius);
+            data.push({ x: radius * 1.0e-3, y: G * mass / radius / radius });
+        }
+        return data;
+    }
+    d3.select("body").append("p").html("Planet internal g (m/s<sup>2</sup>) per radius (km)");
+    draw(ggg(p1), ggg(p2));
+
+    let pressure = function(p) {
+        var data = [];
+        let mass = p.Mass(p.radius);
+        let pressure = 0.0;
+        for (let radius = p.radius; radius > 0.0; radius -= H) {
+            const d = p.Density(radius / p.radius);
+            pressure += d * H * G * mass / (radius * radius);
+            mass -= Area(radius) * H * d;
+            data.push({ x:radius * 1.0e-3, y: pressure * 1.0e-9 });
+        }
+        return data;
+    }
+    d3.select("body").append("p").text("Planet internal pressure (gigapascals) per radius (km)");
+    draw(pressure(p1), pressure(p2));
+
+    let atm_pressure = function(p) {
+        var data = [];
+        for (let h = 10000.0; h < 50000.0; h += H) {
+            const h_atm_pressure = p.atm_pressure * Math.exp(-p.g * h * molar_mass / R / atm_temperature);
+            data.push({ x:h * 1.0e-3, y:h_atm_pressure * 1.0e-3 });
+        }
+        return data;
+    }
+    d3.select("body").append("p").text("Atmosphere pressure (kilopascals) per height (km)");
+    draw(atm_pressure(p1), atm_pressure(p2));
+}
+
+} // Planet
+
+/*****************************************************************************
+* Sorohtin
+* https://www.gemp.ru/article/227.html>
+*****************************************************************************/
+var EarthDensityPoints = [
+    { radius: (6371.0 -    0) / 6371.0, density:   2850.0 },
+    { radius: (6371.0 -  200) / 6371.0, density:   3300.0 },
+    { radius: (6371.0 -  430) / 6371.0, density:   3600.0 },
+    { radius: (6371.0 -  430) / 6371.0, density:   3820.0 },
+    { radius: (6371.0 -  600) / 6371.0, density:   4090.0 },
+    { radius: (6371.0 -  670) / 6371.0, density:   4160.0 },
+    { radius: (6371.0 -  670) / 6371.0, density:   4370.0 },
+    { radius: (6371.0 -  800) / 6371.0, density:   4490.0 },
+    { radius: (6371.0 - 1000) / 6371.0, density:   4610.0 },
+    { radius: (6371.0 - 1200) / 6371.0, density:   4720.0 },
+    { radius: (6371.0 - 1400) / 6371.0, density:   4830.0 },
+    { radius: (6371.0 - 1600) / 6371.0, density:   4940.0 },
+    { radius: (6371.0 - 1800) / 6371.0, density:   5040.0 },
+    { radius: (6371.0 - 2200) / 6371.0, density:   5250.0 },
+    { radius: (6371.0 - 2600) / 6371.0, density:   5450.0 },
+    { radius: (6371.0 - 2886) / 6371.0, density:   5600.0 },
+    { radius: (6371.0 - 2886) / 6371.0, density:   9920.0 },
+    { radius: (6371.0 - 3000) / 6371.0, density:  10060.0 },
+    { radius: (6371.0 - 3400) / 6371.0, density:  10600.0 },
+    { radius: (6371.0 - 3800) / 6371.0, density:  11060.0 },
+    { radius: (6371.0 - 4200) / 6371.0, density:  11430.0 },
+    { radius: (6371.0 - 4600) / 6371.0, density:  11720.0 },
+    { radius: (6371.0 - 5000) / 6371.0, density:  11970.0 },
+    { radius: (6371.0 - 5120) / 6371.0, density:  12040.0 },
+    { radius: (6371.0 - 5125) / 6371.0, density:  13000.0 },
+    { radius: (6371.0 - 5400) / 6371.0, density:  13100.0 },
+    { radius: (6371.0 - 5800) / 6371.0, density:  13230.0 },
+    { radius: (6371.0 - 6000) / 6371.0, density:  13270.0 },
+    { radius: (6371.0 - 6200) / 6371.0, density:  13290.0 },
+    { radius: (6371.0 - 6371) / 6371.0, density:  13290.0 },
+];
+
+var TralfamadorDensityPoints = [
+    { radius: 1.000, density:  2850.0 * 1.000 },
+    { radius: 0.968, density:  3300.0 * 1.000 },
+    { radius: 0.932, density:  3600.0 * 1.001 },
+    { radius: 0.935, density:  3820.0 * 1.002 },
+    { radius: 0.905, density:  4090.0 * 1.003 },
+    { radius: 0.894, density:  4160.0 * 1.005 },
+    { radius: 0.894, density:  4370.0 * 1.030 },
+    { radius: 0.874, density:  4490.0 * 1.060 },
+    { radius: 0.843, density:  4610.0 * 1.090 },
+    { radius: 0.811, density:  4720.0 * 1.100 },
+    { radius: 0.780, density:  4830.0 * 1.110 },
+    { radius: 0.748, density:  4940.0 * 1.120 },
+    { radius: 0.717, density:  5040.0 * 1.130 },
+    { radius: 0.654, density:  5250.0 * 1.140 },
+    { radius: 0.591, density:  5450.0 * 1.150 },
+    { radius: 0.520, density:  5600.0 * 1.160 }, // mantle
+    { radius: 0.521, density:  9920.0 * 1.165 }, // outer core
+    { radius: 0.503, density: 10060.0 * 1.165 },
+    { radius: 0.443, density: 10600.0 * 1.165 },
+    { radius: 0.380, density: 11060.0 * 1.165 },
+    { radius: 0.320, density: 11430.0 * 1.165 },
+    { radius: 0.257, density: 11720.0 * 1.165 },
+    { radius: 0.195, density: 11970.0 * 1.165 },
+    { radius: 0.176, density: 12040.0 * 1.165 },
+    { radius: 0.170, density: 13000.0 * 1.190 }, // inner core
+    { radius: 0.140, density: 13100.0 * 1.190 },
+    { radius: 0.080, density: 13230.0 * 1.190 },
+    { radius: 0.058, density: 13270.0 * 1.190 },
+    { radius: 0.027, density: 13290.0 * 1.190 },
+    { radius: 0.000, density: 13290.0 * 1.190 },
+];
+
+var MoonDensityPoints = [
+    { radius: 1.00, density: 2500.0 },
+    { radius: 0.99, density: 3000.0 },
+    { radius: 0.89, density: 3000.0 },
+    { radius: 0.88, density: 3100.0 },
+    { radius: 0.45, density: 3300.0 },
+    { radius: 0.46, density: 3300.0 },
+    { radius: 0.21, density: 3400.0 },
+    { radius: 0.20, density: 3800.0 },
+    { radius: 0.00, density: 4000.0 },
+];
+
+function main()
+{
+    // console.log("---- main --------------------------------");
+    //for (let i = 0; i < EarthDensityPoints.length; i++) {
+    //    console.log(EarthDensityPoints[i].radius + " " +EarthDensityPoints[i].density);
+    //}
+
+    const Sun = new Star(M_SUN_RADIUS, M_SUN, L_SUN, R_SUN);
+    // https://rainman.astro.illinois.edu/ddr/stellar/intermediate.html
+    const Sun2 = new Star(M_SUN_RADIUS * 0.81, M_SUN * 0.7013, L_SUN * 0.4258, R_SUN * 0.6701);
+
+    const T_ROTATE = 11.08;
+    const earth       = new Planet("earth",       6371 * 1000,    24.00 * 3600, EarthDensityPoints,       0.292,  5.301e+18);
+    const tralfamador = new Planet("tralfamador", 7490 * 1000, T_ROTATE * 3600, TralfamadorDensityPoints, 0.262, 13.100e+18);
+
+    const moon   = new Planet( "moon",   1738 * 1000, 27.321661 * 24.00 * 3600, MoonDensityPoints, 1.0,  0.0);
+    const moon2  = new Planet("moon2",    978 * 1000,          T_ROTATE * 3600, MoonDensityPoints, 1.0,  0.0);
+
+    Planet.report(Sun, earth, moon, Sun2, tralfamador, moon2);
+}
+
+main();
+
+</script>
+</body>
+</html>
