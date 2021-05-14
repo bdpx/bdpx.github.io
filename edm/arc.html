@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="description" content="D3D SVG charts"/>
+<link rel="stylesheet" href="/styles.css" type="text/css">
+<title>Testing Pie Chart</title>
+<script type="text/javascript" src="https://d3js.org/d3.v7.min.js"></script>
+<style type="text/css">
+    .slice text {
+        font-size: 16pt;
+        font-family: Arial;
+    }
+</style>
+</head>
+<body>
+<h2>d3 pie chart</h2>
+<svg width="100" height="100"></svg>
+<p>d3 pie chart example</p>
+<script>
+    var w = 500; // width
+    var h = 500; // height
+    var r = 250; // radius
+
+    var data = [20.99, 50, 30, 90, 25.6, 34.7, 44.886];
+    var data_title = [ "one", "two", "three", "four", "xx", "yy", "zzz" ];
+
+    // Selecting SVG using d3.select()
+    var svg = d3.select("svg");
+
+    // set the width and height of our visualization (these will be attributes of the <svg> tag
+    svg.attr("width", w);
+    svg.attr("height", h);
+
+    // Creating Pie generator
+    var pie = d3.pie();
+
+    // Creating arc
+    var arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(r);
+
+    let g = svg.append("g")
+        .attr("transform", "translate(" + r + "," + r + ")");    //move the center of the pie chart from 0, 0 to radius, radius
+
+    // Grouping different arcs
+    var arcs = g.selectAll("arc")
+        .data(pie(data))
+        .enter()
+        .append("g");
+
+    // Appending path
+    arcs.append("path")
+        .attr("fill", (data, i)=>{
+            let value = data.data;
+            return d3.schemeSet3[i+1];
+        })
+        .attr("d", arc); // this creates the actual SVG path using the associated data (pie) with the arc drawing function
+
+    // Adding data to each arc
+    arcs.append("text") // add a label to each slice
+        .attr("transform",(d)=>{ // set the label's origin to the center of the arc
+                d.innerRadius = 0;
+                d.outerRadius = r;
+                return "translate("+ arc.centroid(d) + ")";
+        })
+        .attr("text-anchor", "middle") // center the text on it's origin
+        .text(function(d, i) {
+            // get the label from our original data array
+            return data_title[i] + ' ' + data[i]; // d.data;
+        });
+    </script>
+</body>
+</html>
