@@ -1,0 +1,2222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="xhtml.xsl"?>
+
+<chapter xmlns="http://www.example.com/postrisc"
+ id="algorithm_templates"
+ description="Обобщенные алгоритмы, часть 1"
+>
+<title>Обобщенные алгоритмы</title>
+
+<preface>
+
+<p>В нашу реализацию класса Array мы включили функции-члены для поддержки операций min(), max() и sort().
+Однако в стандартном классе std::vector эти, на первый взгляд фундаментальные, операции отсутствуют.
+Для нахождения минимального или максимального значения элементов вектора следует вызвать один из <i>обобщенных алгоритмов</i>. 
+Алгоритмами они называются потому, что реализуют такие распространенные 
+операции, как min(), max(), find() и sort(), а обобщенными (generic) – потому, 
+что применимы к различным контейнерным типам: векторам, спискам, массивам. Контейнер 
+связывается с применяемым к нему обобщенным алгоритмом посредством пары итераторов, указывающих, какие элементы следует посетить при 
+обходе контейнера. Специальные <i>объекты-функции</i> позволяют переопределить семантику 
+операторов в обобщенных алгоритмах. Итак, в этой главе рассматриваются обобщенные 
+алгоритмы, объекты-функции и итераторы.
+</p>
+
+</preface>
+
+<section id="short_intro">
+<title>Краткий обзор</title>
+
+<p>Реализация обобщенного алгоритма не зависит от типа контейнера, поэтому одна 
+основанная на шаблонах реализация может работать со всеми контейнерами, а равно и со 
+встроенным типом массива. Рассмотрим алгоритм find(). Если коллекция не отсортирована, 
+то, чтобы найти элемент, требуются лишь следующие общие шаги:
+</p>
+
+<ol>
+<li>По очереди исследовать каждый элемент.</li>
+<li>Если элемент равен искомому значению, то вернуть его позицию в коллекции.</li>
+<li>В противном случае анализировать следующий элемент Повторять шаг 2, пока значение не будет найдено либо пока не будет просмотрена вся коллекция.</li>
+<li>Если мы достигли конца коллекции и не нашли искомого, то вернуть некоторое значение, показывающее, что нужного элемента нет.</li>
+</ol>
+
+<p>Алгоритм, как мы и утверждали, не зависит ни от типа контейнера, к которому применяется, 
+ни от типа искомого значения, однако для его использования необходимы:
+</p>
+
+<ul>
+<li>способ обхода коллекции: переход к следующему элементу и распознавание того, что 
+достигнут конец коллекции. При работе с встроенным типом массива мы решаем эту проблему, 
+передавая два аргумента: указатель на первый элемент и число элементов, подлежащих обходу 
+(в случае строк символов в стиле C передавать второй аргумент необязательно, так как конец 
+строки обозначается двоичным нулем);
+</li>
+<li>умение сравнивать каждый элемент контейнера с искомым значением. Обычно это делается 
+с помощью оператора равенства, ассоциированного со значениями типа, или путем передачи 
+указателя на функцию, осуществляющую сравнение;
+</li>
+<li>некоторый обобщенный тип для представления позиции элемента внутри контейнера и 
+специального признака на случай, если элемент не найден. Обычно мы возвращаем индекс 
+элемента либо указатель на него. В ситуации, когда поиск неудачен, возвращается –1 вместо 
+индекса или 0 вместо указателя.
+</li>
+</ul>
+
+<p>Обобщенные алгоритмы решают первую проблему, обход контейнера, с помощью абстракции 
+итератора – обобщенного указателя, поддерживающего оператор инкремента для доступа к 
+следующему элементу, оператор разыменования для получения его значения и операторы 
+равенства и неравенства для определения того, совпадают ли два итератора. Диапазон, 
+к которому применяется алгоритм, помечается парой итераторов: first адресует первый 
+элемент, а last – тот, который следует за последним.
+К самому элементу, адресованному итератором last, алгоритм не применяется; он служит стражем, прекращающим обход.
+Кроме того, last используется как возвращаемое значение с семантикой <q>результат отсутствует</q>.
+Если же значение получено, то возвращается итератор, помечающий позицию найденного элемента.
+</p>
+
+<p>
+Имеется по две версии каждого обобщенного алгоритма: в одной для сравнения применяется 
+оператор равенства, а в другой – объект-функция или указатель на функцию, реализующую 
+сравнение. (Объекты-функции рассматриваются в разделе 12.3.) Вот, например, реализация 
+обобщенного алгоритма find(), в котором используется оператор сравнения для типов хранимых 
+в контейнере элементов:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+template<class ForwardIterator, class Type>
+ForwardIterator
+find(ForwardIterator first, ForwardIterator last, Type value) {
+   for (; first != last; ++first)
+         if (value == *first)
+          return first;
+   return last;
+}
+]]></div>
+
+<p>ForwardIterator (однонаправленный итератор) – это один из пяти категорий итераторов, 
+предопределенных в стандартной библиотеке. Он поддерживает чтение и запись адресуемого 
+элемента. (Все пять категорий рассматриваются в разделе 12.4.)
+</p>
+
+<p>
+Алгоритмы достигают независимости от типов за счет того, что никогда не 
+обращаются к элементам контейнера непосредственно; доступ и обход элементов осуществляются 
+только с помощью итераторов. Неизвестны ни фактический тип контейнера, ни даже то, является 
+ли он контейнером или встроенным массивом. Для работы со встроенным типом массива обобщенному 
+алгоритму можно передать не только обычные указатели, но и итераторы. Например, алгоритм 
+find() для встроенного массива элементов типа int можно использовать так:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algoritm>
+#include <iostream>
+
+int main() {
+   int search_value;
+   int ia[6] = { 27, 210, 12, 47, 109, 83 };
+
+   std::cout << "enter search value: ";
+   std::cin >> search_value;
+
+   int *presult = find(&ia[0], &ia[6], search_value);
+
+   std::cout  << "The value " << search_value
+        << (presult == &ia[6]
+            ? " is not present" : " is present")
+   << std::endl;
+}]]></div>
+
+<p>Если возвращенный указатель равен адресу &amp;ia[6] (который расположен за 
+последним элементом массива), то поиск оказался безрезультатным, в противном 
+случае значение найдено.
+</p>
+
+<p>
+Вообще говоря, при передаче адресов элементов массива обобщенному алгоритму мы можем 
+написать
+</p>
+
+<div class="lang-cpp"><![CDATA[int *presult = find(&ia[0], &ia[6], search_value);]]></div>
+
+<p>или</p>
+
+<div class="lang-cpp"><![CDATA[int *presult = find(ia, ia+6, search_value);]]></div>
+
+<p>Если бы мы хотели ограничиться лишь отрезком массива, то достаточно было бы модифицировать
+ передаваемые алгоритму адреса. Так, при следующем обращении к find() просматриваются только 
+второй и третий элементы (напомним, что элементы массива нумеруются с нуля):
+</p>
+
+<div class="lang-cpp"><![CDATA[// искать только среди элементов ia[1] и ia[2]
+int *presult = find(&ia[1], &ia[3], search_value);
+]]></div>
+
+<p>А вот пример использования контейнера типа std::vector с алгоритмом find():
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <vector>
+#include <iostream>
+
+int main() {
+   int search_value;
+   int ia[6] = { 27, 210, 12, 47, 109, 83 };
+   std::vector<int> vec(ia, ia+6);
+
+   std::cout << "enter search value:  ";
+   std::cin >> search_value;
+
+   std::vector<int>::iterator presult;
+   presult = find(vec.begin(), vec.end(), search_value);
+
+   std::cout << "The value  " << search_value
+        <<(presult == vec.end()
+            ?  " is not present " :  " is present")
+        << std::endl;
+}
+]]></div>
+
+<p>find() можно применить и к списку:
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>
+#include <list>
+#include <iostream>
+int main()
+{
+   int search_value;
+   int ia[6] = { 27, 210, 12, 47, 109, 83 };
+   std::list<int> ilist(ia, ia+6);
+
+   std::cout << "enter search value: ";
+   std::cin >> search_value;
+
+   std::list<int>::iterator presult;
+   presult = find(ilist.begin(), ilist.end(), search_value);
+
+   std::cout << "The value "<< search_value
+      << (presult == ilist.end() ? " is not present" : " is present")
+      << std::endl;
+}
+]]></div>
+
+<p>(В следующем разделе мы обсудим построение программы, в которой используются различные 
+обобщенные алгоритмы, а затем рассмотрим объекты-функции. В разделе 12.4 мы подробнее 
+расскажем об итераторах. Развернутое введение в обобщенные алгоритмы – предмет раздела 
+12.5, а их детальное обсуждение и иллюстрация применения вынесено в Приложение. В конце 
+главы речь пойдет о случаях, когда применение обобщенных алгоритмов неуместно.)
+</p>
+
+<p>Упражнение 12.1:
+Обобщенные алгоритмы критикуют за то, что при всей элегантности дизайна проверка 
+корректности возлагается на программиста. Например, если передан неверный итератор 
+или пара итераторов, помечающая неверный диапазон, то поведение программы не определено. 
+Вы согласны с такой критикой? Следует ли оставить применение обобщенных алгоритмов только 
+наиболее квалифицированным специалистам? Может быть, нужно запретить использование 
+потенциально опасных конструкций, таких, как обобщенные алгоритмы, указатели и явные 
+приведения типов?
+</p>
+
+</section>
+
+<section id="abstract_algo_usage">
+<title>Использование обобщенных алгоритмов</title>
+
+<p>Допустим, мы задумали написать книжку для детей и хотим понять, какой словарный 
+состав наиболее подходит для такой цели. Чтобы ответить на этот вопрос, нужно прочитать 
+несколько детских книг, сохранить текст в отдельных векторах строк и подвергнуть его следующей обработке:
+</p>
+
+<ol>
+<li>Создать копию каждого вектора.
+</li><li>Слить все векторы в один.
+</li><li>Отсортировать его в алфавитном порядке.
+</li><li>Удалить все дубликаты.
+</li><li>Снова отсортировать, но уже по длине слов.
+</li><li>Подсчитать число слов, длина которых больше шести знаков (предполагается, что длина – 
+это некоторая мера сложности, по крайней мере, в терминах словаря).
+</li><li>Удалить семантически нейтральные слова (например, союзы and (и), if (если), or (или), but (но) и т.д.).
+</li><li>Напечатать получившийся вектор.</li></ol>
+
+<p>На первый взгляд, задача на целую главу. Но с помощью обобщенных алгоритмов 
+мы решим ее в рамках одного подраздела.
+</p>
+
+<p>Аргументом нашей функции является вектор из векторов строк. Мы принимаем указатель на 
+него, проверяя, не является ли он нулевым:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <vector>
+#include <string>
+
+typedef std::vector<string, allocator> textwords;
+void process_vocab(std::vector<textwords, allocator> *pvec)
+{
+   if (! pvec) {
+      // выдать предупредительное сообщение
+      return;
+   }
+
+   // ...
+}
+]]></div>
+
+<p>Нужно создать один вектор, включающий все элементы исходных векторов. Это делается с 
+помощью обобщенного алгоритма copy() (для его использования необходимо включить 
+заголовочные файлы algorithm и iterator):
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <iterator>
+
+void process_vocab(std::vector<textwords, allocator> *pvec)
+{
+   // ...
+   std::vector<std::string> texts;
+
+   std::vector<textwords, allocator>::iterator iter = pvec->begin();
+   for (; iter != pvec->end(); ++iter)
+      copy((*iter).begin(), (*iter).end(), back_inserter(texts));
+
+   // ...
+}
+]]></div>
+
+<p>Первыми двумя аргументами алгоритма copy() являются итераторы, ограничивающие 
+диапазон подлежащих копированию элементов. Третий аргумент – это итератор, указывающий 
+на место, куда надо копировать элементы. back_inserter называется <i>адаптером итератора</i>; 
+он позволяет вставлять элементы в конец вектора, переданного ему в качестве аргумента. 
+(Подробнее мы рассмотрим адаптеры итераторов в разделе 12.4.).
+</p>
+
+<p>
+Алгоритм unique() удаляет из контейнера дубликаты, расположенные рядом. Если дана 
+последовательность 01123211, то результатом будет 012321, а не 0123. Чтобы получить вторую 
+последовательность, необходимо сначала отсортировать вектор с помощью алгоритма sort(); 
+тогда из последовательности 01111223 получится 0123. (Хотя на самом деле получится 01231223.)
+</p>
+
+<p>unique() не изменяет размер контейнера. Вместо этого каждый уникальный элемент 
+помещается в очередную свободную позицию, начиная с первой. В нашем примере физический 
+результат – это последовательность 01231223; остаток 1223 – это, так сказать, " отходы" 
+алгоритма. unique() возвращает итератор, указывающий на начало этого остатка. Как правило, 
+этот итератор затем передается алгоритму erase() для удаления ненужных элементов. (Поскольку 
+встроенный массив не поддерживает операции erase(), то семейство алгоритмов unique() в 
+меньшей степени подходит для работы с ним.) Вот соответствующий фрагмент функции:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+void process_vocab(std::vector<textwords=""> *pvec) {
+   // ...
+   // отсортировать вектор texts
+   sort(texts.begin(), texts.end());
+
+   // удалить дубликаты
+   std::vector<string, allocator>::iterator it;
+   it = unique(texts.begin(), texts.end());
+   texts.erase(it, texts.end());
+
+   // ...
+}
+]]></div>
+
+<p>Ниже приведен результат печати вектора texts, объединяющего два небольших текстовых 
+файла, после применения sort(), но до применения unique():
+</p>
+
+<div class="lang-cpp"><![CDATA[
+a a a a alice alive almost
+alternately ancient and and and and and and
+and as asks at at beautiful becomes bird
+bird blows blue bounded but by calling coat
+daddy daddy daddy dark darkened darkening distant each
+either emma eternity falls fear fiery fiery flight
+flowing for grow hair hair has he heaven,
+held her her her her him him home
+houses i immeasurable immensity in in in in
+inexpressibly is is is it it it its
+journeying lands leave leave life like long looks
+magical mean more night, no not not not
+now now of of on one one one
+passion puts quite red rises row same says
+she she shush shyly sight sky so so
+star star still stone such tell tells tells
+that that the the the the the the
+the there there thing through time to to
+to to trees unravel untamed wanting watch what
+when wind with with you you you you
+your your
+]]></div>
+
+<p>После применения unique() и последующего
+ вызова erase() вектор texts выглядит следующим образом:
+</p>
+<div class="lang-cpp"><![CDATA[a alice alive almost alternately ancient
+and as asks at beautiful becomes bird blows
+blue bounded but by calling coat daddy dark
+darkened darkening distant each either emma eternity falls
+fear fiery flight flowing for grow hair has
+he heaven, held her him home houses i
+immeasurable immensity in inexpressibly is it its journeying
+lands leave life like long looks magical mean
+more night, no not now of on one
+passion puts quite red rises row same says
+she shush shyly sight sky so star still
+stone such tell tells that the there thing
+through time to trees unravel untamed wanting watch
+what when wind with you your]]></div>
+
+<p>Следующая наша задача – отсортировать строки по длине. Для этого мы воспользуемся 
+не алгоритмом sort(), а алгоритмом stable_sort(), который сохраняет относительные положения 
+равных элементов. В результате для элементов равной длины сохраняется алфавитный порядок. 
+Для сортировки по длине мы применим собственную операцию сравнения "меньше". Один из 
+возможных способов таков:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+bool less_than(const string& s1, const string& s2) {
+   return s1.size() < s1.size();
+}
+
+void process_vocab(std::vector<textwords, allocator> *pvec) {
+   // ...
+   // отсортировать элементы вектора texts по длине,
+   // сохранив также прежний порядок
+   stable_sort(texts.begin(), texts.end(), less_than);
+
+   // ...
+}
+]]></div>
+
+<p>Нужный результат при этом достигается, но эффективность существенно ниже, чем хотелось 
+бы. less_than() реализована в виде одной инструкции. Обычно она вызывается как встроенная 
+(inline) функция. Но, передавая указатель на нее, мы не даем компилятору сделать ее 
+встроенной. Способ, позволяющий добиться этого–применение <i>объекта-функции</i>:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// объект-функция - операция реализована с помощью перегрузки
+// оператора operator()
+class LessThan {
+public:
+   bool operator()(const string & s1, const string & s2)
+                  { return s1.size() < s2.size(); }
+};
+]]></div>
+
+<p>Объект-функция – это класс, в котором перегружен оператор вызова
+operator(). В теле этого оператора и реализуется логика функции, в
+данном случае сравнение "меньше". Определение оператора вызова выглядит
+странно из-за двух пар скобок. Запись
+</p>
+
+<div class="lang-cpp"><![CDATA[operator()]]></div>
+<p>говорит компилятору, что мы перегружаем оператор вызова. Вторая пара скобок
+</p>
+
+<div class="lang-cpp"><![CDATA[(const string & s1, const string & s2)]]></div>
+
+<p>задает передаваемые ему формальные параметры. Если сравнить это определение с 
+предыдущим определением функции less_than(), мы увидим, что, за исключением замены 
+less_than на operator(), они совпадают.
+</p>
+
+<p>Объект-функция определяется так же, как обычный объект класса (правда,
+в данном случае нам не понадобился конструктор: нет членов, подлежащих
+инициализации):
+</p>
+
+<div class="lang-cpp"><![CDATA[LessThan lt;]]></div>
+
+<p>Для вызова экземпляра перегруженного оператора мы применяем оператор
+вызова к нашему объекту класса, передавая необходимые аргументы.
+Например:
+</p>
+<div class="lang-cpp"><![CDATA[string st1("shakespeare");
+string st2("marlowe");
+
+// вызывается lt.operator()(st1, st2);
+bool is_shakespeare_less = lt(st1, st2);
+]]></div>
+<p>Ниже показана исправленная функция process_vocab(), в которой алгоритму 
+</p>
+<div class="lang-cpp"><![CDATA[
+stable_sort() передается безымянный объект-функция LessThan():
+void process_vocab(std::vector<textwords, allocator> *pvec) {
+   // ...
+   stable_sort(texts.begin(), texts.end(), LessThan());
+
+   // ...
+}
+]]></div>
+
+<p>Внутри stable_sort() перегруженный оператор вызова подставляется в текст программы 
+как встроенная функция. (В качестве третьего аргумента stable_sort() может принимать как 
+указатель на функцию less_than(), так и объект класса LessThan, поскольку аргументом 
+является параметр-тип шаблона. Подробнее об объектах-функциях мы расскажем в разделе 12.3.)
+</p>
+
+<p>Вот результат применения stable_sort() к вектору texts:
+</p>
+
+<div class="lang-cpp"><![CDATA[a i
+as at by he in is it no
+of on so to and but for has
+her him its not now one red row
+she sky the you asks bird blue coat
+dark each emma fear grow hair held home
+life like long mean more puts same says
+star such tell that time what when wind
+with your alice alive blows daddy falls fiery
+lands leave looks quite rises shush shyly sight
+still stone tells there thing trees watch almost
+either flight houses night, ancient becomes bounded calling
+distant flowing heaven, magical passion through unravel untamed
+wanting darkened eternity beautiful darkening immensity journeying alternately
+immeasurable inexpressibly
+]]></div>
+
+<p>Подсчитать число слов, длина которых больше шести символов, 
+можно с помощью обобщенного алгоритма count_if() и еще одного объекта-функции – 
+GreaterThan. Этот объект чуть сложнее, так как позволяет пользователю задать размер, 
+с которым производится сравнение. Мы сохраняем размер в члене класса и инициализируем 
+его с помощью конструктора (по умолчанию – значением 6):
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+class GreaterThan {
+public:
+   GreaterThan(int size = 6) : _size(size){}
+   int size() { return _size; }
+
+   bool operator()(const string & s1)
+      { return s1.size() > 6; }
+
+private:
+   int _size;
+};
+]]></div>
+<p>Использовать его можно так:
+</p>
+<div class="lang-cpp"><![CDATA[void process_vocab(std::vector<textwords, allocator> *pvec)
+{
+   // ...
+   // подсчитать число строк, длина которых больше 6
+
+   int cnt = count_if(texts.begin(), texts.end(),
+                       GreaterThan());
+
+   std::cout <<"Number of words greater than length six are "
+        << cnt << std::endl;
+
+   // ...
+}
+]]></div>
+<p>Этот фрагмент программы выводит такую строку:
+</p>
+<div class="lang-cpp"><![CDATA[
+Number of words greater than length six are 22
+]]></div>
+
+<p>Алгоритм remove() ведет себя аналогично unique(): он тоже не изменяет размер контейнера, 
+а просто разделяет элементы на те, что следует оставить (копируя их по очереди в начало 
+контейнера), и те, что следует удалить (перемещая их в конец контейнера). Вот как можно 
+воспользоваться им для исключения из коллекции слов, которые мы не хотим сохранять:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+void process_vocab(std::vector<textwords, allocator> *pvec) {
+   // ...
+   static std::string rw[] = { "and", "if", "or", "but", "the" };
+   std::vector<std::string> remove_words(rw, rw+5);
+
+   std::vector<std::string>::iterator it2 = remove_words.begin();
+   for (; it2 != remove_words.end(); ++it2) {
+      // просто для демонстрации другой формы count()
+      int cnt = std::count(texts.begin(), texts.end(), *it2);
+      std::cout << cnt  <<" instances removed: " << (*it2) << std::endl;
+
+      texts.erase(
+           std::remove(texts.begin(),texts.end(),*it2),
+           texts.end()
+    );
+   }
+
+   // ...
+}
+]]></div>
+
+<p>Результат применения remove():
+</p>
+
+<div class="lang-cpp"><![CDATA[1 instances removed:  and
+0 instances removed:  if
+0 instances removed:  or
+1 instances removed:  but
+1 instances removed:  the
+]]></div>
+<p>Теперь нам нужно распечатать содержимое вектора. Можно обойти все
+элементы и вывести каждый по очереди, но, поскольку при этом обобщенные
+алгоритмы не используются, мы считаем такое решение неподходящим.
+Вместо этого проиллюстрируем работу алгоритма for_each() для вывода
+всех элементов вектора. for_each() применяет указатель на функцию или
+объект-функцию к каждому элементу контейнера из диапазона,
+ограниченного парой итераторов. В нашем случае объект-функция PrintElem
+копирует один элемент в стандартный вывод:
+</p>
+<div class="lang-cpp"><![CDATA[class PrintElem {
+public:
+   PrintElem(int lineLen = 8)
+      : _line_length(lineLen), _cnt(0)
+   {}
+
+   void operator()(const string &elem)
+   {
+      ++_cnt;
+      if (_cnt % _line_length == 0)
+         { std::cout << '\n'; }
+
+      std::cout <<elem << "";
+   }
+
+private:
+   int _line_length;
+   int _cnt;
+};
+void process_vocab(std::vector<textwords> *pvec) {
+   // ...
+
+   for_each(texts.begin(), texts.end(), PrintElem());
+}
+]]></div>
+
+<p>Вот и все. Мы получили законченную программу, для чего пришлось лишь 
+последовательно записать обращения к нескольким обобщенным алгоритмам. 
+Для удобства мы приводим ниже полный листинг вместе с функцией main() 
+для ее тестирования (здесь используются специальные типы итераторов, которые 
+будут обсуждаться только в разделе 12.4). Мы привели текст реально исполнявшегося 
+кода, который не полностью удовлетворяет стандарту C++. В частности, в нашем 
+распоряжении были лишь устаревшие реализации алгоритмов count() и count_if(), 
+которые не возвращают результат, а требуют передачи дополнительного аргумента 
+для вычисленного значения. Кроме того, библиотека iostream отражает предшествующую 
+принятию стандарта реализацию, в которой требуется заголовочный файл iostream.h.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <iterator>
+
+#include <iostream>
+class GreaterThan {
+public:
+   GreaterThan(int size = 6) : _size(sz){}
+   int size() { return _size; }
+
+   bool operator()(const string &s1)
+                  { return s1.size() >_size; }
+private:
+   int _size;
+};
+
+class PrintElem {
+public:
+
+   PrintElem(int lineLen = 8)
+      : _line_length(lineLen), _cnt(0)
+   {}
+
+   void operator()(const string &elem)
+   {
+      ++_cnt;
+      if (_cnt % _line_length == 0)
+         { std::cout << '\n'; }
+
+      std::cout << elem << " ";
+   }
+
+private:
+   int _line_length;
+   int _cnt;
+};
+
+class LessThan {
+public:
+   bool operator()(const string& s1, const string& s2) {
+      return s1.size() < s2.size();
+   }
+};
+
+typedef std::vector<std::string> textwords;
+void process_vocab(std::vector<textwords, allocator> *pvec) {
+   if (! pvec) {
+     // вывести предупредительное сообщение
+     return;
+   }
+
+   std::vector<std::string> texts;
+
+   std::vector<textwords, allocator>::iterator iter;
+   for (iter = pvec-<>begin() ; iter != pvec->end(); ++iter)
+      copy((*iter).begin(), (*iter).end(),
+              back_inserter(texts));
+
+   // отсортировать вектор texts
+   sort(texts.begin(), texts.end());
+
+   // теперь посмотрим, что получилось
+   for_each(texts.begin(), texts.end(), PrintElem());
+
+   std::cout << "\n\n";   // разделить части выведенного текста
+
+   // удалить дубликаты
+   std::vector<string, allocator>::iterator it;
+   it = unique(texts.begin(), texts.end());
+   texts.erase(it, texts.end());
+
+   // посмотрим, что осталось
+   for_each(texts.begin(), texts.end(), PrintElem());
+   std::cout << "\n\n";
+
+   // отсортировать элементы
+   // stable_sort сохраняет относительный порядок равных элементов
+   stable_sort(texts.begin(), texts.end(), LessThan());
+   for_each(texts.begin(), texts.end(), PrintElem());
+
+   std::cout << "\n\n";
+
+   // подсчитать число строк, длина которых больше 6
+   int cnt = 0;
+
+   // устаревшая форма count - в стандарте используется другая
+   count_if(texts.begin(), texts.end(), GreaterThan(), cnt);
+
+   std::cout << "Number of words greater than length six are "
+        << cnt << std::endl;
+
+   static string rw[] = { "and", "if", "or", "but", "the" };
+   std::vector <string,allocator > remove_words(rw, rw+5);
+
+   std::vector <string, allocator >::iterator it2 = remove_words.begin();
+
+   for (; it2 != remove_words.end(); ++it2) {
+      int cnt = 0;
+
+      // устаревшая форма count - в стандарте используется другая
+      count(texts.begin(), texts.end(), *it2, cnt);
+
+      std::cout << cnt    << " instances removed:  "
+           << (*it2)<< std::endl;
+
+      texts.erase(
+         remove(texts.begin(), texts.end(), *it2),
+                texts.end()
+     );
+   }
+   std::cout << "\n\n";
+   for_each(texts.begin(), texts.end(), PrintElem());
+}
+
+// difference_type - это тип, с помощью которого можно хранить результат
+// вычитания двух итераторов одного и того же контейнера
+// - в данном случае вектора строк ...
+// обычно это предполагается по умолчанию
+
+typedef std::vector<string,allocator>::difference_type diff_type;
+
+#include <fstream>
+
+int main() {
+    std::vector<textwords, allocator> sample;
+    std::vector<string,allocator>  t1, t2;
+    std::string t1fn, t2fn;
+
+    // запросить у пользователя имена входных файлов ...
+    // в реальной программе надо бы выполнить проверку
+    std::cout << "text file #1: "; std::cin >> t1fn;
+    std::cout << "text file #2: "; std::cin >> t2fn;
+
+    // открыть файлы
+    std::ifstream infile1(t1fn.c_str());
+    std::ifstream infile2(t2fn.c_str());
+
+    // специальная форма итератора
+    // обычно diff_type подразумевается по умолчанию ...
+    istream_iterator<std::string, diff_type>  input_set1(infile1), eos;
+    istream_iterator<std::string, diff_type>  input_set2(infile2);
+
+    // специальная форма итератора
+    std::copy(input_set1, eos, back_inserter(t1));
+    std::copy(input_set2, eos, back_inserter(t2));
+
+    sample.push_back(t1);
+    sample.push_back(t2);
+    process_vocab(&sample);
+    return 0;
+}
+]]></div>
+
+<p>Упражнение 12.2:
+Длина слова – не единственная и, вероятно, не лучшая мера трудности текста. Другой 
+возможный критерий – это длина предложения. Напишите программу, которая читает текст 
+из файла либо со стандартного ввода, строит вектор строк для каждого предложения и 
+передает его алгоритму count(). Выведите предложения в порядке сложности. Любопытный 
+способ сделать это – сохранить каждое предложение как одну большую строку во втором 
+векторе строк, а затем передать этот вектор алгоритму sort() вместе с объектом-функцией, 
+который считает, что чем строка короче, тем она меньше. (Более подробно с описанием 
+конкретного обобщенного алгоритма, а также с иллюстрацией его применения вы может 
+ознакомиться в Приложении, где все алгоритмы перечислены в алфавитном порядке.)
+</p>
+
+<p>Упражнение 12.3:
+Более надежную оценку уровня трудности текста дает анализ структурной
+сложности предложений. Пусть каждой запятой присваивается 1 балл,
+каждому двоеточию или точке с запятой – 2 балла, а каждому тире – 3
+балла. Модифицируйте программу из упражнения 12.2 так, чтобы она
+подсчитывала сложность каждого предложения. Воспользуйтесь алгоритмом
+count_if() для нахождения каждого из знаков препинания в векторе
+предложений. Выведите предложения в порядке сложности.
+</p>
+
+</section>
+
+<section id="functors">
+<title>Объекты-функции</title>
+
+<p>Наша функция min() дает хороший пример как возможностей, так и ограничений 
+механизма шаблонов:
+</p>
+<div class="lang-cpp"><![CDATA[template <typename Type>
+const Type&
+min(const Type *p, int size)
+{
+   Type minval = p[0];
+   for (int ix = 1; ix < size; ++ix)
+      if (p[ix] < minval)
+         minval = p[ix];
+      return minval;
+}
+]]></div>
+
+<p>Достоинство этого механизма – возможность определить единственный шаблон min(), который 
+конкретизируется для бесконечного множества типов. Ограничение же заключается в том, 
+что даже при такой конкретизации min() будет работать не со всеми.
+</p>
+<p>Это ограничение вызвано использованием оператора "меньше": в некоторых случаях базовый 
+тип его не поддерживает. Так, класс изображения Image может и не предоставлять реализации 
+такого оператора, но мы об этом не знаем и пытаемся найти минимальный кадр анимации в 
+данном массиве изображений. Однако попытка конкретизировать min() для такого массива 
+приведет к ошибке компиляции:
+</p>
+
+<div class="lang-cpp"><![CDATA[error: invalid types applied to the < operator: Image < Image
+(ошибка: оператор < применен к некорректным типам: Image < Image)
+]]></div>
+
+<p>Возможна и другая ситуация: оператор "меньше" существует, но имеет неподходящую 
+семантику. Например, если мы хотим найти наименьшую строку, но при этом принимать во 
+внимание только буквы, не учитывая регистр, то такой реализованный в классе оператор 
+не даст нужного результата.
+</p>
+<p>Традиционное решение состоит в том, чтобы параметризовать оператор сравнения. В данном 
+случае это можно сделать, объявив указатель на функцию, принимающую два аргумента и 
+возвращающую значение типа bool:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+template<typename Type, bool (*Comp)(const Type&, const Type&)>
+const Type& min(const Type *p, int size, Comp comp) {
+   Type minval = p[0];
+   for (int ix = 1; ix < size; ++ix)
+      if (Comp(p[ix] < minval))
+         minval = p[ix];
+      return minval;
+}
+]]></div>
+<p>Такое решение вместе с нашей первой реализацией на основе встроенного оператора "меньше" 
+обеспечивает универсальную поддержку для любого типа, включая и класс Image, если только мы 
+придумаем подходящую семантику для сравнения двух изображений. Основной недостаток указателя 
+на функцию связан с низкой эффективностью, так как косвенный вызов не дает воспользоваться 
+преимуществами встроенных функций.
+</p>
+
+<p>Альтернативная стратегия параметризации заключается в применении объекта-функции вместо 
+указателя (примеры мы видели в предыдущем разделе). Объект-функция – это класс, перегружающий
+ оператор вызова (operator()). Такой оператор инкапсулирует семантику обычного вызова функции.
+ Объект-функция, как правило, передается обобщенному алгоритму в качестве аргумента, 
+хотя можно определять и независимые объекты-функции. Например, если бы был определен 
+объект-функция AddImages, который принимает два изображения, объединяет их некоторым 
+образом и возвращает новое изображение, то мы могли бы объявить его следующим образом:
+</p>
+
+<div class="lang-cpp"><![CDATA[AddImages AI;]]></div>
+
+<p>Чтобы объект-функция удовлетворял нашим требованиям, мы применяем оператор вызова, 
+предоставляя необходимые операнды в виде объектов класса Image:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+Image im1("foreground.tiff"), im2("background.tiff");
+// ...
+
+// вызывает Image AddImages::operator()(const Image1&, const Image2&);
+Image new_image = AI (im1, im2);
+]]></div>
+
+<p>У объекта-функции есть два преимущества по сравнению с указателем на функцию. 
+Во-первых, если перегруженный оператор вызова – это встроенная функция, то компилятор 
+может выполнить ее подстановку, обеспечивая значительный выигрыш в производительности. 
+Во-вторых, объект-функция способен содержать произвольное количество дополнительных данных, 
+например кэш или информацию, полезную для выполнения текущей операции.
+</p>
+
+<p>Ниже приведена измененная реализация шаблона min() (отметим, что это объявление допускает 
+также и передачу указателя на функцию, но без проверки прототипа):
+</p>
+
+<div class="lang-cpp"><![CDATA[template < typename Type,
+           typename Comp >
+const Type&
+min(const Type *p, int size, Comp comp)
+{
+   Type minval = p[0];
+   for (int ix = 1; ix < size; ++ix)
+      if (Comp(p[ix] < minval))
+         minval = p[ix];
+      return minval;
+}
+]]></div>
+
+<p>Как правило, обобщенные алгоритмы поддерживают обе формы применения операции: 
+как использование встроенного (или перегруженного) оператора, так и применение
+ указателя на функцию либо объекта-функции.
+</p>
+
+<p>Есть три источника появления объектов-функций:
+</p>
+
+<ol>
+<li>из набора предопределенных арифметических, сравнительных и логических объектов-функций 
+стандартной библиотеки;
+</li>
+<li>из набора предопределенных адаптеров функций, позволяющих специализировать или 
+расширять предопределенные (или любые другие) объекты-функции;
+</li>
+<li>определенные нами собственные объекты-функции для передачи обобщенным алгоритмам. 
+К ним можно применять и адаптеры функций.
+</li>
+</ol>
+
+<p>В этом разделе мы рассмотрим все три источника объектов-функций.
+</p>
+
+<h3>12.3.1. Предопределенные объекты-функции</h3>
+
+<p>Предопределенные объекты-функции подразделяются на арифметические, логические и 
+сравнительные. Каждый объект – это шаблон класса, параметризованный типами операндов. 
+Для использования любого из них необходимо включить заголовочный файл:
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <functional>]]></div>
+
+<p>Например, объект-функция, поддерживающий сложение, – это шаблон класса с 
+именем plus. Для определения экземпляра, способного складывать два целых числа, 
+нужно
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <functional>]]></div>
+
+<p>написать:</p>
+
+<div class="lang-cpp"><![CDATA[std::plus<int> intAdd;]]></div>
+
+<p>Для выполнения операции сложения мы применяем перегруженный оператор вызова к 
+intAdd точно так же, как и к классу AddImage в предыдущем разделе:
+</p>
+
+<div class="lang-cpp"><![CDATA[int ival1 = 10, ival2 = 20;
+// эквивалентно int sum = ival1 + ival2;
+int sum = intAdd(ival1, ival2);]]></div>
+
+<p>Реализация шаблона класса plus вызывает оператор сложения, ассоциированный с 
+типом своего параметра – int. Этот и другие предопределенные объекты-функции 
+применяются прежде всего в качестве аргументов обобщенных алгоритмов и обычно 
+замещают подразумеваемую по умолчанию операцию. Например, по умолчанию алгоритм 
+sort() располагает элементы контейнера в порядке возрастания с помощью оператора
+ "меньше" базового типа. Для сортировки по убыванию мы передаем
+</p>
+
+<div class="lang-cpp"><![CDATA[std::vector<std::string> svec;
+// ...]]></div>
+<p>предопределенный шаблон класса greater, который вызывает оператор "больше":
+</p>
+<div class="lang-cpp"><![CDATA[sort(svec.begin(), svec.end(), greater<string>());]]></div>
+<p>Предопределенные объекты-функции перечислены в следующих разделах и разбиты на 
+категории: арифметические, логические и сравнительные. Применение каждого из них 
+иллюстрируется как в качестве именованного, так и в качестве безымянного объекта, 
+передаваемого функции. Мы пользуемся следующими определениями объектов, включая и 
+определение простого класса (перегрузка операторов подробно рассматривается в главе 
+</p>
+<div class="lang-cpp"><![CDATA[class Int {
+public:
+   Int(int ival = 0) : _val(ival) {}
+
+   int operator-()          { return -_val;         }
+   int operator%(int ival)  { return -_val % ival;  }
+
+   bool operator<(int ival) { return -_val < ival;  }
+   bool operator!()         { return -_val == 0;    }
+private:
+   int _val;
+};
+
+std::vector<std::string> svec;
+std::string  sval1, sval2, sres;
+complex cval1, cval2, cres;
+int     ival1, ival2, ires;
+Int     Ival1, Ival2, Ires;]]></div>
+<p>15):
+</p>
+<div class="lang-cpp"><![CDATA[double  dval1, dval2, dres;]]></div>
+<p>Кроме того, мы определяем два шаблона функций, которым передаем 
+различные безымянные объекты-функции:
+</p>
+<div class="lang-cpp"><![CDATA[template <class FuncObject, class Type>
+   Type UnaryFunc(FuncObject fob, const Type &val)
+      { return fob(val); }
+
+template <class FuncObject, class Type>
+   Type BinaryFunc(FuncObject fob,
+                    const Type &val1, const Type &val2)
+      { return fob(val1, val2); }
+]]></div>
+
+<h3>12.3.2. Арифметические объекты-функции</h3>
+
+<p>Предопределенные арифметические объекты-функции поддерживают
+операции сложения, вычитания, умножения, деления, взятия остатка
+и вычисления противоположного по знаку значения. Вызываемый оператор
+– это экземпляр, ассоциированный с типом Type. Если тип является классом,
+предоставляющим перегруженную реализацию оператора, то именно эта реализация и вызывается.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+plus<string> stringAdd;
+// вызывается string::operator+()
+sres = stringAdd(sval1, sval2);
+]]></div>
+
+<ul>
+<li>Сложение:
+<div class="lang-cpp"><![CDATA[plus<Type>]]></div>
+<div class="lang-cpp"><![CDATA[
+dres = BinaryFunc(plus<double>(), dval1, dval2);
+minus<int> intSub;
+ires = intSub(ival1, ival2);
+]]></div>
+</li>
+
+<li>Вычитание:
+<div class="lang-cpp"><![CDATA[minus<Type>]]></div>
+<div class="lang-cpp"><![CDATA[dres = BinaryFunc(minus<double>(), dval1, dval2);
+multiplies<complex> complexMultiplies;
+cres = complexMultiplies(cval1, cval2);]]></div>
+</li>
+
+<li>Умножение:
+<div class="lang-cpp"><![CDATA[multiplies<Type>]]></div>
+<div class="lang-cpp"><![CDATA[
+dres = BinaryFunc(multiplies<double>(), dval1, dval2);
+divides<int> intDivides;
+ires = intDivides(ival1, ival2);
+]]></div>
+</li>
+
+<li>Деление:
+<div class="lang-cpp"><![CDATA[divides<Type>]]></div>
+<div class="lang-cpp"><![CDATA[dres = BinaryFunc(divides<double>(), dval1, dval2);]]></div>
+</li>
+
+<li>Взятие остатка:
+<div class="lang-cpp"><![CDATA[modulus<Type>]]></div>
+<div class="lang-cpp"><![CDATA[modulus<Int> IntModulus;
+Ires = IntModulus(Ival1, Ival2);
+ires = BinaryFunc(modulus<int>(), ival1, ival2);
+negate<int> intNegate;
+ires = intNegate(ires);
+]]></div>
+</li>
+<li>Вычисление противоположного значения:
+<div class="lang-cpp"><![CDATA[negate<Type>]]></div>
+</li>
+</ul>
+
+<h3>12.3.3. Сравнительные объекты-функции</h3>
+
+<p>Сравнительные объекты-функции поддерживают операции равенства, неравенства, 
+больше, больше или равно, меньше, меньше или равно.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+equal_to<string> stringEqual;
+sres = stringEqual(sval1, sval2);
+ires = count_if(svec.begin(), svec.end(),
+]]></div>
+
+<ul>
+<li>Равенство:
+<div class="lang-cpp"><![CDATA[equal_to<Type>]]></div>
+
+<div class="lang-cpp"><![CDATA[equal_to<string>(), sval1);
+not_equal_to<complex> complexNotEqual;
+cres = complexNotEqual(cval1, cval2);
+ires = count_if(svec.begin(), svec.end(),]]></div>
+</li>
+<li>Неравенство:
+<div class="lang-cpp"><![CDATA[not_equal_to<Type>]]></div>
+
+<div class="lang-cpp"><![CDATA[not_equal_to<string>(), sval1);
+greater<int> intGreater;
+ires = intGreater(ival1, ival2);
+ires = count_if(svec.begin(), svec.end(),]]></div>
+</li>
+<li>Больше:
+<div class="lang-cpp"><![CDATA[greater<Type>]]></div>
+
+<div class="lang-cpp"><![CDATA[greater<string>(), sval1);
+std::greater_equal<double> doubleGreaterEqual;
+dres = doubleGreaterEqual(dval1, dval2);
+ires = std::count_if(svec.begin(), svec.end(),]]></div>
+</li>
+<li>Больше или равно:
+<div class="lang-cpp"><![CDATA[std::greater_equal<Type>]]></div>
+
+<div class="lang-cpp"><![CDATA[
+std::greater_equal <string>(), sval1);
+std::less<Int> IntLess;
+Ires = IntLess(Ival1, Ival2);
+ires = std::count_if(svec.begin(), svec.end(),]]></div>
+</li>
+<li>Меньше:
+<div class="lang-cpp"><![CDATA[less<Type>]]></div>
+
+<div class="lang-cpp"><![CDATA[less<string>(), sval1);
+less_equal<int> intLessEqual;
+ires = intLessEqual(ival1, ival2);
+ires = std::count_if(svec.begin(), svec.end(),]]></div>
+</li>
+<li>Меньше или равно:
+<div class="lang-cpp"><![CDATA[less_equal<Type>]]></div>
+
+<div class="lang-cpp"><![CDATA[less_equal<string>(), sval1);]]></div>
+</li>
+</ul>
+
+<h3>12.3.4. Логические объекты-функции</h3>
+
+<p>Логические объекты-функции поддерживают операции "логическое И" 
+(возвращает true, если оба операнда равны true, – применяет оператор &amp;&amp;, 
+аcсоциированный с типом Type), "логическое ИЛИ" (возвращает true, если хотя 
+бы один из операндов равен true, – применяет оператор ||, аcсоциированный с 
+типом Type) и "логическое НЕ" (возвращает true, если операнд равен false, – 
+применяет оператор !, аcсоциированный с типом Type)
+</p>
+<div class="lang-cpp"><![CDATA[logical_and<int> intAnd;
+ires = intLess(ival1, ival2);]]></div>
+<ul>
+<li>Логическое И:
+<div class="lang-cpp"><![CDATA[logical_and<Type>]]></div>
+<div class="lang-cpp"><![CDATA[dres = BinaryFunc(logical_and<double>(), dval1, dval2);
+logical_or<int> intSub;
+ires = intSub(ival1, ival2);]]></div>
+</li>
+<li>Логическое ИЛИ:
+<div class="lang-cpp"><![CDATA[logical_or<Type>]]></div>
+<div class="lang-cpp"><![CDATA[dres = BinaryFunc(logical_or<double>(), dval1, dval2);
+logical_not<Int> IntNot;ires = IntNot(Ival1, Ival2);]]></div>
+</li>
+<li>Логическое НЕ:
+<div class="lang-cpp"><![CDATA[logical_not<Type>]]></div>
+<div class="lang-cpp"><![CDATA[dres = UnaryFunc(logical_or<double>(), dval1);]]></div>
+</li>
+</ul>
+
+<h3>12.3.5. Адаптеры функций для объектов-функций</h3>
+
+<p>В стандартной библиотеке имеется также ряд адаптеров функций, предназначенных 
+для специализации и расширения как унарных, так и бинарных объектов-функций. Адаптеры – 
+это специальные классы, разбитые на следующие две категории:
+</p>
+
+<ul>
+<li>связыватели (binders). Это адаптеры, преобразующие бинарный 
+объект-функцию в унарный объект, связывая один из аргументов с конкретным 
+значением. Например, для подсчета в контейнере всех элементов, которые меньше 
+или равны 10, следует передать алгоритму count_if() объект-функцию less_equal, 
+один из аргументов которого равен 10. В следующем разделе мы покажем, как это сделать;
+</li>
+<li>отрицатели (negators). Это адаптеры, изменяющие значение истинности 
+объекта-функции на противоположное. Например, для подсчета всех элементов внутри 
+контейнера, которые больше 10, мы могли бы передать алгоритму count_if() отрицатель 
+объекта-функции less_equal, один из аргументов которого равен 10. Конечно, в данном 
+случае проще передать связыватель объекта-функции greater, ограничив один из аргументов 
+со значением 10.
+</li>
+</ul>
+
+<p>В стандартную библиотеку входит два предопределенных адаптера-связывателя: 
+bind1st и bind2nd, причем bind1st связывает некоторое значение с первым аргументом 
+бинарного объекта-функции, а bind2nd – со вторым. Например, для подсчета внутри 
+контейнера всех элементов, которые меньше или равны 10, мы могли бы передать 
+</p>
+<div class="lang-cpp"><![CDATA[count_if(vec.begin(), vec.end(),]]></div>
+<p>алгоритму count_if() следующее:
+</p>
+<div class="lang-cpp"><![CDATA[bind2nd(less_equal<int>(), 10));]]></div>
+<p>В стандартной библиотеке также есть два предопределенных адаптера-отрицателя: 
+not1 и not2. not1 инвертирует значение истинности унарного предиката, являющегося 
+объектом-функцией, а not2 – значение бинарного предиката. Для отрицания рассмотренного 
+ыше связывателя объекта-функции less_equal можно написать 
+</p>
+<div class="lang-cpp"><![CDATA[count_if(vec.begin(), vec.end(),]]></div>
+<p>следующее:
+</p>
+<div class="lang-cpp"><![CDATA[not1(bind2nd(less_equal<int>(), 10)));]]></div>
+
+<p>Другие примеры использования связывателей и отрицателей приведены в Приложении, 
+вместе с примерами использования каждого алгоритма.
+</p>
+
+<h3>12.3.6. Реализация объекта-функции</h3>
+
+<p>При реализации программы в разделе 12.2 нам уже приходилось определять 
+ряд объектов-функций. В этом разделе мы изучим необходимые шаги и возможные 
+вариации при определении класса объекта-функции.
+В самой простой форме определение класса объекта-функции сводится к перегрузке оператора 
+вызова. Вот, например, унарный объект-функция, определяющий, что 
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// простейшая форма класса объекта-функции
+// некоторое значение меньше или равно 10:
+class less_equal_ten {
+public:
+   bool operator() (int val)
+        { return val <= 10; }
+};
+]]></div>
+
+<p>Теперь такой объект-функцию можно использовать точно так же, как предопределенный. 
+Вызов алгоритма count_if() с помощью нашего объекта-функции выглядит следующим образом:
+</p>
+<div class="lang-cpp"><![CDATA[count_if(vec.begin(), vec.end(), less_equal_ten());]]></div>
+<p>Разумеется, возможности этого класса весьма ограничены. Попробуем применить 
+</p>
+<div class="lang-cpp"><![CDATA[count_if(vec.begin(), vec.end(),]]></div>
+<p>отрицатель, чтобы подсчитать, сколько в контейнере элементов, больших 10:
+</p>
+<div class="lang-cpp"><![CDATA[not1(less_equal_then ()));]]></div>
+<p>или обобщить реализацию, разрешив пользователю задавать значение, с которым надо 
+сравнивать каждый элемент контейнера. Для этого достаточно ввести в класс член для 
+хранения такого значения и реализовать конструктор, инициализирующий данный член 
+</p>
+<div class="lang-cpp"><![CDATA[class less_equal_value {
+public:
+   less_equal_value(int val) : _val(val) {}
+   bool operator() (int val) { return val <= _val; }
+
+private:
+   int _val;
+]]></div>
+
+<p>указанной пользователем величиной:
+</p>
+
+<div class="lang-cpp"><![CDATA[};]]></div>
+
+<p>Новый объект-функция применяется для задания произвольного целого 
+значения. Например, при следующем вызове подсчитывается число элементов, меньших 
+или равных 25:
+</p>
+
+<div class="lang-cpp"><![CDATA[count_if(vec.begin(), vec.end(), less_equal_value(25));]]></div>
+
+<p>Разрешается реализовать класс и без конструктора, если параметризовать его 
+значением, с которым производится сравнение:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+template<int _val>
+class less_equal_value {
+public:
+   bool operator() (int val) { return val <= _val; }
+};
+]]></div>
+
+<p>Вот как надо было бы вызвать такой класс для подсчета числа элементов, меньших или равных 25:
+</p>
+
+<div class="lang-cpp"><![CDATA[count_if(vec.begin(), vec.end(), less_equal_value<25>());]]></div>
+
+<p>(Другие примеры определения собственных объектов-функций можно найти в Приложении.)
+</p>
+
+<p>Упражнение 12.4:
+Используя предопределенные объекты-функции и адаптеры, создайте объекты-функции для решения следующих задач:
+</p>
+
+<ul>
+<li>Найти все значения, большие или равные 1024.</li>
+<li>Найти все строки, не равные "pooh".</li>
+<li>Умножить все значения на 2.</li>
+</ul>
+
+<p>Упражнение 12.5:
+Определите объект-функцию для возврата среднего из трех объектов. Определите 
+функцию для выполнения той же операции. Приведите примеры использования каждого 
+объекта непосредственно и путем передачи его функции. Покажите, в чем сходство и 
+различие этих решений.
+</p>
+
+</section>
+
+<section id="iterators">
+<title>Еще раз об итераторах</title>
+
+<p>Следующая реализация шаблона функции не компилируется. Можете ли вы сказать, почему?</p>
+
+<div class="lang-cpp"><![CDATA[
+// в таком виде это не компилируется
+template<typename type>
+int
+count(const std::vector<type>&vec, type value)
+{
+   int count = 0;
+
+   std::vector<type>::iterator iter = vec.begin();
+   while (iter != vec.end())
+      if (*iter == value)
+         ++count;
+
+   return count;
+}
+]]></div>
+
+<div class="lang-cpp"><![CDATA[}]]></div>
+
+<p>Проблема в том, что у ссылки vec есть спецификатор const, а мы пытаемся связать 
+с ней итератор без такого спецификатора. Если бы это было разрешено, то ничто не 
+помешало бы нам модифицировать с помощью этого итератора элементы вектора. Для 
+предотвращения подобной ситуации язык требует, чтобы итератор, связанный с const-
+</p>
+
+<div class="lang-cpp"><![CDATA[// правильно: это компилируется без ошибок]]></div>
+
+<p>вектором, был константным. Мы можем сделать это следующим образом:
+</p>
+
+<div class="lang-cpp"><![CDATA[std::vector<type>::const_iterator iter = vec.begin();]]></div>
+
+<p>Требование, чтобы с const-контейнером был связан только константный итератор, 
+аналогично требованию о том, чтобы const-массив адресовался только константным 
+указателем. В обоих случаях это вызвано необходимостью гарантировать, что 
+содержимое const-контейнера не будет изменено.
+Операции begin() и end() перегружены и возвращают константный или неконстантный 
+итератор в зависимости от наличия спецификатора const в объявлении контейнера. Если 
+</p>
+
+<div class="lang-cpp"><![CDATA[std::vector<int> vec0;]]></div>
+<p>дана такая пара объявлений:</p>
+<div class="lang-cpp"><![CDATA[const std::vector<int> vec1;]]></div>
+<p>то при обращениях к begin() и end() для vec0 будет возвращен неконстантный, а для</p>
+<div class="lang-cpp"><![CDATA[std::vector<int>::iterator iter0 = vec0.begin();]]></div>
+<p>vec1 – константный итератор:</p>
+<div class="lang-cpp"><![CDATA[std::vector<int>::const_iterator iter1 = vec1.begin();]]></div>
+<p>Разумеется, присваивание константному итератору неконстантного разрешено всегда.</p>
+<div class="lang-cpp"><![CDATA[// правильно: инициализация константного итератора неконстантным]]></div>
+<p>Например:</p>
+<div class="lang-cpp"><![CDATA[std::vector<int>::const_iterator iter2 = vec0.begin();]]></div>
+
+<h3>12.4.1. Итераторы вставки</h3>
+
+<p>Вот еще один фрагмент программы, в котором есть тонкая, но серьезная ошибка.</p>
+
+<div class="lang-cpp"><![CDATA[int ia[] = { 0, 1, 1, 2, 3, 5, 5, 8 };
+std::vector<int> ivec(ia, ia+8), vres;
+// ...
+// поведение программы во время выполнения не определено
+]]></div>
+
+<p>Видите ли вы, в чем она заключается?</p>
+
+<div class="lang-cpp"><![CDATA[std::unique_copy(ivec.begin(), ivec.end(), vres.begin());]]></div>
+
+<p>Проблема вызвана тем, что алгоритм std::unique_copy() использует
+присваивание для копирования значения каждого элемента из вектора ivec,
+но эта операция завершится неудачно, поскольку в vres не выделено место
+для хранения девяти целых чисел.
+Можно было бы написать две версии алгоритма unique_copy(): одна
+присваивает элементы, а вторая вставляет их. Эта последняя версия
+должна, в таком случае, поддерживать вставку в начало, в конец или в
+произвольное место контейнера.
+Альтернативный подход, принятый в стандартной библиотеке, заключается в
+определении трех адаптеров, которые возвращают специальные итераторы вставки:
+</p>
+
+<p>back_inserter() вызывает определенную для контейнера операцию вставки 
+push_back() вместо оператора присваивания. Аргументом back_inserter()
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// правильно: теперь unique_copy() вставляет элементы с помощью
+// vres.push_back()...
+std::unique_copy(ivec.begin(), ivec.end(),
+]]></div>
+
+<p>является сам контейнер. Например, вызов unique_copy() можно исправить, написав:
+</p>
+
+<div class="lang-cpp"><![CDATA[back_inserter(vres));]]></div>
+
+<p>front_inserter() вызывает определенную для контейнера операцию вставки 
+push_front() вместо оператора присваивания. Аргументом front_inserter() тоже является
+сам контейнер. Заметьте, однако, что класс std::vector не поддерживает
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// увы, ошибка:
+// класс std::vector не поддерживает операцию push_front()
+// следует использовать контейнеры deque или list
+unique_copy(ivec.begin(), ivec.end(),
+]]></div>
+
+<p>push_front(), так что использовать такой адаптер для вектора нельзя:
+</p>
+
+<div class="lang-cpp"><![CDATA[front_inserter(vres));]]></div>
+
+<p>inserter() вызывает определенную для контейнера операцию вставки insert() вместо 
+оператора присваивания. inserter() принимает два аргумента: сам
+</p>
+
+<div class="lang-cpp"><![CDATA[unique_copy(ivec.begin(), ivec.end(),]]></div>
+
+<p>контейнер и итератор, указывающий позицию, с которой должна начаться вставка:
+</p>
+
+<div class="lang-cpp"><![CDATA[inserter(vres), vres.begin());]]></div>
+
+<p>Итератор, указывающий на позицию начала вставки, сдвигается вперед после 
+каждой вставки, так что элементы располагаются в нужном порядке, как если бы мы написали&gt;
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::vector<int>::iterator iter = vres.begin(), iter2 = ivec.begin();
+for (; iter2 != ivec.end() ++ iter, ++iter2)
+]]></div>
+
+<div class="lang-cpp"><![CDATA[vres.insert(iter, *iter2);]]></div>
+
+<h3>12.4.2. Обратные итераторы</h3>
+
+<p>Операции begin() и end() возвращают соответственно итераторы,
+указывающие на первый элемент и на элемент, расположенный за последним.
+Можно также вернуть обратный итератор, обходящий контейнер от
+последнего элемента к первому. Во всех контейнерах для поддержки такой
+возможности используются операции rbegin() и rend(). Есть константные и
+неконстантные версии обратных итераторов:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::vector<int> vec0;
+const std::vector<int> vec1;
+std::vector<int>::reverse_iterator r_iter0 = vec0.rbegin();
+std::vector<int>::const_reverse_iterator r_iter1 = vec1.rbegin();
+]]></div>
+
+<p>Обратный итератор применяется так же, как прямой. Разница состоит в
+реализации операторов перехода к следующему и предыдущему элементам.
+Для прямого итератора оператор ++ дает доступ к следующему элементу
+контейнера, тогда как для обратного – к предыдущему. Например, для
+обхода вектора в обратном направлении следует написать:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// обратный итератор обходит вектор от конца к началу
+std::vector<type>::reverse_iterator r_iter;
+for (r_iter = vec0.rbegin();   // r_iter указывает на последний элемент
+      r_iter != vec0.rend();    // пока не достигли элемента перед первым
+      r_iter++)                // переходим к предыдущему элементу
+{ /* ... */ }
+]]></div>
+
+<p>Инвертирование семантики операторов инкремента и декремента может внести 
+путаницу, но зато позволяет программисту передавать алгоритму пару обратных 
+итераторов вместо прямых. Так, для сортировки вектора в порядке убывания мы 
+передаем алгоритму 
+</p>
+
+<div class="lang-cpp"><![CDATA[// сортирует вектор в порядке возрастания
+sort(vec0.begin(), vec0.end());
+
+// сортирует вектор в порядке убывания
+]]></div>
+
+<p>sort() пару обратных итераторов:
+</p>
+
+<div class="lang-cpp"><![CDATA[sort(vec0.rbegin(), vec0.rend());]]></div>
+
+<h3>12.4.3. Потоковые итераторы</h3>
+
+<p>Стандартная библиотека предоставляет средства для работы потоковых 
+итераторов чтения и записи совместно со стандартными контейнерами и обобщенными 
+алгоритмами. Класс istream_iterator поддерживает итераторные операции с классом 
+std::istream или одним из производных от него, например ifstream для работы с потоком 
+ввода из файла. Аналогично ostream_iterator поддерживает итераторные операции с 
+классом std::ostream или одним из производных от него, например ofstream для работы с 
+потоком вывода в файл. Для использования любого из этих итераторов следует включить 
+заголовочный файл
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <iterator>]]></div>
+
+<p>В следующей программе мы пользуемся потоковым итератором чтения для получения 
+из стандартного ввода последовательности целых чисел в вектор, а затем применяем 
+потоковый итератор записи в качестве целевого в обобщенном алгоритме 
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <iterator>
+#include <algorithm>
+#include <vector>
+#include <functional>
+
+/*
+ * вход:
+ * 23 109 45 89 6 34 12 90 34 23 56 23 8 89 23
+ *
+ * выход:
+ * 109 90 89 56 45 34 23 12 8 6
+ */
+
+int main() {
+    istream_iterator<int> input(std::cin);
+    istream_iterator<int> end_of_stream;
+
+    std::vector<int> vec;
+    std::copy (input, end_of_stream, std::inserter(vec, vec.begin()));
+
+    std::sort(vec.begin(), vec.end(), std::greater<int>());
+
+    ostream_iterator<int> output(std::cout, " ");
+    std::unique_copy(vec.begin(), vec.end(), output);
+}
+]]></div>
+
+<p>unique_copy():
+</p>
+
+<h3>12.4.4. Итератор istream_iterator</h3>
+
+<p>В общем виде объявление потокового итератора чтения istream_iterator имеет форму
+</p>
+
+<div class="lang-cpp"><![CDATA[
+istream_iterator<type> identifier(std::istream&);
+]]></div>
+
+<p>Если имеющийся у Вас компилятор пока не поддерживает параметр шаблонов 
+по умолчанию, то конструктору istream_iterator необходимо будет явно передать 
+также и второй аргумент: тип difference_type, способный хранить результат 
+вычитания двух итераторов контейнера, куда помещаются элементы. Например, в 
+разделе 12.2 при изучении программы, которая должна транслироваться компилятором, 
+не поддерживающим параметры шаблонов по умолчанию, мы писали:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+typedef std::vector<string ,allocator="">::difference_type diff_type
+istream_iterator<string, diff_type> input_set1(infile1), eos;
+istream_iterator<string, diff_type> input_set2(infile2);
+]]></div>
+
+<p>где Type – это любой встроенный или пользовательский тип класса, для которого 
+определен оператор ввода. Аргументом конструктора может быть объект либо класса 
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iterator>
+#include <fstream>
+#include <string>
+#include <complex>
+// прочитать последовательность объектов типа complex
+// из стандартного ввода
+istream_iterator< complex  > is_complex(std::cin);
+// прочитать последовательность строк из именованного файла
+ifstream infile("C++Primer");
+]]></div>
+
+<p>std::istream, например std::cin, либо производного от него класса с открытым типом наследования – ifstream:
+</p>
+
+<div class="lang-cpp"><![CDATA[istream_iterator<std::string> is_string(infile);]]></div>
+
+<p>При каждом применении оператора инкремента к объекту типа
+istream_iterator читается следующий элемент из входного потока, для
+чего используется оператор operator &gt;&gt;(). Чтобы сделать то же
+самое в обобщенных алгоритмах, необходимо предоставить пару итераторов,
+обозначающих начальную и конечную позицию в файле. 
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// конструирует итератор end_of_stream, который будет служить маркером
+// конца потока в итераторной паре
+istream_iterator<std::string> end_of_stream
+
+std::vector<std::string> text;
+
+// правильно: передаем пару итераторов
+std::copy(is_string, end_of_stream,
+      std::inserter(text, text.begin()));
+]]></div>
+
+<p>Начальную позицию дает istream_iterator, инициализированный объектом
+std::istream, – такой, скажем, как is_string. Для получения конечной позиции
+мы используем специальный конструктор по умолчанию класса
+istream_iterator.
+</p>
+
+<h3>12.4.5. Итератор ostream_iterator</h3>
+
+<p>Объявление потокового итератора записи ostream_iterator может быть представлено в двух формах:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// Если бы компилятор полностью удовлетворял стандарту C++, достаточно было бы написать так:
+istream_iterator<std::string> input_set1(infile1), eos;
+istream_iterator<std::string> input_set2(infile2);
+]]></div>
+
+<div class="lang-cpp"><![CDATA[
+ostream_iterator<type> identifier(std::ostream&)
+ostream_iterator<type> identifier(std::ostream&, char * delimiter)
+]]></div>
+
+<p>где Type – это любой встроенный или пользовательский тип класса, 
+для которого определен оператор вывода (operator&lt;&lt;). Во второй форме delimiter – 
+это разделитель, то есть C-строка символов, которая выводится в файл после каждого 
+элемента. Такая строка должна заканчиваться двоичным нулем, иначе поведение 
+программы не определено (скорее всего, она аварийно завершит выполнение). 
+В качестве аргумента std::ostream может выступать объект класса std::ostream, например 
+std::cout, либо 
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iterator>
+#include <fstream>
+#include <string>
+#include <complex>
+
+// записать последовательность объектов типа complex
+// в стандартный вывод, разделяя элементы пробелами
+ostream_iterator< complex > os_complex(std::cin, " ");
+
+// записать последовательность строк в именованный файл
+ofstream outfile("dictionary");
+]]></div>
+
+<p>производного от него класса с открытым типом наследования, скажем ofstream:
+</p>
+
+<div class="lang-cpp"><![CDATA[ostream_iterator<std::string> os_string(outfile, "\n");]]></div>
+
+<p>Вот простой пример чтения из стандартного ввода и копирования на
+стандартный вывод с помощью безымянных потоковых итераторов и
+обобщенного алгоритма std::copy():
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iterator>
+#include <algorithm>
+#include <iostream>
+
+int main() {
+   std::copy(istream_iterator<int>(std::cin),
+         istream_iterator<int>(),
+         ostream_iterator<int>(std::cout, " "));
+}
+]]></div>
+
+<p>Ниже приведена небольшая программа, которая открывает указанный
+пользователем файл и копирует его на стандартный вывод, применяя для
+этого алгоритм copy() и потоковый итератор записи ostream_iterator:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <string>
+#include <algorithm>
+#include <fstream>
+#include <iterator>
+
+int main() {
+    string file_name;
+
+    std::cout << "please enter a file to open: ";
+    std::cin >>file_name;
+
+    if (file_name.empty() || !std::cin) {
+        std::cerr << "unable to read file name\n";
+        return -1;
+    }
+
+    ifstream infile(file_name.c_str());
+    if (!infile) {
+        std::cerr <<"unable to open " << file_name << std::endl;
+        return -2;
+    }
+
+    istream_iterator<std::string> ins(infile), eos;
+    ostream_iterator<std::string> outs(std::cout, " ");
+    copy(ins, eos, outs);
+}
+]]></div>
+
+<h3>12.4.6. Пять категорий итераторов</h3>
+
+<p>Для поддержки полного набора обобщенных алгоритмов стандартная библиотека 
+определяет пять категорий итераторов, положив в основу классификации множество 
+операций. Это итераторы чтения (InputIterator), записи (OutputIterator), 
+однонаправленные (ForwardIterator) и двунаправленные итераторы (BidirectionalIterator), 
+а также итераторы с произвольным доступом (RandomAccessIterators). Ниже приводится 
+краткое обсуждение характеристик каждой категории:
+</p>
+
+<ul>
+<li>итератор чтения можно использовать для получения элементов из контейнера, но 
+поддержка записи в контейнер не гарантируется. Такой итератор должен обеспечивать 
+следующие операции (итераторы, поддерживающие также дополнительные операции, можно 
+употреблять в качестве итераторов чтения при условии, что они удовлетворяют минимальным 
+требованиям): сравнение двух итераторов на равенство и неравенство, префиксная и 
+постфиксная форма инкремента итератора для адресации следующего элемента (оператор ++), 
+чтение элемента с помощью оператора разыменования (*). Такого уровня поддержки требуют, 
+в частности, алгоритмы find(), accumulate() и equal(). Любому алгоритму, которому 
+необходим итератор чтения, можно передавать также и итераторы категорий, описанных 
+в пунктах 3, 4 и 5;
+</li>
+<li>итератор записи можно представлять себе как противоположный по
+функциональности итератору чтения. Иными словами, его можно
+использовать для записи элементов контейнера, но поддержка чтения из
+контейнера не гарантируется. Такие итераторы обычно применяются в
+качестве третьего аргумента алгоритма (например, copy()) и указывают на
+позицию, с которой надо начинать копировать. Любому алгоритму, которому
+необходим итератор записи, можно передавать также и итераторы других
+категорий, перечисленных в пунктах 3, 4 и 5;
+</li>
+<li>однонаправленный итератор можно использовать для чтения и записи в
+контейнер, но только в одном направлении обхода (обход в обоих
+направлениях поддерживается итераторами следующей категории). К числу
+обобщенных алгоритмов, требующих как минимум однонаправленного
+итератора, относятся adjacent_find(), swap_range() и replace().
+Конечно, любому алгоритму, которому необходим подобный итератор, можно
+передавать также и итераторы описанных ниже категорий;
+</li>
+<li>двунаправленный итератор может читать и записывать в контейнер, а
+также перемещаться по нему в обоих направлениях. Среди обобщенных
+алгоритмов, требующих как минимум двунаправленного итератора,
+выделяются place_merge(), next_permutation() и reverse();
+</li>
+<li>итератор с произвольным доступом, помимо всей функциональности,
+поддерживаемой двунаправленным итератором, обеспечивает доступ к любой
+позиции внутри контейнера за постоянное время. Подобные итераторы
+требуются таким обобщенным алгоритмам, как binary_search(), sort_heap()
+и nth-element().
+</li>
+</ul>
+
+<p>Упражнение 12.6:
+Объясните, почему некорректны следующие примеры. Какие ошибки обнаруживаются во время компиляции? 
+</p>
+
+<div class="lang-cpp"><![CDATA[
+(a) const std::vector<std::string> file_names(sa, sa+6);
+    std::vector<std::string>::iterator it = file_names.begin()+2;
+
+(b) const std::vector<int> ivec;
+    std::fill(ivec.begin(), ivec.end(), ival);
+
+(c) std::sort(ivec.begin(), ivec.end());
+
+(d) std::list<int> ilist(ia, ia+6);
+    std::binary_search(ilist.begin(), ilist.end());
+(e) std::sort(ivec1.begin(), ivec3.end());
+]]></div>
+
+<p>Упражнение 12.7:
+Напишите программу, которая читает последовательность целых чисел из стандартного ввода с помощью потокового итератора чтения istream_iterator.
+Нечетные числа поместите в один файл посредством ostream_iterator, разделяя значения пробелом.
+Четные числа таким же образом запишите в другой файл, при этом каждое значение должно размещаться в отдельной строке.
+</p>
+
+<h3>12.5. Обобщенные алгоритмы</h3>
+
+<p>Первые два аргумента любого обобщенного алгоритма (разумеется, есть
+исключения, которые только подтверждают правило) – это пара итераторов,
+обычно называемых first и last, ограничивающих диапазон элементов
+внутри контейнера или встроенного массива, к которым применяется этот
+алгоритм. Как правило, диапазон элементов (иногда его называют
+интервалом с включенной левой границей) обозначается следующим образом:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+[first, last)
+// читается так: включает первый и все последующие элементы,
+// кроме последнего
+]]></div>
+
+<p>Эта запись говорит о том, что диапазон начинается с элемента first и продолжается до элемента last, исключая последний. Если
+</p>
+
+<div class="lang-cpp"><![CDATA[first == last]]></div>
+
+<p>то говорят, что диапазон пуст.
+</p>
+
+<p>К паре итераторов предъявляется следующее требование: если начать с
+элемента first и последовательно применять оператор инкремента, то
+возможно достичь элемента last. Однако компилятор не в состоянии
+проверить выполнение этого ограничения; если оно нарушается, поведение
+программы не определено, обычно все заканчивается аварийным остановом и
+дампом памяти.
+</p>
+<p>В объявлении каждого алгоритма указывается минимально необходимая
+категория итератора (см. раздел 12.4). Например, для алгоритма find(),
+реализующего однопроходный обход контейнера с доступом только для
+чтения, требуется итератор чтения, но можно передать и однонаправленный
+или двунаправленный итератор, а также итератор с произвольным доступом.
+Однако передача итератора записи приведет к ошибке. Не гарантируется,
+что ошибки, связанные с передачей итератора не той категории, будут
+обнаружены во время компиляции, поскольку категории итераторов – это не
+собственно типы, а лишь параметры-типы, передаваемые шаблону функции.
+</p>
+<p>Некоторые алгоритмы существуют в нескольких версиях: в одной
+используется встроенный оператор, а во второй – объект-функция или
+указатель на функцию, которая предоставляет альтернативную реализацию
+оператора. Например, unique() по умолчанию сравнивает два соседних
+элемента с помощью оператора равенства, определенного для типа объектов
+в контейнере. Но если такой оператор равенства не определен или мы
+хотим сравнивать элементы иным способом, то можно передать либо
+объект-функцию, либо указатель на функцию, обеспечивающую нужную
+семантику. Встречаются также алгоритмы с похожими, но разными именами.
+Так, предикатные версии всегда имеют имя, оканчивающееся на _if,
+например find_if(). Скажем, есть алгоритм replace(), реализованный с
+помощью встроенного оператора равенства, и replace_if(), которому
+передается объект-предикат или указатель на функцию.
+</p>
+<p>Алгоритмы, модифицирующие контейнер, к которому они применяются, обычно
+имеют две версии: одна преобразует содержимое контейнера по месту, а
+вторая возвращает копию исходного контейнера, в которой и отражены все
+изменения. Например, есть алгоритмы replace() и replace_copy() (имя
+версии с копированием всегда заканчивается на _copy). Однако не у всех
+алгоритмов, модифицирующих контейнер, имеется такая версия. К примеру,
+ее нет у алгоритма sort(). Если же мы хотим, чтобы сортировалась копия,
+то создать и передать ее придется самостоятельно.
+</p>
+
+<p>Для использования любого обобщенного алгоритма необходимо включить в программу заголовочный файл
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <algorithm>]]></div>
+
+<p>А для любого из четырех численных алгоритмов –
+adjacent_differences(), accumulate(), inner_product() и partial_sum() –
+включить также заголовок
+</p>
+
+<div class="lang-cpp"><![CDATA[#include <numeric>]]></div>
+
+<p>Все существующие алгоритмы для удобства изложения распределены нами
+на девять категорий (они перечислены ниже). В Приложении алгоритмы
+рассматриваются в алфавитном порядке, и для каждого приводится пример
+применения.
+</p>
+
+<h3>12.5.1. Алгоритмы поиска</h3>
+<p>Тринадцать алгоритмов поиска предоставляют различные способы
+нахождения определенного значения в контейнере. Три алгоритма
+equal_range(), lower_bound() и upper_bound() выполняют ту или иную
+форму двоичного поиска. Они показывают, в какое место контейнера можно
+вставить новое значение, не нарушая порядка сортировки.
+</p>
+<div class="lang-cpp"><![CDATA[adjacent_find(), binary_search(), count(),count_if(), equal_range(),
+find(), find_end(), find_first_of(), find_if(), lower_bound(),
+upper_bound(), search(), search_n()
+]]></div>
+<h3>12.5.2. Алгоритмы сортировки и упорядочения</h3>
+<p>Четырнадцать алгоритмов сортировки и упорядочения предлагают
+различные способы упорядочения элементов контейнера. Разбиение
+(partition) – это разделение элементов контейнера на две группы:
+удовлетворяющие и не удовлетворяющие некоторому условию. Так, можно
+разбить контейнер по признаку четности/нечетности чисел или в
+зависимости от того, начинается слово с заглавной или со строчной
+буквы. Устойчивый (stable) алгоритм сохраняет относительный порядок
+элементов с одинаковыми значениями или удовлетворяющих одному и тому же
+условию. Например, если дана последовательность:
+</p>
+<div class="lang-cpp"><![CDATA[{ "pshew", "honey", "Tigger", "Pooh" }]]></div>
+<p>то устойчивое разбиение по наличию/отсутствию заглавной буквы в
+начале слова генерирует последовательность, в которой относительный
+порядок слов в каждой категории сохранен:
+</p>
+<div class="lang-cpp"><![CDATA[{ "Tigger", "Pooh", "pshew", "honey" }]]></div>
+<p>При использовании неустойчивой версии алгоритма сохранение порядка
+не гарантируется. (Отметим, что алгоритмы сортировки нельзя применять к
+списку и ассоциативным контейнерам, таким, как множество (set) или
+отображение (map).)
+</p>
+<div class="lang-cpp"><![CDATA[inplace_merge(), merge(), nth_element(), partial_sort(),
+partial_sort_copy(), partition(), random_shuffle(), reverse(),
+reverse_copy(), rotate(), rotate_copy(), sort(), stable_sort(),
+stable_partition()
+]]></div>
+
+<h3>12.5.3. Алгоритмы удаления и подстановки</h3>
+
+<p>Рассмотрим последовательность из трех символов: {a,b,c}. Для нее
+существует шесть различных перестановок: abc, acb, bac, bca, cab и cba,
+лексикографически упорядоченных на основе оператора <q>меньше</q>. Таким
+образом, abc – это первая перестановка, потому что каждый элемент
+меньше последующего. Следующая перестановка – acb, поскольку в начале
+все еще находится a – наименьший элемент последовательности.
+Соответственно перестановки, начинающиеся с b, предшествуют тем,
+которые начинаются с с. Из bac и bca меньшей является bac, так как
+последовательность ac лексикографически меньше, чем ca. Если дана
+перестановка bca, то можно сказать, что предшествующей для нее будет
+bac, а последующей – cab. Для перестановки abc нет предшествующей, а
+для cba – последующей.
+</p>
+
+<div class="lang-cpp"><![CDATA[next_permutation(), prev_permutation()]]></div>
+
+<h3>12.5.4. Алгоритмы перестановки</h3>
+
+<p>Рассмотрим последовательность из трех символов: {a,b,c}. Для нее
+существует шесть различных перестановок: abc, acb, bac, bca, cab и cba,
+лексикографически упорядоченных на основе оператора <q>меньше</q>.
+Таким образом, abc – это первая перестановка, потому что каждый элемент
+меньше последующего. Следующая перестановка – acb, поскольку в начале
+все еще находится a – наименьший элемент последовательности.
+Соответственно перестановки, начинающиеся с b, предшествуют тем,
+которые начинаются с с. Из bac и bca меньшей является bac, так как
+последовательность ac лексикографически меньше, чем ca. Если дана
+перестановка bca, то можно сказать, что предшествующей для нее будет
+bac, а последующей – cab. Для перестановки abc нет предшествующей, а
+для cba – последующей.
+</p>
+
+<div class="lang-cpp"><![CDATA[next_permutation(), prev_permutation()]]></div>
+
+<h3>12.5.5. Численные алгоритмы</h3>
+
+<p>Следующие четыре алгоритма реализуют численные операции с
+контейнером. Для их использования необходимо включить заголовочный файл
+&lt;numeric&gt;.
+</p>
+
+<div class="lang-cpp"><![CDATA[accumulate(), partial_sum(), inner_product(), adjacent_difference()]]></div>
+
+<h3>12.5.6. Алгоритмы генерирования и модификации</h3>
+
+<p>Шесть алгоритмов генерирования и модификации либо создают и
+заполняют новую последовательность, либо изменяют значения в
+существующей.
+</p>
+
+<div class="lang-cpp"><![CDATA[fill(), fill_n(), for_each(), generate(),generate_n(), transform()]]></div>
+
+<h3>12.5.7. Алгоритмы сравнения</h3>
+
+<p>Семь алгоритмов дают разные способы сравнения одного контейнера с
+другим (алгоритмы min() и max() сравнивают два элемента). Алгоритм
+lexicographical_compare() выполняет лексикографическое (словарное)
+упорядочение (см. также обсуждение перестановок и Приложение).
+</p>
+
+<div class="lang-cpp"><![CDATA[
+equal(), includes(), lexicographical_compare(), max(), max_element(),
+min(), min_element(), mismatch()
+]]></div>
+
+<h3>12.5.8. Алгоритмы работы с множествами</h3>
+
+<p>Четыре алгоритма этой категории реализуют теоретико-множественные
+операции над любым контейнерным типом. При объединении создается
+отсортированная последовательность элементов, принадлежащих хотя бы
+одному контейнеру, при пересечении – обоим контейнерам, а при взятии
+разности – принадлежащих первому контейнеру, но не принадлежащих
+второму. Наконец, симметрическая разность – это отсортированная
+последовательность элементов, принадлежащих одному из контейнеров,но не
+обоим.
+</p>
+
+<div class="lang-cpp"><![CDATA[set_union(), set_intersection(), set_difference(),
+set_symmetric_difference()
+]]></div>
+
+<h3>12.5.9. Алгоритмы работы с хипом</h3>
+
+<p>Хип (heap) – это разновидность двоичного дерева, представленного в
+массиве. Стандартная библиотека предоставляет такую реализацию хипа, в
+которой значение ключа в любом узле больше либо равно значению ключа в
+любом потомке этого узла.
+</p>
+
+<div class="lang-cpp"><![CDATA[make_heap(), pop_heap(), push_heap(), sort_heap()]]></div>
+
+</section>
+
+<section id="stops">
+<title>Когда нельзя использовать обобщенные алгоритмы</title>
+
+<p>Ассоциативные контейнеры (отображения и множества) поддерживают
+определенный порядок элементов для быстрого поиска и извлечения.
+Поэтому к ним не разрешается применять обобщенные алгоритмы, меняющие
+порядок, такие, как sort() и partition(). Если в ассоциативном
+контейнере требуется переставить элементы, то необходимо сначала
+скопировать их в последовательный контейнер, например в вектор или
+список.
+</p>
+<p>Контейнер list (список) реализован в виде двусвязного списка: в каждом
+элементе, помимо собственно данных, хранятся два члена-указателя – на
+следующий и на предыдущий элементы. Основное преимущество списка – это
+эффективная вставка и удаление одного элемента или целого диапазона в
+произвольное место списка, а недостаток – невозможность произвольного
+доступа. Например, можно написать:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::vector<std::string>::iterator vec_iter = vec.begin() + 7;
+]]></div>
+
+<p>Такая форма вполне допустима и инициализирует vec_iter адресом восьмого элемента вектора, но запись
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// ошибка: арифметические операции над итераторами
+// не поддерживаются списком
+list<string>::iterator list_iter = slist.begin() + 7;
+]]></div>
+
+<p>некорректна, так как элементы списка не занимают непрерывную область
+памяти. Для того чтобы добраться до восьмого элемента, необходимо
+посетить все промежуточные.
+</p>
+
+<p>Поскольку список не поддерживает произвольного доступа, то алгоритмы
+merge(), remove(), reverse(), sort() и unique() лучше к таким
+контейнерам не применять, хотя ни один из них явно не требует наличия
+соответствующего итератора. Вместо этого для списка определены
+специализированные версии названных операций в виде функций-членов, а
+также операция splice():
+</p>
+
+<ul>
+<li>list::merge() объединяет два отсортированных списка</li>
+<li>list::remove() удаляет элементы с заданным значением</li>
+<li>list::remove_if()удаляет элементы, удовлетворяющие некоторому условию</li>
+<li>list::reverse() переставляет элементы списка в обратном порядке</li>
+<li>list::sort() сортирует элементы списка</li>
+<li>list::splice() перемещает элементы из одного списка в другой</li>
+<li>list::unique() оставляет один элемент из каждой цепочки одинаковых смежных элементов</li>
+</ul>
+
+<div class="lang-cpp"><![CDATA[void list::merge(list rhs);
+template <class Compare>
+]]></div>
+
+<h3>12.6.1. Операция list_merge()</h3>
+
+<div class="lang-cpp"><![CDATA[void list::merge(list rhs, Compare comp);]]></div>
+
+<p>Элементы двух упорядоченных списков объединяются либо на основе
+оператора "меньше", определенного для типа элементов в контейнере, либо
+на основе указанной пользователем операции сравнения. (Заметьте, что
+элементы списка rhs перемещаются в список, для которого вызвана
+функция-член merge(); по завершении операции список rhs будет пуст.)
+Например:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+int array1[10] = { 34, 0, 8, 3, 1, 13, 2, 5, 21, 1 };
+int array2[5] = { 377, 89, 233, 55, 144 };
+
+std::list<int> ilist1(array1, array1 + 10);
+std::list<int> ilist2(array2, array2 + 5);
+
+// для объединения требуется, чтобы оба списка были упорядочены
+ilist1.sort(); ilist2.sort();
+ilist1.merge(ilist2);
+]]></div>
+
+<p>После выполнения операции merge() список ilist2 пуст, а ilist1 содержит первые 15 чисел Фибоначчи в порядке возрастания.
+</p>
+
+<h3>12.6.2. Операция list::remove()</h3>
+
+<div class="lang-cpp"><![CDATA[void list::remove(const elemType &value);]]></div>
+<p>Операция remove() удаляет все элементы с заданным значением:
+</p>
+
+<div class="lang-cpp"><![CDATA[ilist1.remove(1);]]></div>
+
+<h3>12.6.3. Операция list::remove_if()</h3>
+
+<div class="lang-cpp"><![CDATA[template < class Predicate >
+   void list::remove_if(Predicate pred);]]></div>
+
+<p>Операция remove_if() удаляет все элементы, для которых выполняется
+указанное условие, т.е. предикат pred возвращает true. Например:
+</p>
+
+<div class="lang-cpp"><![CDATA[class Even {
+public:
+   bool operator()(int elem) { return ! (elem % 2); }
+};
+
+ilist1.remove_if(Even());]]></div>
+
+<p>удаляет все четные числа из списка, определенного при рассмотрении merge().
+</p>
+
+<h3>12.6.4. Операция list::reverse()</h3>
+
+<div class="lang-cpp"><![CDATA[void list::reverse();]]></div>
+
+<p>Операция reverse() изменяет порядок следования элементов списка на противоположный:
+</p>
+
+<div class="lang-cpp"><![CDATA[ilist1.reverse();]]></div>
+
+<h3>12.6.5. Операция list::sort()</h3>
+
+<div class="lang-cpp"><![CDATA[void list::sort();template <class Compare>
+void list::sort(Compare comp);]]></div>
+
+<p>По умолчанию sort() упорядочивает элементы списка по возрастанию с
+помощью оператора "меньше", определенного в классе элементов
+контейнера. Вместо этого можно явно передать в качестве аргумента
+оператор сравнения. Так,
+</p>
+
+<div class="lang-cpp"><![CDATA[list1.sort();]]></div>
+
+<p>упорядочивает list1 по возрастанию, а
+</p>
+
+<div class="lang-cpp"><![CDATA[list1.sort(greater<int>());]]></div>
+
+<p>упорядочивает list1 по убыванию, используя оператор "больше".
+</p>
+
+<h3>12.6.6. Операция list::splice()</h3>
+
+<div class="lang-cpp"><![CDATA[void list::splice(iterator pos, list rhs);
+void list::splice(iterator pos, list rhs, iterator ix);
+void list::splice(iterator pos, list rhs,
+                   iterator first, iterator last);]]></div>
+
+<p>Операция splice() имеет три формы: перемещение одного элемента, всех
+элементов или диапазона из одного списка в другой. В каждом случае
+передается итератор, указывающий на позицию вставки, а перемещаемые
+элементы располагаются непосредственно перед ней. Если даны два списка:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+int array[10] = { 0, 1, 1, 2, 3, 5, 8, 13, 21, 34 };
+std::list<int> ilist1(array, array + 10);
+std::list<int> ilist2(array, array + 2); // содержит 0, 1
+]]></div>
+
+<p>то следующее обращение к splice() перемещает первый элемент ilist1 в
+ilist2. Теперь ilist2 содержит элементы 0, 1 и 0, тогда как в ilist1
+элемента 0 больше нет.
+</p>
+
+<div class="lang-cpp"><![CDATA[// ilist2.end() указывает на позицию, куда нужно переместить элемент
+// элементы вставляются перед этой позицией
+// ilist1 указывает на список, из которого перемещается элемент
+// ilist1.begin() указывает на сам перемещаемый элемент
+
+ilis2.splice(ilist2.end(), ilist1, ilist1.begin());]]></div>
+
+<p>В следующем примере применения splice() передаются два итератора, ограничивающие диапазон перемещаемых элементов:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+list<int> ::iterator first, last;
+first = ilist1.find(2);
+last  = ilist1.find(13);
+ilist2.splice(ilist2.begin(), ilist1, first, last);
+]]></div>
+
+<p>В данном случае элементы 2, 3, 5 и 8 удаляются из ilist1 и
+вставляются в начало ilist2. Теперь ilist1 содержит пять элементов 1,
+1, 13, 21 и 34. Для их перемещения в ilist2 можно воспользоваться
+третьей вариацией операции splice():
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::list<int>::iterator pos = ilist2.find(5);
+ilist2.splice(pos, ilist1);
+]]></div>
+
+<p>Итак, список ilist1 пуст. Последние пять элементов перемещены в
+позицию списка ilist2, предшествующую той, которую занимает элемент 5.
+</p>
+
+<h3>12.6.7. Операция list::unique()</h3>
+
+<div class="lang-cpp"><![CDATA[
+void list::unique();
+template <class BinaryPredicate> void list::unique(BinaryPredicate pred);
+]]></div>
+
+<p>Операция unique() удаляет соседние дубликаты. По умолчанию при
+сравнении используется оператор равенства, определенный для типа
+элементов контейнера. Например, если даны значения {0,2,4,6,4,2,0}, то
+после применения unique() список останется таким же, поскольку в
+соседних позициях дубликатов нет. Но если мы сначала отсортируем
+список, что даст {0,0,2,2,4,4,6}, а потом применим unique(), то получим
+четыре различных значения {0,2,4,6}.
+</p>
+
+<div class="lang-cpp"><![CDATA[ilist.unique();]]></div>
+
+<p>Вторая форма unique() принимает альтернативный оператор сравнения. Например,
+</p>
+
+<div class="lang-cpp"><![CDATA[
+class EvenPair {
+public:
+   bool operator()(int val1, int val2) { return !(val2 % val1); }
+};
+ilist.unique(EvenPair());
+]]></div>
+
+<p>удаляет соседние элементы, если второй элемент без остатка делится на первый.
+</p>
+
+<p>Эти операции, являющиеся членами класса, следует предпочесть
+соответствующим обобщенным алгоритмам при работе со списками. Остальные
+обобщенные алгоритмы, такие, как find(), transform(), for_each() и
+т.д., работают со списками так же эффективно, как и с другими
+контейнерами (еще раз напомним, что подробно все алгоритмы
+рассматриваются в Приложении).
+</p>
+
+</section>
+</chapter>
