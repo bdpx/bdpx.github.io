@@ -1,0 +1,7 @@
+# GitHub Linguist overrides
+
+*.hpp linguist-language=C++
+*.cpp linguist-language=C++
+*.xml linguist-language=XML
+*.xsl linguist-language=XSLT
+

@@ -1,0 +1,6 @@
+Host: https://bdpx.github.io
+
+User-Agent: *
+Allow: /
+Sitemap: https://bdpx.github.io/sitemap.xml
+Sitemap: https://bdpx.github.io/postrisc/sitemap.xml
