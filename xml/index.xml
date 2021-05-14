@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="Технологии XML"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css"/>
+<title>XML</title>
+</head>
+<body>
+
+<h1>XML и современные методы репрезентации данных</h1>
+
+<p>Дисциплина <q>Современные методы репрезентации данных</q>
+читается студентам специальности <q>Информатика</q> в 9 семестре в рамках подготовки специалистов.
+Курс посвящен языку разметки данных XML и родственным ему технологиям.
+</p>
+
+<h2>Темы</h2>
+
+<ul>
+<li class="link"><a href="xml.html">XML intro</a></li>
+<li class="link"><a href="dtd.html">DTD</a></li>
+<li class="link"><a href="xsd.html">XSD</a></li>
+<li class="link"><a href="xpath.html">XPath, XQuery</a></li>
+<li class="link"><a href="xslt.html">XSLT</a></li>
+<li class="link"><a href="dom_app.html">DOM programming</a></li>
+</ul>
+
+<h2>Прочее</h2>
+
+<ul>
+<li class="link"><a href="xml_test.html">Тест</a></li>
+<li class="link"><a href="individ.html">Индивидуальная работа</a></li>
+</ul>
+
+<h2>Литература</h2>
+<ol>
+<li>Холзнер С. XML. Энциклопедия. 2-е изд.—СПб.:Питер, 2004.—1101с.</li>
+<li>Холзнер С. XSLT. Библиотека программиста.—СПб.:Питер, 2002.—544с.</li>
+<li>Кирк Ч., Питц-Моултис Н. XML в подлиннике.—СПб.:BHV, 2000.—736с.</li>
+<li>Шеперт Д. Освой самостоятельно XML за 21 день.—М.:Вильямс, 2002.—432с.</li>
+<li>Старыгин А. XML. Разработка Web приложений.—СПб.:BHV, 2003.—592с.</li>
+<li>Мангало Сэл. XSLT. Сборник рецептов. – М.: ДМК Пресс, СПБ.: БХВ_Петербург, 2008.–864с.</li>
+<li>Валиков А.Н. Технология XSLT. —СПб.:БХВ-Петербург.—544с.</li>
+</ol>
+
+</body>
+</html>

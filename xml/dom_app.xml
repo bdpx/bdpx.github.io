@@ -1,0 +1,1352 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="Технологии XML: Java/Javascript API"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css" />
+<title>"Острова данных": интеграция XML в HTML</title>
+</head>
+<body>
+
+<h1>DOM (document object model)</h1>
+
+<p>Цель лабораторной работы:</p>
+<p>1) Познакомиться c интерфейсом и объектной моделью DOM.</p>
+<p>2) Научиться программировать приложения с использованием DOM на Java</p>
+
+<div>
+<h1>DOM как API</h1>
+
+<p>
+XML DOM = XML Document Object Model. Является рекомендацией W3C.
+XML DOM позволяет: обходить узлы дерева элементов и атрибутов, манипулировать его структуры и содержании.
+</p>
+
+<p>XML DOM платформенно-независимый стандарт.
+Можно создать сценарий в языках PERL, Java, Python и.т.д.
+После создания дерева объектов документ полностью загрузится в память, позволяя доступ к отдельным узлам.
+Синтаксический анализатор XML позволяет использовать готовые методы для управления элементов.
+</p>
+
+<table>
+<caption>Список узлов доступных в DOM</caption>
+<thead>
+<tr>
+<th>Тип</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>Node</td><td>базовой тип для других объектов</td></tr>
+<tr><td>Document</td><td>документ</td></tr>
+<tr><td>Element</td><td>элемент</td></tr>
+<tr><td>Attribute</td><td>атрибут</td></tr>
+<tr><td>Text</td><td>текстовое поле, дочерний узел элемента</td></tr>
+<tr><td>Processing Instruction</td><td>инструкции для отработка</td></tr>
+<tr><td>СDATA Section</td><td>текст который парсер не транслирует</td></tr>
+<tr><td>Document Fragment</td><td>часть документа)</td></tr>
+<tr><td>Entity</td><td>строка для подстановки</td></tr>
+<tr><td>Entity Reference</td><td>&amp;Entity;</td></tr>
+</tbody>
+</table>
+
+<p>Модуляризация DOM означает для разработчика, что он должен знать, поддерживаются ли те возможности, которые он хочет использовать, той реализацией DOM, с которой он работает.
+W3C определил для DOM на сегодняшний день 3 уровня:
+</p>
+
+<p>Уровень 1 включает в себя поддержку XML 1.0 и HTML, в которой каждый элемент HTML представляется как интерфейс.
+Он включает в себя методы для добавления, редактирования, перемещения и чтения информации, содержащейся в узлах и т.д.
+Он, однако, не включает в себя поддержку пространств имен XML.
+</p>
+
+<p>Поддержка пространств была добавлена в DOM Уровня 2.
+Уровень 2 расширяет Уровень 1, позволяя разработчикам обнаруживать и использовать информацию пространств имен, которая может быть применима к узлу.
+Уровень 2 добавляет также несколько модулей поддержки CSS, событий и расширенных манипуляций с деревом.
+</p>
+
+<p>DOM Уровня 3 включает в себя улучшенную поддержку объекта Document
+(предыдущие версии оставляли это на усмотрение приложений, что делало затруднительным создание родовых приложений),
+расширенную поддержку пространств имен, и новые модули для загрузки и сохранения документов, проверки правильности и XPath,
+средства для выбора узлов, используемые в XSL Transformations и других технологиях XML.
+</p>
+
+</div>
+
+<div>
+<h1>Общие сведения о программных интерфейсах XML</h1>
+<p>В предыдущих уроках мы с вами рассмотрели принципы проектирования правильно оформленных и допустимых (valid) XML документов.
+Нам с вами так же знаком тот факт, что браузеры не проверяют документы на допустимость, даже если с ними ассоциированны DTD или схема.
+Однако, в тех случаях, когда XML применяют не как средство разметки документов, а как средство структурирования данных, проверка на допустимость очень важна.
+Известно так же, что в популярнейший браузер <b>Microsoft Internet Explorer</b> встроен XML анализатор, проверяющий допустимость XML документов на уровне расширенной объектной модели.
+Эта одна из причин, по которой мы должны с ней познакомиться.
+</p>
+
+<p>Еще одной причиной является использование XML не в браузерах, а, например, в программах, написанных на <b>Visual С++</b>.
+В этом случае приходится читать XML файлы и отображать данные <q>вручную</q>. Существует 2 типа анализаторов (парсеров) XML, использующих принципиально разный подход к разбору документов:
+</p>
+
+<ul>
+<li><span>Анализаторы, генерирующие дерево элементов XML - <b>DOM парсеры</b> </span></li>
+<li><span>Анализаторы, основанные на событиях - <b>SAX парсеры</b></span></li>
+</ul>
+
+<h2>DOM парсеры</h2>
+
+<p><b>DOM</b> - <dfn>Document Object Model</dfn>, объектная модель документа.
+Данный термин в течение длительного времени применялся к WEB-браузерам.
+Такие объекты, как <i>окно</i>, <i>документ</i>, <i>история</i> считались частью объектной модели браузера.
+Каждый, кто сталкивался с разработкой WEB-приложений, знает, что эти объекты в разных браузерах эти объекты реализованы по разному.
+Для создания более стандартизованного способа обращения и манипулирования структурами документов консорциум <b>W3C</b> предложил другую спецификацию,
+которая привела впоследствии к текущей модели W3C DOM.
+</p>
+
+<p>W3C DOM представляет собой <b>не зависящее от языка или платформы</b> определение.
+Это означает, что для различных составляющих DOM объектов определены интерфейсы,
+но для них не предлагается никакой конкретной реализации, и ее можно осуществить на любом языке программирования.
+Эта модель помогает разработчику читать, находить, модифицировать, добавлять, и удалять объекты из документа.
+Модель HTML DOM является частным случаем W3C DOM.
+</p>
+
+<p>В каких случаях случая следут использовать DOM?</p>
+
+<ul>
+<li>В случае необходимости <b>XSLT-преобразований</b></li>
+<li>В случае необходимости комплексной <b>XPath</b> фильтрации</li>
+<li>Если вам необходимо модифицировать и сохранять XML документ</li>
+</ul>
+
+<p>DOM позволяет создать и модифицировать XML документ в памяти так же,
+как и прочитать его из XML файла. SAX анализаторы разработанны для чтения - не записи XML файлов.
+DOM является наилучшим выбором для модификации и сохранения XML документов.
+</p>
+<ul>
+    <li><span>Если необходим произвольный доступ к элементам документа </span></li>
+</ul>
+
+<p>В случае, когда произвольный доступ к элементам документа является ключевым моментом,
+то наилучшим выходом будет использование DOM для построения дерева XML элементов в памяти.
+</p>
+
+<h2>SAX парсеры</h2>
+
+<p><dfn>SAX</dfn> - Simple API for XML, простой программный интерфейс приложений для XML.
+SAX предоставляет последовательный доступ к элементам XML документа.
+Анализаторы такого типа читают XML документ и сообщают программе о встреченных символах по мере их появления.
+Например, сообщает, когда находит открывающий тэг элемента, символьные данные и закрывающий тэг.
+Такой программный интерфейс называется интерфейсом <dfn>основанным на событиях</dfn>.
+SAX является отличной альтернативой DOM в следующих случаях:
+</p>
+
+<ul>
+<li>Когда документы имеют большой размер.</li>
+</ul>
+  <p>Возможно наибольшим преимуществом SAX является значительно меньшее использование памяти, по сравнению с DOM. При использовании SAX потребление памяти не возрастает с размером файла.</p>
+<ul>
+    <li>В случае необходимости остановить процесс разбора</li>
+</ul>
+<p>SAX позволяет остановить процесс разбора в любой момент. Это позволяет использовать его для поиска уникальных данных. Например, необходимо найти товар в каталоге, после чего остановить поиск.</p>
+<ul>
+    <li>При необходимости получать небольшие порции информации</li>
+</ul>
+
+<p>Для множества приложений нет необходимости читать XML документ целиком, для получения необходимых данных.
+SAX предоставляет такую возможность, позволяя снизить ресурсоемкость процесса разбора.
+</p>
+
+<p>Можно привести еще несколько преимуществ SAX, однако существует и ряд ограничений:</p>
+  <ul>
+    <li>Отсутствует произвольный доступ к элементам</li>
+    <li>Сложно организовать комплексный поиск</li>
+    <li>SAX не поддерживается текущими броузерами.</li>
+  </ul>
+</div>
+
+<div>
+<h1>DOM и Java</h1>
+
+<h2>Разбор файла в документ, трехшаговый процесс</h2>
+
+<p>Чтобы работать с информацией в XML-файле, файл должен быть разобран для создания <b>объекта <q>Document</q></b>.
+</p>
+<p>Объект Document является интерфейсом, так что
+его экземпляр не может быть создан непосредственно, обычно вместо этого
+приложение использует фабрику. Подробности этого процесса различаются
+от реализации к реализации, но идеи одни и те же. (Опять-таки, Уровень
+3 стандартизирует эту задачу.) Например, в среде Java разбор файла
+является 3-шаговым процессом:
+</p>
+
+<ol>
+<li>Создание <q>DocumentBuilderFactory</q>. Этот объект создает <q>DocumentBuilder</q>.
+</li><li><b>Создание <q>DocumentBuilder</q>.</b> <q>DocumentBuilder</q> действительно выполняет разбор для создания объекта <q>Document</q>.
+</li><li><b>Разбор файла</b> для создания объекта <q>Document</q>.
+</li></ol>
+
+<p>Теперь вы можете начать построение приложения.
+</p>
+
+<h3>Базовое приложение</h3>
+
+<p>Начнем с создания базового приложения, класса с именем <q>OrderProcessor</q>.
+</p>
+
+<div class="lang-java"><![CDATA[import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import org.w3c.dom.Document;
+public class OrderProcessor {
+  public static void main (String args[]) {
+    File docFile = new File("orders.xml");
+    Document doc = null;
+    try {
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      doc = db.parse(docFile);
+    } catch (Exception e) {
+      System.out.print("Problem parsing the file: "+e.getMessage());
+    }
+  }
+}
+]]></div>
+
+<p>Сначала Java-код импортирует необходимые классы, а затем создает приложение <q>OrderProcessor</q>.
+Примеры в этом учебнике рассматривают один файл, так что для краткости приложение содержит прямую ссылку на него.
+</p>
+
+<p>Так как объект <q>Document</q> может быть использован позже, приложение определяет его вне блока <q>try-catch</q>.
+</p>
+
+<p>В блоке <q>try-catch</q> приложение создает объект <q>DocumentBuilderFactory</q>,
+который затем используется для создания <q>DocumentBuilder</q>.
+Наконец, <q>DocumentBuilder</q> разбирает файл для создания <q>Document</q>.
+</p>
+
+<h3>Установки парсера</h3>
+
+<p>Одно из преимуществ создания парсеров при помощи <code>DocumentBuilder</code> состоит в управлении различными установками парсера,
+создаваемого при помощи <code>DocumentBuilderFactory</code>. Например, парсер может быть установлен на проверку правильности документа:
+</p>
+
+<div class="lang-java"><![CDATA[...
+try {
+  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+  <b>dbf.setValidating(true); </b>
+  DocumentBuilder db = dbf.newDocumentBuilder();
+  doc = db.parse(docFile);
+} catch (Exception e) {
+...
+]]></div>
+
+<p>Java-реализация DOM Уровня 2 обеспечивает управление параметрами парсера через следующие методы:
+</p>
+
+<ul>
+<li><q>setCoalescing()</q>: Определяет, превращает ли парсер узлы CDATA в текст и соединяет ли их с окружающими
+текстовыми узлами (если возможно). Значение по умолчанию - <q>false</q>.
+</li>
+<li><q>setExpandEntityReferences()</q>: пределяет, расширяются ли внешние ссылки на сущности.
+Если <q>true</q>, внешние данные вставляются в документ. Значение по умолчанию - <q>true</q>.
+</li>
+<li><q>setIgnoringComments()</q>: Определяет, игнорируются ли комментарии в файле. Значение по умолчанию - <q>false</q>.
+</li><li><q>setIgnoringElementContentWhitespace()</q>:
+Определяет, игнорируются ли пропуски между элементами (аналогично тому,
+как браузер интерпретирует HTML). Значение по умолчанию - <q>false</q>.
+</li><li><q>setNamespaceAware()</q>: Определяет, обращает ли парсер внимание на информацию пространства имен. Значение по умолчанию - <q>false</q>.
+</li><li><q>setValidating()</q>: По умолчанию парсер не проверяет правильность документов. Установите здесь <q>true</q> для проверки правильности.
+</li></ul>
+
+<h3>Исключения парсера</h3>
+
+<p>При всех разнообразных возможностях в создании парсера
+многие вещи могут быть неправильно сделаны. Как показано в примере,
+приложение сводит все это в единственное родовое <code>Exception</code>, которое не может быть достаточно полезным в смысле отладки.
+</p>
+
+<p>Чтобы лучше диагностировать проблемы, вы
+можете вылавливать специфические исключения, относящиеся к различным
+аспектам создания и использования парсера:
+</p>
+
+<div class="lang-java"><![CDATA[...
+try {
+  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+  DocumentBuilder db = dbf.newDocumentBuilder();
+  doc = db.parse(docFile);
+} catch (javax.xml.parsers.ParserConfigurationException pce) {
+  System.out.println("The parser was not configured correctly.");
+  System.exit(1);
+} catch (java.io.IOException ie) {
+  System.out.println("Cannot read input file.");
+  System.exit(1);
+} catch (org.xml.sax.SAXException se) {
+  System.out.println("Problem parsing the file.");
+  System.exit(1);
+} catch (java.lang.IllegalArgumentException ae) {
+  System.out.println("Please specify an XML source.");
+  System.exit(1);
+}
+...
+]]></div>
+
+<p>Когда парсер создал документ, приложение может проходить через него для обработки данных.
+</p>
+
+<h2>Раздел 2. Прохождение по документу</h2>
+
+<h3>Получение корневого элемента</h3>
+
+<p>Если документ разобран и создан <code>Document</code>,
+приложение может двигаться по структуре для обзора, поиска и
+отображения информации. Эта навигация является основой для многих
+операций, выполняемых на объекте <code>Document</code>.
+</p>
+
+<p>Прохождение через документ начинается с
+корневого элемента. Правильно форматированный документ имеет только
+один корневой элемент, называемый также <code>DocumentElement</code>. Сначала приложение выбирает этот элемент.
+</p>
+
+<div class="lang-java"><![CDATA[import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+public class OrderProcessor {
+...
+    System.exit(1);
+  }
+  //STEP 1: Get the root element
+    Element root = doc.getDocumentElement();
+    System.out.println("The root element is " + root.getNodeName());
+  }
+}
+]]></div>
+
+<p>Компиляция и выполнение приложения выведет имя корневого элемента, <code>orders</code>.
+</p>
+
+<h3>Получение потомка элемента</h3>
+
+<p>Если приложение определило корневой элемент, оно выбирает список потомков корневого элемента как <code>NodeList</code>. Класс <code>NodeList</code>
+является серией компонентов, которую приложение может перебирать. В
+данном примере для краткости приложение получает дочерние узлы и
+проверяет выборку, показывая, сколько элементов появляется в
+результирующем <code>NodeList</code>.
+</p>
+
+<p>Заметьте, что документ имеет только два элемента, но <code>NodeList</code> содержит пять потомков, включая три текстовых узла, которые содержат переводы строк.
+</p>
+
+<div class="lang-java"><![CDATA[...
+import org.w3c.dom.NodeList;
+...
+    //STEP 1: Get the root element
+    Element root = doc.getDocumentElement();
+    System.out.println("The root element is "+root.getNodeName());
+    //STEP 2: Get the children
+    NodeList children = root.getChildNodes();
+    System.out.println("There are "+children.getLength()
+        +" nodes in this документ.");
+  }
+}
+]]></div>
+
+<h3>Использование <dfn>getFirstChild()</dfn> и <dfn>getNextSibling()</dfn></h3>
+
+<p>Отношения предок-потомок и братские отношения
+предлагают альтернативный способ для перебора всех потомков данного
+узла, который может быть более подходящим в некоторых ситуациях,
+например, когда для понимания данных важны отношения и порядок, в
+котором появляются потомки.
+</p>
+
+<p>На Шаге 3, цикл <code>for</code> начинается с первого потомка корня.
+Приложение перебирает "братьев" первого потомка, пока все они не будут обработаны.
+При выполнении каждой итерации цикла приложение выбирает объект <code>Node</code>, выводит его имя и значение.
+Заметьте, что в число пяти потомков <code>orders</code> входят элементы <code>order</code> и три текстовых узла.
+Заметьте также, что элементы имеют значение <code>null</code>, а не текст, как ожидалось.
+Эти текстовые узлы являются потомками элементов, которые имеют в качестве своих значений реальное содержимое.
+</p>
+
+<div class="lang-java"><![CDATA[...
+import org.w3c.dom.Node;
+...
+    //STEP 3: Step through the children
+    for (Node child = root.getFirstChild();
+        child != null;
+        child = child.getNextSibling())
+    {
+      System.out.println(start.getNodeName()+" = "
+        +start.getNodeValue());
+    }
+  }
+}
+...]]></div>
+
+<h3>Рекурсия через многие уровни потомков</h3>
+
+<p>Код в подразделе <i>Использование <code>getFirstChild()</code> и <code>getNextSibling()</code></i>
+показывает потомка первого уровня, но это трудно для всего документа.
+Чтобы увидеть все элементы, функциональность предыдущего примера должна быть оформлена в метод и должна вызываться рекурсивно.
+</p>
+
+<p>Приложение начинает с корневого элемента и печатает имя и значение на экране.
+Затем приложение проходит через каждый его потомок так же, как и раньше.
+Но для каждого потомка приложение также проходит через каждый его потомок, проверяя всех "детей" и "внуков" корневого элемента.
+</p>
+
+<div class="lang-java"><![CDATA[...
+public class OrderProcessor {
+  private static void stepThrough (Node start) {
+    System.out.println(start.getNodeName()+" = "+start.getNodeValue());
+    for (Node child = start.getFirstChild();
+          child != null;
+          child = child.getNextSibling())
+    {
+      stepThrough(child);
+    }
+  }
+  public static void main (String args[]) {
+    File docFile = new File("orders.xml");
+...
+    System.out.println("There are " + children.getLength()
+        +" nodes in this документ.");
+    //STEP 4: Recurse this functionality
+    stepThrough(root);
+  }
+}]]></div>
+
+<h3>Включение атрибутов</h3>
+
+<p>Метод <code>stepThrough()</code>, как он был написан до сих пор, может проходить через большинство типов узлов,
+но в нем полностью отсутствуют атрибуты, поскольку они не являются потомками никаких узлов.
+Чтобы показывать атрибуты, модифицируем метод <code>stepThrough()</code> для проверки элементных узлов на наличие атрибутов.
+</p>
+
+<p>Приведенный ниже модифицированный код проверяет каждый узел на то, является ли он элементом,
+путем сравнения его <code>nodeType</code> с константой <code>ELEMENT_NODE</code>.
+Объект <code>Node</code> имеет в своем составе константы, которые представляют каждый тип узла,
+такие, как <code>ELEMENT_NODE</code> или <code>ATTRIBUTE_NODE</code>.
+Если <code>nodeType</code> соответствует <code>ELEMENT_NODE</code>, он является элементом.
+</p>
+
+<p>Для каждого найденного им элемента приложение создает объект <code>NamedNodeMap</code>, содержащий все атрибуты элемента.
+Приложение может перебирать <code>NamedNodeMap</code>, печатая имя и значение каждого атрибута, так же, как оно перебирало <code>NodeList</code>.
+</p>
+
+<div class="lang-java"><![CDATA[...
+import org.w3c.dom.NamedNodeMap;
+...
+  private static void stepThroughAll (Node start) {
+    System.out.println(start.getNodeName()+" = "+start.getNodeValue());
+    if (start.getNodeType() == start.ELEMENT_NODE) {
+      NamedNodeMap startAttr = start.getAttributes();
+      for (int i = 0; i < startAttr.getLength(); i++) {
+        Node attr = startAttr.item(i);
+        System.out.println(" Attribute: "+ attr.getNodeName()
+            +" = "+attr.getNodeValue());
+      }
+    }
+    for (Node child = start.getFirstChild();
+        child != null;
+        child = child.getNextSibling())
+    {
+      stepThroughAll(child);
+    }
+  }
+]]></div>
+
+<h2>Редактирование документа</h2>
+
+<h3>Изменение значения в узле</h3>
+
+<p>Просмотр содержимого XML-документ полезен, но когда вы
+имеете дело с полнофункциональным приложением, вам может понадобиться
+изменять данные, добавляя, перемещая или удаляя информацию. Возможность
+редактирования данных также важна при создании новых XML-документов.
+Простейшим из таких изменений является изменение текстового содержания
+элемента.
+</p>
+
+<p>Нашей целью является изменить значение текстового узла элемента,
+в данном случае установкой <code>status</code> для каждого <code>order</code> в "processed", а затем вывести новые значения на экран.
+</p>
+
+<p>Метод <code>changeOrder()</code> вызывается с передачей ему начального узла (<code>root</code>) в качестве параметра, а также имени изменяемого элемента и измененного значения.
+</p>
+
+<p><code>changeOrder()</code> сначала проверяет имя узла, чтобы увидеть, тот ли элемент, который редактируется.
+Если это так, приложению нужно изменить значение не этого узла, а его первого потомка,
+поскольку этот первый потомок является текстовым узлом, который на самом деле содержит содержимое элемента.
+</p>
+
+<p>В противном случае приложение проверяет каждый потомок так же, как это делалось при прохождении по документу в первый раз.
+</p>
+
+<p>Когда изменения выполнены, значение проверяются при помощи <code>getElementsByTagName()</code>.
+Этот метод возвращает список всех дочерних элементов с заданным именем, таким, как <code>status</code>.
+Приложение может затем проверить значения в списке, чтобы убедиться, что метод <code>changeOrder()</code> работает.
+</p>
+
+<div class="lang-java"><![CDATA[...
+public class OrderProcessor {
+  private static void changeOrder (Node start,
+    String elemName, String elemValue) {
+    if (start.getNodeName().equals(elemName)) {
+      start.getFirstChild().setNodeValue(elemValue);
+    }
+    for (Node child = start.getFirstChild();
+        child != null;
+        child = child.getNextSibling()) {
+      changeOrder(child, elemName, elemValue);
+    }
+  }
+
+  public static void main (String args[]) {
+
+  // Change text content
+  changeOrder(root, "status", "processing");
+  NodeList orders = root.getElementsByTagName("status");
+  for (int orderNum = 0; orderNum < orders.getLength(); orderNum++) {
+    System.out.println(orders.item(orderNum)
+        .getFirstChild().getNodeValue());
+    }
+  }
+}
+]]></div>
+
+<p>Заметьте, что приложение выбирает узлы <code>status</code> даже, несмотря на то, что они являются "внуками" корневого элемента, а не непосредственными его "детьми".
+<code>getElementsByTagName()</code> проходит через документ и находит все элементы с определенным именем.
+</p>
+
+<h3>Добавление узлов: подготовка данных</h3>
+
+<p>Иногда необходимо не изменить существующий узел, а
+добавить узел, и у вас есть несколько способов сделать это. В нашем
+примере приложение вычисляет общую стоимость каждого заказа и добавляет
+в <code>order</code> элемент <code>total</code>. Оно получает общую
+стоимость, выбирая каждый заказ и проходя через все его составляющие,
+чтобы получить стоимость составляющей, а затем итоговую стоимость их
+всех. Затем приложение добавляет новый элемент в заказ (см. код ниже).
+</p>
+
+<p>Сначала приложение выбирает элементы <code>order</code> так же, как оно выбирало элементы <code>status</code>. Затем перебирает каждый из этих элементов.
+</p>
+
+<p>Для каждого из этих order приложению нужен <code>NodeList</code> из его составляющих <code>item</code>, так что приложение должно сначала преобразовать узел (<code>Node</code>) <code>order</code> в <code>Element</code>, чтобы использовать <code>getElementsByTagName()</code>.
+</p>
+
+<p>Приложение затем может перебрать составляющие <code>item</code> для выбранного <code>order</code>. Каждая из них преобразуется в <code>Element</code>, так что из него можно выбрать по имени <code>price</code> и <code>qty</code>. Приложение делает это при помощи метода <code>getElementsByTagName()</code>, и поскольку их всего по одному в каждом item, оно может прямо брать <code>item(0)</code>, первую составляющую результирующего <code>NodeList</code>. Этот первый элемент представляет элемент <code>price</code> (или <code>qty</code>). Из него извлекается значение текстового узла.
+</p>
+
+<p>Значение текстового узла имеет тип <code>String</code>, приложение затем преобразует его в <code>double</code>, чтобы сделать возможным вычисление.
+</p>
+
+<p>Когда приложение заканчивает проверку всех составляющих для каждого заказа, <code>total</code> типа <code>double</code> представляет итоговое значение. Затем <code>total</code> преобразуется в <code>String</code>, так что оно может использоваться как содержимое нового элемента, <code>&lt;total&gt;</code>, который в конечном счете присоединяется к <code>order</code>.
+</p>
+
+<div class="lang-java"><![CDATA[...
+  changeOrder(root, "status", "processing");
+  NodeList orders = root.getElementsByTagName(" order ");
+  for (int orderNum = 0; orderNum < orders.getLength(); orderNum++) {
+    Element thisOrder = (Element)orders.item(orderNum);
+    NodeList orderItems = thisOrder.getElementsByTagName("item");
+    double total = 0;
+    for (int itemNum = 0; itemNum < orderItems.getLength(); itemNum++) {
+      // Total up cost for each item and
+      // add to the order total
+      //Get this item as an Element
+      Element thisOrderItem = (Element)orderItems.item(itemNum);
+      //Get pricing information for this Item
+      String thisPrice =
+        thisOrderItem.getElementsByTagName("price").item(0)
+            .getFirstChild().getNodeValue();
+      double thisPriceDbl = new Double(thisPrice).doubleValue();
+      //Get quantity information for this Item
+      String thisQty =
+        thisOrderItem.getElementsByTagName("qty").item(0)
+            .getFirstChild().getNodeValue();
+      double thisQtyDbl = new Double(thisQty).doubleValue();
+      double thisItemTotal = thisPriceDbl*thisQtyDbl;
+      total = total + thisItemTotal;
+    }
+    String totalString = new Double(total).toString();
+  }
+...]]></div>
+
+<h3>Добавление узлов: добавление узлов в документ</h3>
+
+<p>Вы можете создать новый <code>Node</code> многими способами, и этот пример применяет несколько из них. Во-первых, объект <code>Document</code> может создавать новый текстовый узел со значением <code>totalString</code>. Новый <code>Node</code> теперь существует, но еще никуда не присоединен к <code>Document</code>. Новый элемент <code>total</code> создается аналогично, и он также поначалу свободный.
+</p>
+
+<p>Другой способ добавление узла - применение <code>appendChild()</code>, как показано здесь для нового элемента <code>total</code>.
+</p>
+
+<p>Наконец, приложение может использовать <code>insertBefore()</code> для добавления нового элемента <code>Document</code>, указывая новый <code>Node</code> и предшествующий <code>Node</code>.
+</p>
+
+<p>Прохождение через документ проверяет изменения.
+</p>
+
+<div class="lang-java"><![CDATA[
+  changeOrder(root, "status", "processing");
+  NodeList orders = root.getElementsByTagName("order");
+  for (int orderNum = 0; orderNum < orders.getLength(); orderNum++) {
+    String totalString = new Double(total).toString();
+    Node totalNode = doc.createTextNode(totalString);
+    Element totalElement = doc.createElement("total");
+    totalElement.appendChild(totalNode);
+    thisOrder.insertBefore(totalElement, thisOrder.getFirstChild());
+  }
+  stepThrough(root);
+]]></div>
+
+<h3>Удаление узла</h3>
+
+<p>Вместо того, чтобы заменять элемент, приложение может
+удалить его совсем. В данном примере приложение проверяет, имеется ли
+составляющая на складе. Если нет, оно удаляет составляющую из заказа
+вместо того, чтобы прибавлять ее к итогу.
+</p>
+
+<p>Перед добавлением стоимости составляющей к итогу приложение проверяет значение атрибута <code>instock</code>.
+Если оно <code>N</code>, то вместо добавления к итогу составляющая полностью удаляется.
+Чтобы это сделать, приложение применяет метод <code>removeChild()</code>, но сначала определяет предка этого <code>orderItem</code> при помощи <code>getParentNode()</code>.
+code&gt;Node удаляется из документа, но метод также возвращает его, так что, при желании, он может быть перемещен.
+</p>
+
+<div class="lang-java"><![CDATA[...
+    //Get this item as an Element
+    Element thisOrderItem = (Element)orderItems.item(itemNum);
+    if (thisOrderItem.getAttributeNode("instock")
+          .getNodeValue().equals("N")) {
+      Node deadNode =
+        thisOrderItem.getParentNode().removeChild(thisOrderItem);
+    } else {
+      //Get pricing information for this Item
+      String thisPrice =
+        thisOrderItem.getElementsByTagName("price").item(0)
+              .getFirstChild().getNodeValue();
+...
+      total = total + thisItemTotal;
+    }
+  }
+  String totalString = new Double(total).toString();
+...
+]]></div>
+
+<h3>Замена узла</h3>
+
+<p>Конечно, не имеет смысла удалять компоненту заказа, если она не выполнена. Вместо этого приложение заменяет ее компонентой <code>backordered</code>.
+</p>
+
+<p>Вместо <code>removeChild()</code> просто используйте <code>replaceChild()</code>.
+Заметьте, что в данном случае метод также возвращает старый узел, так
+что он может быть перенесен, если это необходимо, возможно, в новый <code>Document</code>, перечисляющий невыполненные компоненты.
+</p>
+
+<p>Заметьте, что поскольку никакое содержимое не было добавлено в элемент, этот элемент является пустым.
+Пустой элемент не имеет содержимого и может быть записан в сокращенном виде: &lt;backordered/&gt;.
+Косая черта (/) устраняет необходимость в закрывающем теге (&lt;/backordered&gt;).
+</p>
+
+<div class="lang-java"><![CDATA[...
+  if (thisOrderItem.getAttributeNode("instock")
+       .getNodeValue().equals("N")) {
+    Element backElement = doc.createElement("backordered");
+    Node deadNode = thisOrderItem.getParentNode()
+        .replaceChild(backElement, thisOrderItem);
+  } else {
+...
+]]></div>
+
+<h3>Создание и установка атрибутов</h3>
+
+<p>Конечно, что хорошего в элементе <code>backordered</code>,
+если не видно, какую компоненту он представляет? Одним из способов
+исправить недостаток информации является добавление атрибутов в
+элемент.
+</p>
+
+<p>Сначала приложение создает атрибут <code>itemid</code>.
+Затем оно определяет значение <code>itemid</code> из исходного элемента <code>item</code>, а затем устанавливает значение в сам атрибут.
+Наконец, оно добавляет элемент в документ, так же, как и раньше.
+</p>
+
+<div class="lang-java"><![CDATA[...
+  if (thisOrderItem.getAttributeNode("instock")
+         .getNodeValue().equals("N")) {
+    Element backElement = doc.createElement("backordered");
+    backElement.setAttributeNode(doc.createAttribute("itemid"));
+    String itemIdString =
+        thisOrderItem.getAttributeNode("itemid").getNodeValue();
+    backElement.setAttribute("itemid", itemIdString);
+    Node deadNode =
+        thisOrderItem.getParentNode().replaceChild(backElement, thisOrderItem);
+  } else {
+...
+]]></div>
+
+<p>Важно заметить, что <dfn>setAttribute()</dfn> создает узел атрибута, если атрибут с таким именем не существует,
+так что в этом случае приложение может совсем пропустить <dfn>createAttribute()</dfn>.
+</p>
+
+<h3>Удаление атрибута</h3>
+
+<p>Приложение может также удалить атрибут. Например,
+может быть нежелательным показывать на выходе информацию о кредите
+покупателя, так что приложение может временно удалить ее из документа.
+</p>
+
+<p>Удаление информации выполняется явным образом при помощи <code>removeAttribute()</code> для удаления данных.
+</p>
+
+<div class="lang-java"><![CDATA[...
+  Element thisOrder = (Element)orders.item(orderNum);
+  Element customer =
+    (Element)thisOrder.getElementsByTagName("customerid")
+        .item(0);
+  customer.removeAttribute("limit");
+  NodeList orderItems = thisOrder.getElementsByTagName("item");
+...
+]]></div>
+
+<p>Однако следующий шаг использует информацию о
+кредите, так что вам следует удалить последние изменения прежде, чем
+двигаться дальше.
+</p>
+
+<h2>Вывод документа</h2>
+
+<h3>Подготовка данных</h3>
+
+<p>Мы в нашем учебнике рассмотрели, как выбирать,
+работать и манипулировать с XML-данными. Для завершения цикла вы должны
+также уметь выводить XML.
+</p>
+
+<p>В случае этого учебника целевым выводом
+является файл, в котором просто перечисляются все заказы по мере того,
+как они поступают или отвергаются на основе кредита покупателя и <code>customerid</code>.
+</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<processedOrders>
+ <order>
+  <status>PROCESSED</status>
+  <customerid>2341</customerid>
+  <amount>874.00</amount>
+ </order>
+ <order>
+  <status>REJECTED</status>
+  <customerid>251222</customerid>
+  <amount>200.00</amount>
+ </order>
+</processedOrders>
+]]></div>
+
+<p>Сначала приложение создает объект <code>Document</code> для вывода. Для удобства тот же самый <code>DocumentBuilder</code>, который создавал исходный <code>Document</code>, может создавать и новый.
+</p>
+
+<div class="lang-java"><![CDATA[...
+  public static void main (String args[]) {
+    File docFile = new File("orders.xml");
+    Document doc = null;
+    Document newdoc = null;
+    try {
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      doc = db.parse(docFile);
+      newdoc = db.newDocument();
+    } catch (Exception e) {
+      System.out.print("Problem parsing the file: "+e.getMessage());
+    }
+...
+    thisOrder.insertBefore(totalElement, thisOrder.getFirstChild());
+  }
+  Element newRoot = newdoc.createElement("processedOrders");
+  NodeList processOrders = doc.getElementsByTagName("order");
+  for (int orderNum = 0;
+        orderNum < processOrders.getLength();
+        orderNum++) {
+    Element thisOrder = (Element)processOrders.item(orderNum);
+    Element customerid =
+      (Element)thisOrder.getElementsByTagName("customerid")
+        .item(0);
+    String limit = customerid.getAttributeNode("limit").getNodeValue();
+    String total = thisOrder.getElementsByTagName("total").item(0)
+        .getFirstChild().getNodeValue();
+    double limitDbl = new Double(limit).doubleValue();
+    double totalDbl = new Double(total).doubleValue();
+    Element newOrder = newdoc.createElement("order");
+    Element newStatus = newdoc.createElement("status");
+    if (totalDbl > limitDbl) {
+      newStatus.appendChild(newdoc.createTextNode("REJECTED"));
+    } else {
+      newStatus.appendChild(newdoc.createTextNode("PROCESSED"));
+    }
+    Element newCustomer = newdoc.createElement("customerid");
+    String oldCustomer = customerid.getFirstChild().getNodeValue();
+    newCustomer.appendChild(newdoc.createTextNode(oldCustomer));
+    Element newTotal = newdoc.createElement("total");
+    newTotal.appendChild(newdoc.createTextNode(total));
+    newOrder.appendChild(newStatus);
+    newOrder.appendChild(newCustomer);
+    newOrder.appendChild(newTotal);
+    newRoot.appendChild(newOrder);
+  }
+  newdoc.appendChild(newRoot);
+  System.out.print(newRoot.toString());
+...
+]]></div>
+
+<p>После обработки <code>orders.xml</code> приложение создает новый элемент, <code>processedOrders</code>,
+который в конечном счете станет корневым элементом нового документа.
+Затем оно проходит через каждый заказ. Для каждого заказа оно выделяет
+информацию <code>total</code> и <code>limit</code>.
+</p>
+
+<p>Далее приложение создает новые элементы для заказа: <code>order</code>, <code>status</code>, <code>customerid</code> и <code>amount</code>. Оно заполняет <code>status</code> на основе того, превышает ли итог кредит покупателя, и в соответствии с этим заполняет остальное.
+</p>
+
+<p>После того, как приложение создало элементы,
+оно должно собрать их вместе. Сначала оно добавляет состояние,
+информацию о покупателе и итог в новый элемент <code>order</code>. Затем оно добавляет новый <code>order</code> в элемент <code>newRoot</code>.
+</p>
+
+<p>Пока все это происходит, элемент <code>newRoot</code> на самом деле не присоединен к родительскому узлу. Когда приложение завершит обработку всех заказов, <code>newRoot</code> присоединяется к новому документу.
+</p>
+
+<p>Наконец, приложение выводит данные, преобразовывая <code>newRoot</code> в <code>String</code> и просто посылая его в <code>System.out</code>.
+</p>
+
+<h3>Создание XML-файла</h3>
+
+<p>Теперь нам ясно, как приложение должно создавать новую информацию и выводить ее в файл.
+</p>
+
+<p>Та же логика используется для данных, но вместо того, чтобы выводить на экран, приложение посылает их в файл.
+</p>
+
+<p>Важное обстоятельство, которое стоит здесь
+отметить, состоит в том, что поскольку XML-данные являются просто
+текстом, они могут быть форматированы любым способом. Например, вы
+можете создать разновидность <code>stepThroughAll()</code> которая
+будет создавать версию с отступами, красивую для печати. Только
+помните, что это будет создавать лишние узлы пропусков (текстовые).
+</p>
+
+<div class="lang-java"><![CDATA[...
+import java.io.FileWriter;
+...
+  try {
+    File newFile = new File("processedOrders.xml");
+    FileWriter newFileStream = new FileWriter(newFile);
+    newFileStream.write ("<?xml version=\"1.0\"?>");
+    newFileStream.write ("<!DOCTYPE
+        "+doc.getDoctype().getName()+" ");
+    if (doc.getDoctype().getSystemId() != null) {
+      newFileStream.write (" SYSTEM ");
+      newFileStream.write (doc.getDoctype().getSystemId());
+    }
+    if (doc.getDoctype().getPublicId() != null) {
+      newFileStream.write (" PUBLIC ");
+      newFileStream.write (doc.getDoctype().getPublicId());
+    }
+    newFileStream.write (">");
+    newFileStream.write (newRoot.toString());
+    newFileStream.close();
+  } catch (IOException e) {
+  System.out.println("Can't write new file.");
+}
+...
+]]></div>
+
+<h3>Тождественные преобразования</h3>
+
+<p>В простом <code>Document</code>, подобном тому, который рассматривается в нашем учебнике,
+легко предположить, что выводимый XML прост, но помните, что следует рассматривать многие факторы,
+которые могут привести к усложнению - редко встречающиеся, такие, как файлы, содержимое которых определяется DTD или схемой.
+В большинстве случаев лучше полагаться на приложение, которое уже принимает все такие возможности во внимание.
+</p>
+
+<p>Одним из способов, который разработчики часто выбирают для сериализации их объектов <code>Document</code> DOM состоит в создании <b>тождественного преобразования</b>.
+Это XSL Transformation, которая включает в себя таблицы стилей. Например:
+</p>
+
+<div class="lang-java"><![CDATA[...
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.FileOutputStream;
+...
+      newdoc.appendChild(newRoot);
+      try {
+        DOMSource source = new DOMSource(newdoc);
+        StreamResult result =
+          new StreamResult(new FileOutputStream("processed.xml"));
+        TransformerFactory transFactory = TransformerFactory.newInstance();
+        Transformer transformer = transFactory.newTransformer();
+        transformer.transform(source, result);
+      } catch (Exception e){
+      e.printStackTrace();
+    }
+  }
+}
+]]></div>
+
+<p>Здесь вы создаете источник и результат, но поскольку вы работаете с тождественным преобразованием, вы не создаете объект для представления таблицы стилей.
+Если бы это было настоящее преобразование, в создании <q>Transformer</q> должна была бы использоваться таблица стилей.
+Вместо этого <q>Transformer</q> просто принимает источник (Document) и посылает его в результат (файл <q>processed.xml</q>).
+</p>
+</div>
+
+
+<div>
+<h1>DOM и Javascript</h1>
+
+<p>Рассмотрим работу с DOM на примере JavaScript.
+Работу с DOM при программировании приложений можно разделить на следующие выжные этапы (при использовании парсера MSXML):
+</p>
+
+<ul>
+<li>Создание и настройка параметров экземпляра объекта XMLDOMDocument - XML документа.</li>
+<li>Обработка ошибок</li>
+<li>Работа с данными документа: элементами, атрибутами, содержимым.</li>
+</ul>
+
+<h3>Объект DOMDocument.</h3>
+
+<p>Как и любой ActiveX объект - объект <b>DOMDocument</b> создается при помощи оператора <b>new</b>:
+</p>
+
+<div class="lang-javascript"><![CDATA[var objDoc = new ActiveXObject("Msxml2.DOMDocument");]]></div>
+
+<p>Ниже перечисленны наиболее выжные свойства и методы этого объекта:</p>
+
+<table>
+<thead>
+<tr>
+<th>Свойство</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>async</td>
+<td><p><span>Указывает, будет ли загрузка документа выполняться асинхронно (асинхронная загрузка может быть прерванна). <b>true</b> - асинхронная, <b>false</b>-нет. </span></p></td>
+</tr>
+<tr>
+<td>documentElement</td>
+<td><p><span>Указывает на элемент верхнего уровня в иерархии - корень дерева элементов. </span></p></td>
+</tr>
+<tr>
+<td>resolveExternals</td>
+<td><p><span>Указывает, будет ли документ принимать внешние объявления (DTD, внешние сущности и т.п.). Может принимать 2 значения: <b>true</b> - принимает, <b>false</b> - не принимает. </span></p></td>
+</tr>
+<tr>
+<td>parseError</td>
+<td>содержит информацию о последней ошибке</td>
+</tr>
+<tr>
+<td>url</td>
+<td><p><span>Возвращает URL файла в виде, приведенном к каноническому. </span></p></td>
+</tr>
+<tr>
+<td>validateOnParse</td>
+<td><p><span>Указывает, будет ли документ проверяться на допустимость в процессе загрузки и анализа.
+Принимает 2 значения: <b>true</b> - проверка на допустимость осуществляется, <b>false</b> - нет. </span></p></td>
+</tr>
+</tbody>
+</table>
+
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>abort</td>
+<td>Прерывает асинхронную загрузку документа</td>
+</tr>
+<tr>
+<td>load</td>
+<td>Загружает XML документ из указанного файла:
+          <code>xmlDoc.load(&quot;news.xml&quot;)</code></td>
+</tr>
+<tr>
+<td>loadXML</td>
+<td>Загружает XML документ из переданной строки:
+    <code>xmlDoc.load(&quot;&lt;news&gt;&lt;item date='25.06.03'&gt;In the ...&lt;/item&gt;&lt;/news&gt;&quot;)</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>Итак, первый этап выглядит примерно так:
+</p>
+
+<div class="lang-javascript"><![CDATA[  var xmlDoc = new ActiveXObject("Msxml2.DOMDocument");
+  xmlDoc.async = false;
+  xmlDoc.resolveExternals = true; //принимать внешние определения
+  xmlDoc.validateOnParse = true; //проверять на допустимость
+
+  xmlDoc.load ("news.xml"); //загрузить файл
+]]></div>
+
+<p>В данном примере будет загружен XML документ с именем <q>books.xml</q>, он может принимать внешние определения и будет проверен на допустимость.
+</p>
+
+<h3>Обработка ошибок: IXMLDOMParseError</h3>
+
+<p>Ошибки, возникающие в процессе анализа XML данных можно обработать после загрузки XML данных (вызова метода <b>load</b> или <b>loadXML</b>).
+Если не установлен флажок <b>vlidateOnParse</b>, проверяются только синтаксические ошибки, допущенные при составлении документа,
+в противном случае - все ошибки, в том числе и нарушающие допустимость XML документа.
+Информация об ошибке предоставляется свойством <b>parseError</b>, имеющим тип <b>IXMLDOMParseError</b>:
+</p>
+
+<table>
+<tr>
+<th>Свойство</th>
+<th>Описание</th>
+</tr>
+<tr>
+<td>errorCode</td>
+<td>Код ошибки. В случае успеха равен 0.</td>
+</tr>
+<tr>
+<td>line</td>
+<td>Номер строки исходного текста XML документа, в которой находится ошибка.</td>
+</tr>
+<tr>
+<td>linepos</td>
+<td>Номер символа в строке исходного текста XML документа, в которой находится ошибка.</td>
+</tr>
+<tr>
+<td>reason</td>
+<td>Текст сообщения об ошибке</td>
+</tr>
+<tr>
+<td>srcText</td>
+<td>Возвращает полный исходный код строки, содержащей ошибку</td>
+</tr>
+<tr>
+<td>url</td>
+<td>URL файла, содержащего ошибку.</td>
+</tr>
+</table>
+
+<p>С учетом вышесказанного проведем обработку ошибки загрузки документа XML:
+</p>
+
+<div class="lang-javascript"><![CDATA[  var xmlDoc = new ActiveXObject ("Msxml2.DOMDocument");
+  xmlDoc.async = false;
+  xmlDoc.resolveExternals = true; //принимать внешние определения
+  xmlDoc.validateOnParse = true; //проверять на допустимость
+
+  xmlDoc.load ("news_err.xml");
+  var myErr = xmlDoc.parseError;
+  if (myErr.errorCode != 0) { //далее следует обработка ошибки!
+    alert("Ошибка: " + myErr.reason + "\nв файле " + myErr.url +
+          "\nСтрока: " + myErr.line + "\nСимвол: " + myErr.linepos +
+    "\nИсходный код: " + myErr.srcText);
+  } else {
+    alert ("Все нормально");
+  }
+]]></div>
+
+<h3>Элементы: IXMLDOMElement</h3>
+
+<p>Элементы являются наиболее важной составляющей XML документов.
+Они выстраиваются в иерархическую структуру, в кторой для каждого элемента можно определить родительский элемент (<b>parentNode</b>),
+дочерние элементы (<b>childNodes</b>), соседние элементы слева и справа (<b>previousSibling</b>, <b>nextSibling</b>) и много другой полезной информации.
+Краткий перечень основных свойств и методов приведен ниже:
+</p>
+
+<table>
+<tr>
+<th>Свойство</th>
+<th>Описание</th>
+</tr>
+<tr>
+<td>attributes</td>
+<td>Содержит список атрибутов данного узла (тип <b>IXMLDOMNamedNodeMap</b>) </td>
+</tr>
+<tr>
+<td>baseName</td>
+<td>Базовое имя узла: для узла &lt;<b>nsp:elt</b> ... &gt; вернет <b>elt</b></td>
+</tr>
+<tr>
+<td>childNodes</td>
+<td>Содержит список дочерних узлов (тип <b>IXMLDOMNodeList</b>) </td>
+</tr>
+<tr>
+<td>firstChild</td>
+<td>Первый дочерний элемент </td>
+</tr>
+<tr>
+<td>lastChild</td>
+<td>Последний дочерний элемент </td>
+</tr>
+<tr>
+<td>nextSibling</td>
+<td>Следующий соседний (правый) элемент </td>
+</tr>
+<tr>
+<td>previousSibling</td>
+<td>Предыдущий соседний (левый) элемент </td>
+</tr>
+<tr>
+<td>parent</td>
+<td>Родительский элемент </td>
+</tr>
+<tr>
+<td>nodeName</td>
+<td>Возвращает полное имя узла: для узла &lt;<b>nsp:elt</b> ... &gt; вернет <b>nsp:elt</b></td>
+</tr>
+<tr>
+<td>tagName</td>
+<td>Имя элемента </td>
+</tr>
+<tr>
+<td>prefix</td>
+<td>Префикс пространства имен: для узла &lt;<b>nsp:elt</b> ... &gt; вернет <b>nsp</b></td>
+</tr>
+<tr>
+<td>nodeType</td>
+<td>Возвращает тип узла:
+          <p>§ 1 - элемент</p>
+          <p>§ 2 - атрибут</p>
+          <p>§ 3 - текст</p>
+          <p>§ 4 - секция CDATA</p>
+          <p>§ 5 - ссылка на сущность</p>
+          <p>§ 6 - сущность</p>
+          <p>§ 7 - инструкция по обработке XML документа</p>
+          <p>§ 8 - комментарий</p>
+          <p>§ 9 - документ (корень)</p>
+          <p>§ 10 - DTD</p>
+          <p>§ 11 - фрагмент документа</p>
+          <p>§ 12 - нотация</p></td>
+</tr>
+<tr>
+<td>nodeValue</td>
+<td>Текст, ассоциированный с узлом </td>
+</tr>
+<tr>
+<td>text</td>
+<td>Текст, ассоциированный с узлом, и дочерними узлами </td>
+</tr>
+<tr>
+<td>xml</td>
+<td>Текст и разметка XML - содержимое данного элемента со всеми его дочерними элементами </td>
+</tr>
+</table>
+
+<table>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+<tr>
+<td>appendChild(newElem)</td>
+<td>Присоединить дочерний узел: 
+          <div>
+            <pre><b><span>var</span></b><span style='font-family:Courier'> newElem = xmlDoc.createElement (&quot;name&quot;)</span></pre>
+            <pre><span style='font-family:Courier'>elem.appendChild (newElem);</span></pre>
+          </div></td>
+</tr>
+<tr>
+<td>cloneNode (flag)</td>
+<td>Создает копию текущего узла. Принимает логический аргумент, определяющий, клонируются ли его дочерние элементы 
+          <div>
+            <pre><span>MyNewNode = currNode.cloneNode(<b>true</b>);</span></pre>
+            <pre><span>root.appendChild(MyNewNode);</span></pre>
+          </div></td>
+</tr>
+<tr>
+<td>getAttribute(name)</td>
+<td>Возвращает значение атрибута с указанным именем </td>
+</tr>
+<tr>
+<td>getAttributeNode(name)</td>
+<td>Возвращает узел атрибута с указанным именем </td>
+</tr>
+<tr>
+<td>hasChildNodes()</td>
+<td>Возвращает <b>true</b>, если у данного элемента есть дочерние элементы, и <b>false</b>-в противном случае. </td>
+</tr>
+<tr>
+<td>removeChild(elem)</td>
+<td>Удаляет дочерний элемент 
+          <div>
+            <pre><span>elem = xmlDoc.documnetElement.firstChild;</span></pre>
+            <pre><span>xmlDoc.documnetElement.removeChild (elem);</span></pre>
+          </div></td>
+</tr>
+<tr>
+<td>replaceChild(elem, newElem)</td>
+<td>Заменяет дочерний элемент 
+          <div>
+            <pre><span>elem = xmlDoc.documnetElement.firstChild;</span></pre>
+            <pre><span>xmlDoc.documnetElement.replaceChild (elem, xmlDoc.documnetElement.lastChild);</span></pre>
+          </div></td>
+</tr>
+<tr>
+<td>setAttribute(name, val)</td>
+<td>Устанавливает значение атрибута с именем <b>name</b></td>
+</tr>
+</table>
+
+<h3>IXMLDOMNamedNodeMap</h3>
+
+<table width="90%">
+<tr>
+<th>Свойство</th>
+<th>Описание</th>
+</tr>
+<tr>
+<td>length</td>
+<td>Количество элементов в коллекции </td>
+</tr>
+</table>
+
+<table>
+<tr>
+<th>Meтод</th>
+<th>Описание</th>
+</tr>
+<tr>
+<td>getNamedItem(name)</td>
+<td>Возвращает элемент коллекции (узел) с указанным именем 
+          <div>
+            <pre><span>nodeId = someNode.attributes.getNamedItem(<span>&quot;id&quot;</span>);</span></pre>
+            <pre><span>alert(nodeId.value);</span></pre>
+          </div></td>
+</tr>
+<tr>
+<td>item (i)</td>
+<td>Возвращает элемент коллекции (узел) с индексом <b>i</b>
+          <div>
+            <pre><b><span>for</span></b><span> (<b>var</b> i=0; i&lt;someNode.attributes.length; i++) {</span></pre>
+            <pre><span>    <b>var</b> attr=someNode.attributes.item(i);</span></pre>
+            <pre><span>}</span></pre>
+          </div></td>
+</tr>
+</table>
+
+<h3><span style='font-family:Verdana'>IXMLDOMNodeList</span></h3>
+
+<table>
+      <tr>
+        <th>Свойство</th>
+        <th>Описание</th>
+      </tr>
+      <tr>
+        <td>length</td>
+        <td>Количество элементов в коллекции</td>
+      </tr>
+</table>
+
+<table>
+      <tr>
+        <th>Meтод</th>
+        <th>Описание</th>
+      </tr>
+      <tr>
+        <td>item (i)</td>
+        <td>Возвращает элемент коллекции (узел) с индексом <b>i</b>
+            <pre><b><span>for</span></b><span> (<b>var</b> i=0; i&lt;someNode.attributes.length; i++) {</span></pre>
+            <pre><span>    <b>var</b> attr=someNode.attributes.item(i);</span></pre>
+            <pre><span>}</span></pre>
+          </td>
+      </tr>
+      <tr>
+        <td>nextNode()</td>
+        <td>Возвращает следующий узел коллекции 
+            <pre><b><span>for</span></b><span> (<b>var</b> i=0; i&lt;someNode.childNodes.length-1; i++) {</span></pre>
+            <pre><span>    </span><b><span>var</span></b><span> next=someNode.childNodes.nextNode(i);</span></pre>
+            <pre><span>}</span></pre>
+          </td>
+      </tr>
+      <tr>
+        <td>reset()</td>
+        <td>Сброс счетчика</td>
+      </tr>
+</table>
+
+</div>
+
+<h2>Задание на лабораторную работу</h2>
+
+<p>Необходимо реализовать скрипт  для вывода XML данных из файла,
+созданного в первой лабораторной работе и дополненого данными,
+в виде таблицы с произвольным форматированием (в файл в формате html).
+</p>
+
+<h3>Практический пример: вывод дерева XML</h3>
+
+<div class="lang-javascript"><![CDATA[
+function parse (node) {
+    if (node.nodeType==1) {
+      document.write ("<ul>"); //сдвигаем дочерние элементы
+      //вывод стартового тэга
+      document.write ("<" + node.tagName + "</span>");
+      //выводим атрибуты
+      for (var i=0; i < node.attributes.length; i++)
+        document.write(" <span class='attr'>" +
+            node.attributes.item(i).nodeName +
+            "</span>=<span class='val'>\""+
+            node.attributes.item(i).nodeValue+"\"</span>");
+
+        //тэги завершаются иначе у элементов с содержимым
+        if (node.hasChildNodes())
+          document.write("<span class='tag'>&amp;gt;</span>");
+        else  //... и без содержимого
+          document.write("<span class='tag'> /&amp;gt;</span>");
+
+        // перебираем дочерние элементы
+        for (var i=0; i < node.childNodes.length; i++)
+          parse (node.childNodes.item(i)); 
+        //если были дочерние элементы, выводим заверш. тэг
+        if (node.hasChildNodes())
+            document.write("<span class='tag'></" + node.tagName + "></span>");
+            document.write("</ul>");
+        } else if  (node.nodeType==3) // текстовые узлы
+          document.write ("<em>" + node.nodeValue + "</em>");
+        // узлы других типов не обрабатываем:
+        // (комментарии, ссылки на сущности и т.п.)
+        else return;
+  }
+
+  var xmlDoc = new ActiveXObject ("Msxml2.DOMDocument.4.0");
+  xmlDoc.async =false;
+  xmlDoc.validateOnParse = false;
+  xmlDoc.resolveExternals = false;
+
+  var xmlFile = prompt("Input path to an XML file: ", "books.xml")
+  xmlDoc.load(xmlFile);
+  if (xmlDoc.parseError.errorCode != 0) {
+    var myErr = xmlDoc.parseError;
+    alert("Error: " + myErr.reason + "\nLine: "+myErr.line+
+          "\nPos: " + myErr.linepos + "\nSource code: "+myErr.srcText);
+  } else {
+    var root = xmlDoc.documentElement;
+    parse (root);  //начинаем разбор с корневого элемента
+  }
+]]></div>
+
+<p>Для обработки дерева в примере используется функция parse. Она вызывает рекурсивно сама себя.
+Это дает нам возможность обойти все дерево элементов, ввести их сатрибутами и текстом.
+</p>
+
+<p><a href="https://xerces.apache.org/xerces2-j/dom.html">https://xerces.apache.org/xerces2-j/dom.html</a>
+</p>
+
+</body>
+</html>
