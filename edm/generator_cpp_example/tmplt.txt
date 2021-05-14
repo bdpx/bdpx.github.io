@@ -1,0 +1,15 @@
+c:\bdp\module_control\cpp2\header.doc
+c:\bdp\module_control\cpp2\footer.doc
+40
+~
+5
+1
+c:\bdp\module_control\cpp2\q1_strings.doc
+1
+c:\bdp\module_control\cpp2\q2_files.doc
+1
+c:\bdp\module_control\cpp2\q3_func.doc
+1
+c:\bdp\module_control\cpp2\q4_classes.doc
+1
+c:\bdp\module_control\cpp2\q5_quest.doc
