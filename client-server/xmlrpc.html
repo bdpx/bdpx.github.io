@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="XML-RPC"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css">
+<title>XML-RPC: вызов процедур посредством XML</title>
+</head>
+<body>
+
+<h1><a name="_3_2"></a>Вызов удаленных процедур (RPC)</h1>
+
+<h4><a name="_3_2_1"></a>Концепция удаленного вызова процедур</h4>
+
+<p>Идея вызова удаленных процедур <dfn>(Remote Procedure Call - RPC)</dfn> состоит в расширении
+хорошо известного и понятного механизма передачи управления и данных внутри
+программы, выполняющейся на одной
+машине, на передачу управления и данных
+через сеть. Средства удаленного вызова
+процедур предназначены для облегчения
+организации распределенных вычислений.
+Наибольшая эффективность использования
+RPC достигается в тех приложениях, в
+которых существует интерактивная связь
+между удаленными компонентами с небольшим
+временем ответов и относительно малым
+количеством передаваемых данных. Такие
+приложения называются RPC-ориентированными.
+</p>
+<p>
+Характерными чертами вызова локальных
+процедур являются: 
+</p>
+<ul>
+<li><p>
+Асимметричность, то есть одна из
+взаимодействующих сторон является
+инициатором; 
+</p>
+<li><p>
+Синхронность, то есть выполнение
+вызывающей процедуры при останавливается
+с момента выдачи запроса и возобновляется
+только после возврата из вызываемой
+процедуры. 
+</p>
+</ul>
+<p>
+Реализация удаленных вызовов существенно
+сложнее реализации вызовов локальных
+процедур. Начнем с того, что поскольку
+вызывающая и вызываемая процедуры
+выполняются на разных машинах, то они
+имеют разные адресные пространства, и
+это создает проблемы при передаче
+параметров и результатов, особенно если
+машины не идентичны. Так как RPC не может
+рассчитывать на разделяемую память, то
+это означает, что параметры RPC не должны
+содержать указателей на ячейки нестековой
+памяти и что значения параметров должны
+копироваться с одного компьютера на
+другой. Следующим отличием RPC от локального
+вызова является то, что он обязательно
+использует нижележащую систему связи,
+однако это не должно быть явно видно ни
+в определении процедур, ни в самих
+процедурах. Удаленность вносит
+дополнительные проблемы. Выполнение
+вызывающей программы и вызываемой
+локальной процедуры в одной машине
+реализуется в рамках единого процесса.
+Но в реализации RPC участвуют как минимум
+два процесса - по одному в каждой машине.
+В случае, если один из них аварийно
+завершится, могут возникнуть следующие
+ситуации: при аварии вызывающей процедуры
+удаленно вызванные процедуры станут
+&quot;осиротевшими&quot;, а при аварийном
+завершении удаленных процедур станут
+&quot;обездоленными родителями&quot;
+вызывающие процедуры, которые будут
+безрезультатно ожидать ответа от
+удаленных процедур. 
+</p>
+<p>
+Кроме того, существует ряд проблем,
+связанных с неоднородностью языков
+программирования и операционных сред:
+структуры данных и структуры вызова
+процедур, поддерживаемые в каком-либо
+одном языке программирования, не
+поддерживаются точно так же во всех
+других языках. 
+</p>
+<p>
+Эти и некоторые другие проблемы решает
+широко распространенная технология
+RPC, лежащая в основе многих распределенных
+операционных систем. 
+</p>
+<h4><a name="_3_2_2"></a>Базовые операции RPC</h4>
+<p>
+Чтобы понять работу RPC, рассмотрим
+вначале выполнение вызова локальной
+процедуры в обычной машине, работающей
+автономно. Пусть это, например, будет
+системный вызов 
+</p>
+<p>count=read(fd,buf,nbytes);</p>
+<p>
+где fd
+- целое число, <br>buf
+- массив символов, <br>nbytes
+- целое число. 
+</p>
+<p>
+Чтобы осуществить вызов, вызывающая
+процедура заталкивает параметры в стек
+в обратном порядке (рисунок 3.1). После
+того, как вызов read выполнен, он помещает
+возвращаемое значение в регистр,
+перемещает адрес возврата и возвращает
+управление вызывающей процедуре, которая
+выбирает параметры из стека, возвращая
+его в исходное состояние. Заметим, что
+в языке С параметры могут вызываться
+или по ссылке (by name), или по значению (by
+value). По отношению к вызываемой процедуре
+параметры-значения являются
+инициализируемыми локальными переменными.
+Вызываемая процедура может изменить
+их, и это не повлияет на значение
+оригиналов этих переменных в вызывающей
+процедуре. 
+</p>
+<p>
+Если в вызываемую процедуру передается
+указатель на переменную, то изменение
+значения этой переменной вызываемой
+процедурой влечет изменение значения
+этой переменной и для вызывающей
+процедуры. Этот факт весьма существенен
+для RPC. 
+</p>
+<p>
+Существует также другой механизм
+передачи параметров, который не
+используется в языке С. Он называется
+call-by-copy/restore и состоит в необходимости
+копирования вызывающей программой
+переменных в стек в виде значений, а
+затем копирования назад после выполнения
+вызова поверх оригинальных значений
+вызывающей процедуры. 
+</p>
+<p>
+Решение о том, какой механизм передачи
+параметров использовать, принимается
+разработчиками языка. Иногда это зависит
+от типа передаваемых данных. В языке С,
+например, целые и другие скалярные
+данные всегда передаются по значению,
+а массивы - по ссылке. 
+</p>
+<p align="center">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAY0AAAEOAQMAAABPTdnkAAAABlBMVEUAAAD///+l2Z/dAAAFLElEQVR4nO3aTUwjVRwA8JY20BhSposmmHRtCyPEj2hhN5GsxOErsQ+JJN48CbgJJ43ZPejqYUrXQNWN6IAEslouysmTVw7A0phdl5WDiReyWXBZGiMEyhJadkrHaef7DdD3x0gKzONQePx////7GF6npTYB2tK2oiFLNqU5SMmG+h1/VKJVLZO6Nw3D2I9oP6cMD3KARUQyw4LJGrwKTpSqKlliTCTe+ZGDCg4pREmhkh3WRLiXLvVx1+pApOlST+TZMpXIVTXSW9toj1a9qZGfuXdfvMwhRiVyVY2gZ364cKdpWCNj7Z2ldooa1IhUVUeeOx+cLb9+8FYqVVXyJ3r5uwZETxxMlKoqma+uddiirrYTcFkeC8mW+P+iopFSD6AKzSEPzXXRMsk4W+IBj7O8RiGGnDI514KcVJtfJllEc9WIjiG1ij6nTLa6UBOHlCs5G6IjnMs/0KIRXU5pLtXUUjAcKaHUKisx7pqYVSO6nPKKPTasWKY9MNNjdzoD6lz0OWWyjC1yAl8xXU6ZCBiZw8nyvoRnwbufhhMBu2DEqkayN60nEWePx+MzkjROMoye3H2rQfy7BQ1sobM+EtIRuapGZkuC0eiQntxDxipyVY08+mlcPC305PO43TAXuapGEpNVs7TvsBWTq2pk9Ue8Ck7kqhq51WvD5oITghUrfrI1SEjC7mAZFQ7P8cLaIiG5Q4+fux39IsEL61M5YvN2uwN2u3jy77bliZZTR4af6gj18cJGnnCo4flvPZUL4nPRB3mi5dQRrqMjd4CkBiVyofbpkW9y5L5C5JwKibqDg/b+sPiMw0/LhB4ZyR1KKZXIOdUVY4QJaXaLeUJ5e9wOh02cCz+XJ1pOhWR9QoVEbrI5kmXFJPnYvQfSiqk5zfsyyeRIhhGT5GPXJaLlNBN89+9NH7Avak8SJ3/4ChE74TWm3ReLrcJAHh9AdFX6sVtr6Vb60FvrXePAtsWqhaoI2FwchQeGE4K54ESwiPSQYcEky/L/P0m/UdXvZUEkE+v8BYHJlXLYwDKxt698CquS/jqWdEG38okSQE524UQ4HcR6vX+qSFL8ApJd4RGcJKAk3dsGrtLQV5zkyScOKNECLGIdSmeNxFkwGYWTGJy44IQrVuJiwEQNsIh1KJ0lMnEsZAhOOm0Ph9z1rsaZr4iJm0OvjoyPjL7zPinZWeVamBvDN8auXgeQLkaswl2tISXbzbZlcS7ljQHiKqm9h7mHDGj38+9zy+9RExJ9wMkm1qF0esimD0x45lhIfaXXFi+vgRD6y9/HV2IIRIbcY90DLQDyDz3aMU5zXQCy6qm0h9udgaLb/TNOZtq9rR6q+RZDTlY4VE1zaGUCQCKhF/wR12UfgMTQ33UcogFzibd6SymquRVQJfffFTWAkGQYMNEHAEkSTnaPQrYGicimPd7e7aLmIo3LwtoiEUmKF8vF31Di9igS1qdISejir6G++SokbBATtL2K6ua3kJAim0vSHnf6P6TaBqr8Aj9NRFIJIbXxCpsPWCQkuX/0fc/kA26yZEQXMMmAidQgZAFM0hWERLtTEht0LsRV/tNciu1MtohFLGKRfMM/n0xAjI3o1StOTJ9PLtSIPgWdhpMt1kiSeEAa7zCRlcMDThvBF5mAYAlIFhknBQIsYpETRKbNv9jAO9RzVyIPTCLzGt6jHtAHET5l6jGQXdMohPRneM95A9kxE34K68jeN5A0CdmDVzkCwQb2nolkPsZ7XjeQfRZZKLDIR9l9UCte8i9DP9AXR5GVzgAAAABJRU5ErkJggg==" name="Image1" align="bottom" width="397" height="270" border="0"></p>
+<p align="center">
+<i>Рис. 3.1. а) Стек до выполнения вызова read; <br>б) Стек во время выполнения
+процедуры; <br>в) Стек после возврата в вызывающую программу</i></p>
+
+<p>Идея, положенная в основу RPC, состоит в том, чтобы сделать вызов удаленной процедуры выглядящим по возможности также, как и вызов локальной процедуры.
+Другими словами - сделать RPC прозрачным: вызывающей процедуре не требуется знать, что вызываемая процедура находится на другой машине, и наоборот.</p>
+
+<p>RPC достигает прозрачности следующим
+путем. Когда вызываемая процедура
+действительно является удаленной, в
+библиотеку помещается вместо локальной
+процедуры другая версия процедуры,
+называемая клиентским стабом (stub -
+заглушка). Подобно оригинальной процедуре,
+стаб вызывается с использованием
+вызывающей последовательности (как на
+рисунке 3.1), так же происходит прерывание
+при обращении к ядру. Только в отличие
+от оригинальной процедуры он не помещает
+параметры в регистры и не запрашивает
+у ядра данные, вместо этого он формирует
+сообщение для отправки ядру удаленной
+машины. 
+</p>
+<h4><a name="_3_2_3"></a>Этапы выполнения RPC</h4>
+<p>
+Взаимодействие программных компонентов
+при выполнении удаленного вызова
+процедуры иллюстрируется рисунком 3.2.
+После того, как клиентский стаб был
+вызван программой-клиентом, его первой
+задачей является заполнение буфера
+отправляемым сообщением. В некоторых
+системах клиентский стаб имеет
+единственный буфер фиксированной длины,
+заполняемый каждый раз с самого начала
+при поступлении каждого нового запроса.
+В других системах буфер сообщения
+представляет собой пул буферов для
+отдельных полей сообщения, причем
+некоторые из этих буферов уже заполнены.
+Этот метод особенно подходит для тех
+случаев, когда пакет имеет формат,
+состоящий из большого числа полей, но
+значения многих из этих полей не меняются
+от вызова к вызову. 
+</p>
+<p>
+Затем параметры должны быть преобразованы
+в соответствующий формат и вставлены
+в буфер сообщения. К этому моменту
+сообщение готово к передаче, поэтому
+выполняется прерывание по вызову ядра.
+</p>
+<p align="center">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUQAAADxCAMAAACERD6GAAADAFBMVEUAAAABAQECAgIDAwMEBAQFBQUGBgYHBwcICAgJCQkKCgoLCwsMDAwNDQ0ODg4PDw8QEBARERESEhITExMUFBQVFRUWFhYXFxcYGBgZGRkaGhobGxscHBwdHR0eHh4fHx8gICAhISEiIiIjIyMkJCQlJSUmJiYnJycoKCgpKSkqKiorKyssLCwtLS0uLi4vLy8wMDAxMTEyMjIzMzM0NDQ1NTU2NjY3Nzc4ODg5OTk6Ojo7Ozs8PDw9PT0+Pj4/Pz9AQEBBQUFCQkJDQ0NERERFRUVGRkZHR0dISEhJSUlKSkpLS0tMTExNTU1OTk5PT09QUFBRUVFSUlJTU1NUVFRVVVVWVlZXV1dYWFhZWVlaWlpbW1tcXFxdXV1eXl5fX19gYGBhYWFiYmJjY2NkZGRlZWVmZmZnZ2doaGhpaWlqampra2tsbGxtbW1ubm5vb29wcHBxcXFycnJzc3N0dHR1dXV2dnZ3d3d4eHh5eXl6enp7e3t8fHx9fX1+fn5/f3+AgICBgYGCgoKDg4OEhISFhYWGhoaHh4eIiIiJiYmKioqLi4uMjIyNjY2Ojo6Pj4+QkJCRkZGSkpKTk5OUlJSVlZWWlpaXl5eYmJiZmZmampqbm5ucnJydnZ2enp6fn5+goKChoaGioqKjo6OkpKSlpaWmpqanp6eoqKipqamqqqqrq6usrKytra2urq6vr6+wsLCxsbGysrKzs7O0tLS1tbW2tra3t7e4uLi5ubm6urq7u7u8vLy9vb2+vr6/v7/AwMDBwcHCwsLDw8PExMTFxcXGxsbHx8fIyMjJycnKysrLy8vMzMzNzc3Ozs7Pz8/Q0NDR0dHS0tLT09PU1NTV1dXW1tbX19fY2NjZ2dna2trb29vc3Nzd3d3e3t7f39/g4ODh4eHi4uLj4+Pk5OTl5eXm5ubn5+fo6Ojp6enq6urr6+vs7Ozt7e3u7u7v7+/w8PDx8fHy8vLz8/P09PT19fX29vb39/f4+Pj5+fn6+vr7+/v8/Pz9/f3+/v7////isF19AAALaElEQVR4nO2cabrkKgiG2f8Sayv+ubdPYgRHxC9DVeA5XZlU4A0SzdAUXJaF7jbgF8QhAsQhAmQAkYj+/3eNKafInwOnKxke/2aEf8afHwSjSPzyDk/hCgcU3flv8Xc+6ViluKRYLsTDFNHHOnuHohvSQtTIjCWS2wjjh5FI8fdoPP4cGvZ2SKov6twQ05FStDe3H2T8JESiyhmLRWLh4o+OIxfLpjFaGI3Nt5eN7zuWNMhTw7f3gnmhJwRiiLmo0ZdQxvcPxvP297etsEyx94IQWJak+EtpMx25XJjRrA+lbYzxNzh2j+SOIh1/C8Q8kqDd4i0QTxWHCBCHCBCHCBCHCBCHCBCHCBCHCBCHCJA0WbxTVhx4gjwhFpcgwqywm+AQ18UhAsQhAsQhAsQhAsQhAsQhAsQhAsQhAsQCcZvoQK24qS5ITJEIf5vBISKsuKkuSGwQKb0ZkdaDvZe/EmI4Xk+JL+uk91ZMVtiqWeriE/oixPRGTtxhtcJYz1IXnotWI5G+LxKfAjHlQfrCnAhP6G8cbMMT+pshwhL6myHCEvoLIeIT+gshniEOESDmIU4c+bMBQ2D9JIjOMuoqPw4x0eI70x8FsS6W8urX1bLiwUJdkPQgMnoSZAsisS9G2IFxtP8sxKIHph3tSEyhJw88ByI+F7UhViseX/7EL2SYHVFd1B7ksefkRHguakFs+px16ty6wMayGu2tpmYEBdGcixoQe7VISLvVEBT9QKMQXReei+oQlV1P00+Vcm1OBOeiKsRhldyodZDXX52BuagGcRy8ZRurGC+H2LN4NhdVICqqVq9ESxivj0So5BBVJtWHPys35Mw1vxdia2ipGlSp27ugLkgyiGtjkuo8ezQcmlE7W5crp1wWdBZquBUTubTVHLPub+NzSMfyEyD2lKNZCogzV/VGa4dZwgXhjLo1uyVN5XWDlwcXRoijUKw6sbuibsxqSFt5lRcDaRx0giGGfU7QZlijiIXYVV47h+E4+baY5BDnGuiUrnemTrdCQhwpb1AMC/PYMyDSZ+RH7ggQ4lB1LTUelUuKGrAM4qwnrfIKN3KKOIgq5c1gZNcZecnpX4DwEHVuSD9QEIddeUQxDDp1fT8cotYN4QcIolp3PzH21VUv79GKeUeqIzSTHxiIE7pbEDWXlRIzGKLRj+sh1imqZ735xYfdjzSbn3bZ/IBAnNK9OuYXGFcgVm7PGv1AQJzUXVKcHCGy4lCIZj8AEKd156OshXRG6TmXYcRuGaNdAlHewim3C4pLMcQhxuc0hmYqfqg8MV/UChukpv0f326fQrMBaSgOg1gAUngCg1gwLEzpUrQasCuvQEwTn8BfVEk76rppYHj9Ft+SD8yPiqbtvuy/6K/2ZsSFrQ3xD2RaCZT/ZG2E0g21JyCIVFX9ob075J0ig7igftOug0iy3JEMeHMNiANPKG/H5kZN9Z5RaARxXftBK/QjkXHO29hX6xBHnpwB8VBF+995EPdhTYJI8R0VmRPlbjkG6kBUenIKxM+WOejIIq2HLnsLK09aKItEYVdnu3qkwkfjyTkQlZInMaP+GsSJc9KFOOeHVciu+5M6od2IViTOeRBXVx1ZMAEFsTG4o5TUjhJcv0NUDO7Y8hjjcYowiFY/ng6Rmm8hJwMc4jASj+gjXsIh5roHg7v4ZD8EVoKSASXElEBlaq0Opn4lJ1b8YdspNCum1i8sYqosUmr5Kn0F4jYg3OWT5s0ftus0iPugNE7UKdse6e4N7lpvITcgbjviQTqCu+JtLRLpmKBsDPmcpZy31E/vhBBTnhQLnekvmzMtKw+aSDxCL+bWmgf7aoqGg+SfD8QjIUbLaRCP8Pt8ZFDu24XuUyDKbJo24mrpwb5ai8RPfC+H5Dz6VIhMIUkDaroXKe6XbczVmeVESinwkzbianZfEQrxUMCn7Gy7phsH0diQyAIfk2Ag1u8h9bY5xAX1+9UGBdFGcT0t1SHmd4zad5CW9O/KfxSiXveS/kdABGSl2MQKRKsBKR+gIC74cQvE7lRlRvUaxHy8Y/YDAHH1XZx5E9js+VfexZnWXhg/aYQYWgMh3vpW2KT2ikrza0g3vuSJfj8R8KasGqMs+EtvyiLe2VZhLCa/P/TO9oT2jsIhxrLAT309EJTfYAw/EGh/gVE99FvfsejUjxHW7uG30S5AbBbXBYOuLYMdQ/Xdriwe43HpmnDGt31jP/LwmdI8qNtX3+2pA1hNE875ynTSDyjEHsbtSUdprpnf3gAfaM1U7B/q+zHRmM2Q5mf/jJa2sypMgENkNqp7Exzijqjkl8mCXqHLBnHIcFsvImGytRVLApVXWiQ6pgj+v5Hk23Q8guu5a5dxq+X8AiwSotqb1tSzmu82fr2mT4GYkt9C6zoTcP9DU4OhZhj6RoiNC2J/99UQUwK5HKJGY/XGQyPT0CshjlVW++yaK5deWPBSQhxdvaoD/l75bNkrY5FnQlT4m83S+xq0jRrlqRAHhkVuupHrayG2urRl2vReiFWMVJlHKTRky14ZizwZYoYxv/kxoSFb9spY5NkQRe8tauk1ZMteGYs8HSJGQ7bslVlp36YZIg4RIA4RIA4RIA4RIBMQ94v0/mmQHDVSvNWQ1o5q2bLatNH6ft1Ms9F+jQkTkfiv/e1nX8/2EFs+EKLRfo0J0xCPe/1J534rbDvPca3lSqNls8xCnLVfY4IhEqNhlIyQZ/fRENM+nf0aE2YgUjxX/MwFllT2xCNSyoMgmuzXmDAXid3tfq0HQARqlQ1NXZ2zmrpq2bJXxiIzV2dxFMbQx4kIcYgAcYgAcYgAcYgAcYgAcYgAcYgAcYgAkXfVbpMlDx4gXx+JT5Cvh7ikGSIOESAOESAOESAOESAOESAOESAOESAOESAOESAOsV39bz6nK1nRoa+u0ZAte2VW2rdp7rerrFmDOFFdaQxf9sqstG/T3G/XISK6M7tJtO1plGx0Z111jS3ZsldmpX2b5n7LFH8pbdUKNj5LU1ZXmSKXvTIr7ds09xtegaivrrNFLHtlVtq3ae43LP8sEDXVdbaIZa/MSvs2ze3KW0I73kKezIkz1TXWZMtemZX2bZpVzY/G0r1v+xTVlVbwZa/MSvs2zUod/RgazVjWR92/AHFkgk/71sUhAsQhAsQhAsQhAkRAlP/JQ/rSLbBd8xqyZa+MRU6AuN86COwmAt8uMMhITJ8X0X4kzVms85bvg5gYCPfTX95kBvEYYP/t5yciWCcuXwnxCL8QZFDu212I8ixQbJOOxXsgxtUUiSFwPLyCzIkkZs1sR+BBOW/SwJVnQTx8DUHkxCMGcwx+dZ5qvN6UQ+y2XSS/alsOESAOESAOESAOESAOESAOESAOESAOESAOESAOESAOESA/8JXp8MgVEM/WkC3h7T9BTvItOZktr5PrNDtEoKbTFThEgAKHCFDgEAEKHCJAgUMEKHCIAAVCUTlAPWHI+uMQqVB8hhm/DbGi0yGqFFQgUvq8g+JvKN/pizv2KuxVFxK1FZpPkhshbp2a/25/xXtt/B2iYz2r5xALiCI64464GSOW4axelH4bYgVfEYlsW8QZ8TJvjkSRDfPMyLOefMlvryjeiX5vTtRWuV7zoqbTFfiMBaAAcx9+Ti5y0SEiffxeBQ+wwCF+gwaH+A0KHmCBQ/wGDQ7xGxQ8wAKH+A0a7hhkZ3K2iw4R4uPpGl4gDhEgl0Is+9Ylve10udKF+HzpHu0nyoVudO7gf7ncAJGMj5sDOx7ExfcoH665Grc8u05V9yEff8InHzcfx7OngLGhtHw5RBGdcQdRwkpU1KfsP5y5I0Ncf2HpRiLbFjHFN2PHjpEoovPnIdofN7PSPPIqb+TcMmR60PWxZ0p+7EFmh6dZ05Isvp42QH+YOd8p/wHeB8pS6OoR9wAAAABJRU5ErkJggg==" name="Image2" align="bottom" width="324" height="241" border="0"></p>
+<p align="center">
+<i>Рис. 3.2. Remote Procedure Call</i> 
+</p>
+<p>
+Когда ядро получает управление, оно
+переключает контексты, сохраняет
+регистры процессора и карту памяти
+(дескрипторы страниц), устанавливает
+новую карту памяти, которая будет
+использоваться для работы в режиме
+ядра. Поскольку контексты ядра и
+пользователя различаются, ядро должно
+точно скопировать сообщение в свое
+собственное адресное пространство,
+так, чтобы иметь к нему доступ, запомнить
+адрес назначения (а, возможно, и другие
+поля заголовка), а также оно должно
+передать его сетевому интерфейсу. На
+этом завершается работа на клиентской
+стороне. Включается таймер передачи, и
+ядро может либо выполнять циклический
+опрос наличия ответа, либо передать
+управление планировщику, который выберет
+какой-либо другой процесс на выполнение.
+В первом случае ускоряется выполнение
+запроса, но отсутствует мультипрограммирование.
+</p>
+<p>
+На стороне сервера поступающие биты
+помещаются принимающей аппаратурой
+либо во встроенный буфер, либо в
+оперативную память. Когда вся информация
+будет получена, генерируется прерывание.
+Обработчик прерывания проверяет
+правильность данных пакета и определяет,
+какому стабу следует их передать. Если
+ни один из стабов не ожидает этот пакет,
+обработчик должен либо поместить его
+в буфер, либо вообще отказаться от него.
+Если имеется ожидающий стаб, то сообщение
+копируется ему. Наконец, выполняется
+переключение контекстов, в результате
+чего восстанавливаются регистры и карта
+памяти, принимая те значения, которые
+они имели в момент, когда стаб сделал
+вызов receive. 
+</p>
+<p>
+Теперь начинает работу серверный стаб.
+Он распаковывает параметры и помещает
+их соответствующим образом в стек. Когда
+все готово, выполняется вызов сервера.
+После выполнения процедуры сервер
+передает результаты клиенту. Для этого
+выполняются все описанные выше этапы,
+только в обратном порядке. 
+</p>
+<p>
+Рисунок 3.3 показывает последовательность
+команд, которую необходимо выполнить
+для каждого RPC-вызова, а рисунок 3.4 - какая
+доля общего времени выполнения RPC
+тратится на выполнение каждого их
+описанных 14 этапов. Исследования были
+проведены на мультипроцессорной рабочей
+станции DEC Firefly, и, хотя наличие пяти
+процессоров обязательно повлияло на
+результаты измерений, приведенная на
+рисунке гистограмма дает общее
+представление о процессе выполнения RPC.
+</p>
+<p align="center">
+<img src="data:image/png;base64,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" name="Image3" align="bottom" width="450" height="296" border="0"></p>
+<p align="center">
+<i>Рис. 3.3. Этапы выполнения процедуры RPC</i> 
+</p>
+<p align="center">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAawAAAD7AQMAAAAM+jIUAAAABlBMVEUAAAD///+l2Z/dAAAELklEQVR4nO3bT0gcVxgA8BcaSG7Sm5dkDy2UHkpviTmEPeSQgPTQa6UEYqCEZNmEQEywcbwU2pJqIaUnwYP0pmkJ7EgiYSQhEQ+JeFFw1LGs6ME1s7q46zo78/V783bnz+7Oc+fVhq28WWTnffN+82be0/38ll0CIluetDd7HWLOl8Fja1q4b6D9DJyEz+w5yPvdVowwC7SnwA6MZhtg+t10M6SC7e8f/5z0mbU+8vX67LPPP0vQVvanrt3ry789Hq4exXZlfWR9RAEY6L6hBdhuz1d7E5nx393L0W+pBwtLC93p2mi0/c1CD2VLW0FWXPy2MDH2S8ZlS9tPygvzb5Zq14bt0tD80CKyB6quBNhbVd/qSfWk3DlT9dTehDqh1mYC28WMmlFx94enpwNTUvni18u5K590X6f35lzryhY//fiPpx3sIG3vPLrz6LZS7R213FZj26YzfwgrNLbL+Aix+j6Hbx+KlWcvzHbFZ3vjmXE1PjPPjJ15Ep9t30zdTMVn2c5s55rATFp06eOzAu3enG0Gzg2ghAejAckiWLKOfef11DWw7gYPYaBcZfl6dtJjL5Owfyl4iAZqjMTbqi+vu/zReiNGK2jce+uvuzfrf7VukknWTqy8c1aEFd+v8Nga6WjKnA19kMNMMJsy++C8ELNyd+tUK8yydBG2V5oSYX8P3+fNZBQD/nJLJplkkkl2jFm5wM3dUayY4+buKObkdBFmL4vl7pVcw/sKreRuXSx362K5e/PIczch/SJMAckkk0wyyY4zq3DKdQ5zOOU6h9kb0SmfxzjlOo9xynUui075jA0Q0sgsTrleZeA0sh1Ouc5hcOhySyaZZJJJJlmIVThVPoc5nCqfw2xOlc9jfpXPkm2FnGiFrXgpX3EP22C3wvwqPw6z/Co/Dtvxq/w4DPzllkwyyaJZnpwSYSV8SCZZuzFCPPZjqXWmOB67Zwqxc4YQm9cGRZjRK8RWdaGLfCHEKv0zQqPFWW7JJIvLpkmCJj1k0yTZlGGPRmaAwYJggNaUeT2ONXM/XxSfuW8htgXD1d2n6x+TYcCigf+ILWPQwCCyhy5btmigxjZZj9GjYPkETJ/CXcUhCRg8gfUiBj6iASAdsEaAxms9aIC4dWXcT6JWGW4V/DFqCZ2WtE0Do6GU/8FZzE2y9mCbLBEk2MIq7hP9CkuSHZoD5wHAOwXKWVzzpMfwH8xtAMcAmGO/CIYX0DEwCfAQAxrY2FpVPGaC++0LDeBPcL9QMewGKJvCk04CfVk1NLDw/C9CDOMOBtLgpqU+NmiSsT7GFLDwYqbqGR3tapBVMDAZYjjacwiyksucDo9hwEI2g3tpl62Cy/7yR8N72GKjGewu0x7DM5ppsNlNlfBpwB8NZ+AVm3nsiJNM/7JMFsBFmRmFfQx2KpAdBufiv17u2Owf+VKsDdVeje0AAAAASUVORK5CYII=" name="Image4" align="bottom" width="428" height="251" border="0"></p>
+<p align="center">
+<i>Рис. 3.4. Распределение времени между 14 этапами выполнения RPC</i> 
+</p>
+
+<p><i><b>1. Вызов стаба</b></i> 
+</p>
+<p><i><b>2. Подготовить буфер</b></i> 
+</p>
+<p><i><b>3. Упаковать параметры</b></i> 
+</p>
+<p><i><b>4. Заполнить поле заголовка</b></i> 
+</p>
+<p><i><b>5. Вычислить контрольную сумму в сообщении</b></i> 
+</p>
+<p><i><b>6. Прерывание к ядру</b></i> 
+</p>
+<p><i><b>7. Очередь пакета на выполнение</b></i>
+</p>
+<p><i><b>8. Передача сообщения контроллеру по шине QBUS</b></i> 
+</p>
+<p><i><b>9. Время передачи по сети Ethernet</b></i> 
+</p>
+<p><i><b>10. Получить пакет от контроллера</b></i>
+</p>
+<p><i><b>11. Процедура обработки прерывания</b></i>
+</p>
+<p><i><b>12. Вычисление контрольной суммы</b></i>
+</p>
+<p><i><b>13. Переключение контекста в пространство пользователя</b></i> 
+</p>
+<p><i><b>14. Выполнение серверного стаба</b></i>
+</p>
+
+<h4><a name="_3_2_4"></a>Динамическое связывание</h4>
+
+<p>Рассмотрим вопрос о том, как клиент задает месторасположение сервера.
+Одним из методов решения этой проблемы является непосредственное использование сетевого адреса сервера в клиентской программе.
+Недостаток такого подхода - его чрезвычайная негибкость: при перемещении сервера, или при увеличении числа
+серверов, или при изменении интерфейса во всех этих и многих других случаях необходимо перекомпилировать все программы,
+которые использовали жесткое задание адреса сервера.
+Для того, чтобы избежать всех этих проблем, в некоторых распределенных системах используется
+так называемое динамическое связывание.</p>
+
+<p>Начальным моментом для динамического
+связывания является формальное
+определение (спецификация) сервера.
+Спецификация содержит имя файл-сервера,
+номер версии и список процедур-услуг,
+предоставляемых данным сервером для
+клиентов (рисунок 3.5). Для каждой процедуры
+дается описание ее параметров с указанием
+того, является ли данный параметр входным
+или выходным относительно сервера.
+Некоторые параметры могут быть
+одновременно входными и выходными -
+например, некоторый массив, который
+посылается клиентом на сервер,
+модифицируется там, а затем возвращается
+обратно клиенту (операция copy/ restore). 
+</p>
+<p align="center">
+<i>Рис. 3.5. Спецификация сервера RPC</i> 
+</p>
+<p>
+Формальная спецификация сервера
+используется в качестве исходных данных
+для программы-генератора стабов, которая
+создает как клиентские, так и серверные
+стабы. Затем они помещаются в соответствующие
+библиотеки. Когда пользовательская
+(клиентская) программа вызывает любую
+процедуру, определенную в спецификации
+сервера, соответствующая стаб-процедура
+связывается с двоичным кодом программы.
+Аналогично, когда компилируется сервер,
+с ним связываются серверные стабы. 
+</p>
+<p>
+При запуске сервера самым первым его
+действием является передача своего
+серверного интерфейса специальной
+программе, называемой binder'ом. Этот
+процесс, известный как процесс регистрации
+сервера, включает передачу сервером
+своего имени, номера версии, уникального
+идентификатора и описателя местонахождения
+сервера. Описатель системно независим
+и может представлять собой IP, Ethernet, X.500
+или еще какой-либо адрес. Кроме того, он
+может содержать и другую информацию,
+например, относящуюся к аутентификации.
+</p>
+<p>
+Когда клиент вызывает одну из удаленных
+процедур первый раз, например, read,
+клиентский стаб видит, что он еще не
+подсоединен к серверу, и посылает
+сообщение binder-программе с просьбой об
+импорте интерфейса нужной версии нужного
+сервера. Если такой сервер существует,
+то binder передает описатель и уникальный
+идентификатор клиентскому стабу. 
+</p>
+<p>
+Клиентский стаб при посылке сообщения
+с запросом использует в качестве адреса
+описатель. В сообщении содержатся
+параметры и уникальный идентификатор,
+который ядро сервера использует для
+того, чтобы направить поступившее
+сообщение в нужный сервер в случае, если
+их несколько на этой машине. 
+</p>
+<p>
+Этот метод, заключающийся в импорте/экспорте
+интерфейсов, обладает высокой гибкостью.
+Например, может быть несколько серверов,
+поддерживающих один и тот же интерфейс,
+и клиенты распределяются по серверам
+случайным образом. В рамках этого метода
+становится возможным периодический
+опрос серверов, анализ их работоспособности
+и, в случае отказа, автоматическое
+отключение, что повышает общую
+отказоустойчивость системы. Этот метод
+может также поддерживать аутентификацию
+клиента. Например, сервер может определить,
+что он может быть использован только
+клиентами из определенного списка. 
+</p>
+<p>
+Однако у динамического связывания
+имеются недостатки, например, дополнительные
+накладные расходы (временные затраты)
+на экспорт и импорт интерфейсов. Величина
+этих затрат может быть значительна, так
+как многие клиентские процессы существуют
+короткое время, а при каждом старте
+процесса процедура импорта интерфейса
+должна быть снова выполнена. Кроме того,
+в больших распределенных системах может
+стать узким местом программа binder, а
+создание нескольких программ аналогичного
+назначения также увеличивает накладные
+расходы на создание и синхронизацию
+процессов. 
+</p>
+<h4><a name="_3_2_5"></a>Семантика
+RPC в случае отказов</h4>
+<p>
+В идеале RPC должен функционировать
+правильно и в случае отказов. Рассмотрим
+следующие классы отказов: 
+</p>
+<ol>
+<li><p>
+Клиент не может определить местонахождения
+сервера, например, в случае отказа
+нужного сервера, или из-за того, что
+программа клиента была скомпилирована
+давно и использовала старую версию
+интерфейса сервера. В этом случае в
+ответ на запрос клиента поступает
+сообщение, содержащее код ошибки. 
+</p>
+<li><p>
+Потерян запрос от клиента к серверу.
+Самое простое решение - через определенное
+время повторить запрос. 
+</p>
+<li><p>
+Потеряно ответное сообщение от сервера
+клиенту. Этот вариант сложнее предыдущего,
+так как некоторые процедуры не являются
+идемпотентными. Идемпотентной называется
+процедура, запрос на выполнение которой
+можно повторить несколько раз, и
+результат при этом не изменится. Примером
+такой процедуры может служить чтение
+файла. Но вот процедура снятия некоторой
+суммы с банковского счета не является
+идемпотентной, и в случае потери ответа
+повторный запрос может существенно
+изменить состояние счета клиента. Одним
+из возможных решений является приведение
+всех процедур к идемпотентному виду.
+Однако на практике это не всегда удается,
+поэтому может быть использован другой
+метод - последовательная нумерация
+всех запросов клиентским ядром. Ядро
+сервера запоминает номер самого
+последнего запроса от каждого из
+клиентов, и при получении каждого
+запроса выполняет анализ - является ли
+этот запрос первичным или повторным. 
+</p>
+<li><p>
+Сервер потерпел аварию после получения
+запроса. Здесь также важно свойство
+идемпотентности, но к сожалению не
+может быть применен подход с нумерацией
+запросов. В данном случае имеет значение,
+когда произошел отказ - до или после
+выполнения операции. Но клиентское
+ядро не может распознать эти ситуации,
+для него известно только то, что время
+ответа истекло. Существует три подхода
+к этой проблеме: 
+</p>
+</ol>
+<ul>
+<li><p>
+Ждать до тех пор, пока сервер не
+перезагрузится и пытаться выполнить
+операцию снова. Этот подход гарантирует,
+что RPC был выполнен до конца по крайней
+мере один раз, а возможно и более. 
+</p>
+<li><p>
+Сразу сообщить приложению об ошибке.
+Этот подход гарантирует, что RPC был
+выполнен не более одного раза. 
+</p>
+<li><p>
+Третий подход не гарантирует ничего.
+Когда сервер отказывает, клиенту не
+оказывается никакой поддержки. RPC может
+быть или не выполнен вообще, или выполнен
+много раз. Во всяком случае этот способ
+очень легко реализовать. 
+</p>
+</ul>
+<p>
+Ни один из этих подходов не является
+очень привлекательным. А идеальный
+вариант, который бы гарантировал ровно
+одно выполнение RPC, в общем случае не
+может быть реализован по принципиальным
+соображениям. Пусть, например, удаленной
+операцией является печать некоторого
+текста, которая включает загрузку буфера
+принтера и установку одного бита в
+некотором управляющем регистре принтера,
+в результате которой принтер стартует.
+Авария сервера может произойти как за
+микросекунду до, так и за микросекунду
+после установки управляющего бита.
+Момент сбоя целиком определяет процедуру
+восстановления, но клиент о моменте
+сбоя узнать не может. Короче говоря,
+возможность аварии сервера радикально
+меняет природу RPC и ясно отражает разницу
+между централизованной и распределенной
+системой. В первом случае крах сервера
+ведет к краху клиента, и восстановление
+невозможно. Во втором случае действия
+по восстановлению системы выполнить и
+возможно, и необходимо. 
+</p>
+<ol>
+<li><p>
+Клиент потерпел аварию после отсылки
+запроса. В этом случае выполняются
+вычисления результатов, которых никто
+не ожидает. Такие вычисления называют
+&quot;сиротами&quot;. Наличие сирот может
+вызвать различные проблемы:
+непроизводительные затраты процессорного
+времени, блокирование ресурсов, подмена
+ответа на текущий запрос ответом на
+запрос, который был выдан клиентской
+машиной еще до перезапуска системы. 
+</p>
+</ol>
+<p>
+Как поступать с сиротами? Рассмотрим 4
+возможных решения. 
+</p>
+<ul>
+<li><p>
+<i>Уничтожение.</i> До того, как клиентский
+стаб посылает RPC-сообщение, он делает
+отметку в журнале, оповещая о том, что
+он будет сейчас делать. Журнал хранится
+на диске или в другой памяти, устойчивой
+к сбоям. После аварии система
+перезагружается, журнал анализируется
+и сироты ликвидируются. К недостаткам
+такого подхода относятся, во-первых,
+повышенные затраты, связанные с записью
+о каждом RPC на диск, а, во-вторых, возможная
+неэффективность из-за появления сирот
+второго поколения, порожденных
+RPC-вызовами, выданными сиротами первого
+поколения. 
+</p>
+<li><p>
+<i>Перевоплощение</i>. В этом случае все
+проблемы решаются без использования
+записи на диск. Метод состоит в делении
+времени на последовательно пронумерованные
+периоды. Когда клиент перезагружается,
+он передает широковещательное сообщение
+всем машинам о начале нового периода.
+После приема этого сообщения все
+удаленные вычисления ликвидируются.
+Конечно, если сеть сегментированная,
+то некоторые сироты могут и уцелеть. 
+</p>
+<li><p>
+<i>Мягкое перевоплощение</i> аналогично
+предыдущему случаю, за исключением
+того, что отыскиваются и уничтожаются
+не все удаленные вычисления, а только
+вычисления перезагружающегося клиента.
+</p>
+<li><p>
+<i>Истечение срока</i>. Каждому запросу
+отводится стандартный отрезок времени
+Т, в течение которого он должен быть
+выполнен. Если запрос не выполняется
+за отведенное время, то выделяется
+дополнительный квант. Хотя это и требует
+дополнительной работы, но если после
+аварии клиента сервер ждет в течение
+интервала Т до перезагрузки клиента,
+то все сироты обязательно уничтожаются.
+</p>
+</ul>
+<p>
+На практике ни один из этих подходов не
+желателен, более того, уничтожение сирот
+может усугубить ситуацию. Например,
+пусть сирота заблокировал один или
+более файлов базы данных.
+Если сирота будет вдруг уничтожен, то эти блокировки останутся, кроме того уничтоженные сироты могут остаться стоять в различных
+системных очередях, в будущем они могут вызвать выполнение новых процессов и т.п.</p>
+
+<h1>XML-RPC: вызов процедур посредством XML</h1>
+<p>
+<b>RPC расшифровывается как Remote Procedure Call
+- удаленный вызов процедур с помощью
+XML. Как же работает XML-RPC и каковы его
+отличия от стандарта SOAP?</b></p>
+
+<h4>На сцене - XML-RPC</h4>
+
+<p>RPC - удаленный вызов процедур с помощью XML.
+Сама методика удаленного вызова процедуры известна давно и используется в таких технологиях, как DCOM, SOAP, CORBA.
+RPC предназначен для построения распределенных клиент-серверных приложений. Это дает
+возможность строить приложения, которые
+работают в гетерогенных сетях, например
+на компьютерах различных систем,
+производить удаленную обработку данных
+и управление удаленными приложениями.</p>
+<p>
+Приведем сильно упрощенный пример.
+Приложение, выполняя обработку некоторых
+данных на локальной машине, обращается
+к некоторой процедуре. Если ее реализация
+присутствует в программе, то процедура
+(функция) принимает параметры, выполняет
+действие и возвращает некоторые данные.
+Если это удаленный вызов, мы должны
+знать, где будет исполняться наша
+процедура. Запрос на выполнение процедуры
+вместе с параметрами записывается в
+виде XML-документа и посредством HTTP
+передается по сети на другой компьютер,
+где из XML-документа извлекается имя
+процедуры, параметры и прочая нужная
+информация. После завершения работы
+процедуры формируется ответ (например,
+возвращаемые данные) - и он передается
+компьютеру, пославшему запрос. Заметим,
+что для прикладной программы все действия
+совершенно прозрачны.</p>
+<p>
+По этому принципу функционируют все
+системы, и различия в реализации и
+процедуре обмена не оказывают существенного
+влияния на его суть.</p>
+<p>
+Хорошо, предположим, у нас есть возможность
+удаленно вызывать процедуры и функции
+- чего же нам еще? А вот чего. Формат
+обмена данными при классической модели
+RPC (DCOM, CORBA) остается бинарным - а значит,
+работать с ним сложнее, он не слишком
+подходит, если надо организовать работу
+распределенной системы, где между
+отдельными участками сети стоят
+firewall/прокси-серверы. Технология DCOM,
+например, реализована для Windows-систем,
+CORBA функционирует на разных платформах,
+но наиболее полноценна ее реализация
+на J2EE. Значит, всегда найдется (и
+действительно находится) такая
+конфигурация сети/платформ, чтобы для
+реализации распределенной системы в
+ней ни одна технология не подходила.
+Так что же делать?</p>
+<p>
+Задавшись этим вопросом, компания
+<u><a href="http://www.xmlrpc.com/">UserLand
+Software Inc.</a></u> создала технологию
+XML-RPC. Основным транспортом в ней является
+протокол HTTP; формат данных - XML. Это
+снимает ограничения, налагаемые как на
+конфигурацию сети, так и на маршрут
+следования пакетов,- вызовы XML-RPC
+представляют собой простой тип данных
+text/xml и свободно проходят сквозь шлюзы
+везде, где допускается ретрансляция
+http-трафика.</p>
+<p>
+У новой технологии есть и другие
+преимущества. Применение XML для описания
+данных позволило упростить программные
+средства создания распределенных
+приложений, снизились требования к
+клиенту и серверу. Например, теперь есть
+возможность связать веб-планшет с
+сервером на работе и с домашним
+компьютером. Программы разбора (парсинга)
+XML сейчас существуют практически для
+всех операционных систем и на всех
+языках программирования - следовательно,
+препятствий для внедрения технологии
+вроде бы нет.</p>
+<h4>Что же это такое?</h4>
+<p>
+Рассмотрение XML-RPC проведем на упрощенном
+тестовом примере. Для снижения затрат
+мы разворачиваем систему, где на один
+компьютер (сервер) ставится мощное ПО
+для перевода, проверка синтаксиса и
+грамматики, а все клиенты обращаются к
+нему посредством XML-RPC. (Конечно, этот
+пример выдуман, чтобы легче было
+познакомить читателя с технологией -
+но, господа программисты, кто мешает
+реально сделать такую систему?)</p>
+<p>
+Сообщение XML-RPC передается методом
+POST-протокола HTTP. Сообщения бывают трех
+типов: запрос, ответ и сообщение об
+ошибке.</p>
+<table width="633" cellpadding="1" cellspacing="1">
+<col width="293">
+<col width="330">
+<tr>
+<td colspan="2" width="627">
+<p align="center"><b>Запрос</b></p>
+</td>
+</tr>
+<tr>
+<td width="293" bgcolor="#ffffe0">
+<p><strong>XML-RPC запрос</strong></p>
+</td>
+<td width="330" bgcolor="#ffffe0">
+<p align="center"><strong>Описание</strong></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="293">
+
+<samp>POST /RPC2
+HTTP/1.0
+User-Agent: MyAPP-Word/5.1.2 (WinNT)
+Host:
+server.localnet.com
+Content-Type: text/xml
+Content-length:
+172
+&lt;? xml
+version=&quot;1.0&quot;?&gt;
+&lt;methodCall&gt;
+&lt;methodName&gt;CheckWord&lt;/methodName&gt;
+&lt;params&gt;
+&lt;param&gt;
+&lt;value&gt;&lt;string&gt;проверка&lt;/string&gt;&lt;/value&gt;
+&lt;/param&gt;
+&lt;/params&gt;
+&lt;/methodCall&gt;</samp>
+
+</td>
+<td width="330">
+<p>Сначала идет
+стандартный заголовок http-запроса.
+MIME-тип данных должен быть text/xml, длина
+также обязательно должна присутствовать
+и иметь корректное значение, равное
+длине передаваемого сообщения.</p>
+<p>Стандартный
+заголовок любого корректного
+XML-документа.</p>
+<p>Корневой узел. Не
+допускается вложенности тегов
+&lt;methodCall&gt; - значит, одним запросом мы
+можем вызвать только один метод.</p>
+<p>Тег
+&lt;methodName&gt; указывает на объект и
+название метода, который вызывается.
+Можно указывать так, как принято в
+языках программирования вызывать
+свойства класса: имя метода - через
+точку после имени класса. Можно также
+передавать пути и имя программы. Мы
+вызываем метод CheckWord объекта OrfoCheck.</p>
+<p>В
+секции &lt;params&gt; задаются параметры,
+которые передаются в метод. Секция
+может содержать произвольное число
+подэлементов &lt;param&gt;, содержащих
+параметр, который описывается тегом
+&lt;value&gt;. Параметры и типы данных мы
+рассмотрим чуть дальше. В нашем варианте
+методу передается один параметр, слово
+(оно заключено в тег &lt;string&gt;), которое
+надо проверить на правильность
+написания.</p>
+<p>Все теги, согласно
+спецификации XML, должны иметь
+соответствующие закрывающие элементы
+- в XML-RPC нет одиночных тегов.</p>
+</td>
+</tr>
+</table>
+<h4>Типы данных</h4>
+<p>
+В протоколе XML-RPC предусмотрено семь
+простых типов данных и два сложных, для
+передачи параметров методу и возвращаемых
+значений. Эти типы отображают основные
+типы данных реальных языков программирования.
+Более сложные типы, такие, например, как
+объекты, нужно передавать в двоичном
+виде или заменять структурами.</p>
+<p>
+Целые числа - задаются тегом &lt;i4&gt; или
+&lt;int&gt; и представляются 4-байтовыми
+целыми числами со знаком. Для задания
+отрицательных чисел ставится знак &quot;-&quot;,
+например 34, 344, -15.</p>
+<p>
+Логический тип данных представляется
+тегом &lt;boolean&gt; и может иметь значения
+0 (false) или 1 (true). Можно использовать как
+1/0, так и символьные константы true/false.</p>
+<p>
+ASCII-строка - тип данных, принимаемый по
+умолчанию. Представляет собой просто
+строку символов, заключенную в теги
+&lt;string&gt;&lt;/string&gt;. В качестве символов
+нельзя использовать служебные знаки
+&quot;&lt;&quot; и &quot;&amp;&quot; - их следует
+передавать кодами &amp;lt; и &amp;amp;
+соответственно.</p>
+<p>
+Числа с плавающей точкой. Задаются тегом
+&lt;double&gt; и представляют собой числа с
+плавающей точкой двойной точности. Как
+разделитель целой и дробной части
+используется знак &quot;,&quot;. Пробелы
+недопустимы. Отрицательные числа
+задаются знаком &quot;-&quot; перед числом.</p>
+<p>
+Дата/время. Для передачи времени/даты
+служит тег &lt;dateTime.iso8601&gt;. Пример времени
+- 19980717T14:08:55 (в спецификации написано,
+что сервер сам должен определять, как
+посылать время/дату. Использовать этот
+тип данных, пользоваться структурой
+или же просто передавать дату как строку
+не рекомендуется).</p>
+<p>
+Двоичные данные передаются в закодированном
+(base64) виде и описываются тегом &lt;base64&gt;.</p>
+<p>
+Структуры. Для передачи структурированных
+данных можно конструировать свои
+структуры. Структура определяется
+корневым элементом &lt;struct&gt;, который
+может содержать произвольное количество
+элементов &lt;member&gt;, определяющих каждый
+член структуры. Член структуры описывается
+двумя тегами: первый, &lt;name&gt;, описывает
+имя члена, второй, &lt;value&gt; содержит
+значение члена (вместе с тегом, описывающим
+тип данных). Например, так описывается
+структура с двух строковых элементов:</p>
+<p>&lt;struct&gt;</p>
+<p>&lt;member&gt;</p>
+<p>&lt;name&gt;FirstWord&lt;/name&gt;</p>
+<p>&lt;value&gt;&lt;string&gt;Hell&lt;/string&gt;&lt;/value&gt;</p>
+<p>&lt;/member&gt;</p>
+<p>&lt;member&gt;</p>
+<p>&lt;name&gt;SecondWord&lt;/name&gt;</p>
+<p>&lt;value&gt;&lt;string&gt;World!&lt;/string&gt;&lt;/value&gt;</p>
+<p>&lt;/member&gt;</p>
+<p>&lt;/struct&gt;</p>
+<p>
+Массивы. Массивы не имеют названия и
+описываются тегом &lt;array&gt;. Он содержит
+один элемент &lt;data&gt; и один или несколько
+дочерних элементов &lt;value&gt;, где задаются
+данные. В качестве элементов массива
+могут выступать любые другие типы в
+произвольном порядке, а также другие
+массивы - что позволяет описывать
+многомерные массивы. Так же можно
+описывать массив структур. Пример
+4-элементного массива:</p>
+<p>&lt;array&gt;</p>
+<p>&lt;data&gt;</p>
+<p>&lt;value&gt;&lt;i4&gt;34&lt;/i4&gt;&lt;/value&gt;</p>
+<p>&lt;value&gt;&lt;string&gt;Привет,
+Мир!&lt;/string&gt;&lt;/value&gt;</p>
+<p>&lt;value&gt;&lt;boolean&gt;0&lt;/boolean&gt;&lt;/value&gt;</p>
+<p>&lt;value&gt;&lt;i4&gt;-34&lt;/i4&gt;&lt;/value&gt;</p>
+<p>&lt;/data&gt;</p>
+<p>&lt;/array&gt;</p>
+
+<table width="633">
+<col width="281">
+<col width="343">
+<tr>
+<th colspan="2">Ответ сервера</th>
+</tr>
+<tr>
+<th>XML-RPC ответ</th>
+<th>Описание</th>
+</tr>
+<tr valign="top">
+<td width="281">
+
+<samp>HTTP/1.1&nbsp;200
+OK
+Connection: close
+Content-Length: 166
+Content-Type:
+text/xml
+Date: Fri, 17 Jul 1998&nbsp;19:55:08 GMT
+Server:
+MyWordCheckSerwer/5.1.2-WinNT
+&lt;? xml
+version=&quot;1.0&quot;?&gt;
+&lt;methodResponse&gt;
+&lt;params&gt;
+&lt;param&gt;
+&lt;value&gt;&lt;boolean&gt;true&lt;/boolean&gt;&lt;/value&gt;
+&lt;/param&gt;
+&lt;/params&gt;
+&lt;/methodResponse&gt;
+Тело
+ответа при
+ошибке
+приложения
+&lt;fault&gt;
+&lt;value&gt;
+&lt;struct&gt;
+&lt;member&gt;
+&lt;name&gt;faultCode&lt;/name&gt;
+&lt;value&gt;&lt;int&gt;4&lt;/int&gt;&lt;/value&gt;
+&lt;/member&gt;
+&lt;member&gt;
+&lt;name&gt;faultString&lt;/name&gt;
+&lt;value&gt;
+&lt;string&gt;Too
+many
+рarameters.&lt;/string&gt;
+&lt;/value&gt;
+&lt;/member&gt;
+&lt;/struct&gt;
+&lt;/value&gt;
+&lt;/fault&gt;</samp>
+
+</td>
+<td width="343">
+<p>Сначала идет стандартный заголовок http-ответа сервера.
+MIME-тип данных должен быть text/xml, длина также должна обязательно присутствовать и иметь корректное значение,
+равное длине передаваемого сообщения.</p>
+<p>Стандартный заголовок
+любого корректного XML-документа.</p>
+<p>Корневой
+узел. Не допускается вложенности тегов
+&lt;methodResponse&gt;.</p>
+<p>Теги &lt;params&gt; и &lt;param&gt;
+аналогичны запросу и включают один
+или более элементов &lt;value&gt;, которые
+содержат значение, возвращенное
+методом.</p>
+<p>Если сервер отвечает
+HTTP-кодом 200 ОК - это значит, что запрос
+успешно обработан. Он уведомляет лишь
+о том, что данные по сети переданы
+правильно и сервер сумел их корректно
+обработать. Но метод также может
+вернуть ошибку - и это уже будет ошибка
+не протокола, а логики приложения.</p>
+<p>В
+таком случае передается сообщение и
+структура, которая описывает код
+ошибки и текстовое объяснение.</p>
+<p>В нашем примере передается структура
+из двух элементов: первый элемент
+содержит целочисленный код ошибки
+(4), второй элемент - текстовая строка,
+описывающая ошибку (Too many рarameters -
+неправильное число параметров).</p>
+</td>
+</tr>
+</table>
+
+<h4>Окончательный вариант</h4>
+
+<p>Теперь можно окончательно описать
+работу нашего тестового примера. Итак,
+приложение MyAppWord (текстовый редактор)
+хочет перевести на английский, например,
+слово &quot;world&quot;. Программа формирует
+запрос к серверу, вызывая процедуру
+перевода TranslateWord. Процедуре передается
+структура, содержащая слово, которое
+следует перевести, и направление
+перевода, которое задается символьной
+строкой - &quot;en-ru&quot;.</p>
+
+<p><b>MyAppWord - Запрос:</b></p>
+
+<samp>POST /RPC2 HTTP/1.0 
+User-Agent: MyAppWord/5.1.2 (WinNT) 
+Host:
+server.localnet.com 
+Content-Type: text/xml 
+Content-length:
+172 
+&lt;? xml version=&quot;1.0&quot;?&gt; 
+&lt;methodCall&gt;
+
+&lt;methodName&gt;TranslateWord&lt;/methodName&gt; 
+&lt;params&gt;
+
+&lt;param&gt; 
+&lt;value&gt; 
+&lt;struct&gt; 
+&lt;member&gt;
+
+&lt;name&gt;Word&lt;/name&gt;
+
+&lt;value&gt;&lt;string&gt;world&lt;/string&gt;&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;member&gt; 
+&lt;name&gt;typetranslate&lt;/name&gt;
+
+&lt;value&gt;&lt;string&gt;en-ru&lt;/string&gt;&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;/struct&gt; 
+&lt;/param&gt; 
+&lt;/params&gt;
+
+&lt;/methodCall&gt;</samp>
+
+<p>Сервер, приняв наш запрос, передает его
+программе-демону, которая производит
+парсинг запроса, выделяет из него нужные
+данные и, найдя (например, по таблице)
+ссылку на нужный метод, вызывает его с
+переданными параметрами. Если тип и
+количество параметров правильные, то
+по окончании работы метода программа-демон
+принимает возвращенное значение,
+преобразует его в XML-описание и формирует
+ответ.</p>
+
+<p><b>MyAppWord - Ответ:</b></p>
+
+<samp>HTTP/1.1&nbsp;200 OK 
+Connection: close
+
+Content-Length: 166 
+Content-Type: text/xml 
+Date: Fri, 17
+Jul 1998&nbsp;19:55:08 GMT 
+Server: MyWordCheckSerwer/5.1.2-WinNT
+
+&lt;? xml version=&quot;1.0&quot;?&gt; 
+&lt;methodResponse&gt;
+
+&lt;params&gt; 
+&lt;param&gt; 
+&lt;struct&gt; 
+&lt;member&gt;
+
+&lt;name&gt;WordtoTranslate&lt;/name&gt;
+
+&lt;value&gt;&lt;string&gt;world&lt;/string&gt;&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;member&gt; 
+&lt;name&gt;translatesword&lt;/name&gt;
+
+&lt;value&gt;&lt;string&gt;мир&lt;/string&gt;&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;member&gt; 
+&lt;name&gt;typetranslate&lt;/name&gt;
+
+&lt;value&gt;&lt;string&gt;en-ru&lt;/string&gt;&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;/struct&gt; 
+&lt;/param&gt; 
+&lt;/params&gt;
+
+&lt;/methodResponse&gt;</samp>
+
+<p><b>MyAppWord - Сообщение об ошибке:</b></p>
+
+<samp>HTTP/1.1 200 OK 
+Connection: close
+
+Content-Length: 166 
+Content-Type: text/xml 
+Date: Fri, 17
+Jul 1998&nbsp;19:55:08 GMT 
+Server: MyWordCheckSerwer/5.1.2-WinNT
+
+&lt;? xml version=&quot;1.0&quot;?&gt; 
+&lt;methodResponse&gt;
+
+&lt;fault&gt; 
+&lt;value&gt; 
+&lt;struct&gt; 
+&lt;member&gt;
+
+&lt;name&gt;faultCode&lt;/name&gt; 
+&lt;value&gt;&lt;int&gt;10&lt;/int&gt;&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;member&gt; 
+&lt;name&gt;faultString&lt;/name&gt;
+
+&lt;value&gt; 
+&lt;string&gt;Перевод
+невозможен. Слово
+отсутствует в
+словаре.&lt;/string&gt; 
+&lt;/value&gt;
+
+&lt;/member&gt; 
+&lt;/struct&gt; 
+&lt;/value&gt;&lt;/fault&gt;
+&lt;/methodResponse&gt;</samp>
+
+<p>Приложение получит такое сообщение,
+когда запрос на перевод не может быть
+удовлетворен, поскольку слова нет в
+словаре.</p>
+<p>
+Хотя наш пример, на первый взгляд, кажется
+надуманным и простым, тем не менее, на
+нем показано, как можно уже сегодня
+использовать XML-RPC для решения конкретных
+задач. Конечно, его возможности намного
+шире, и можно, например, представить
+себе распределенную ОС, построенную на
+XML-RPC, или системы визуализации данных,
+построенные по архитектуре X Window, но с
+применением все того же XML-RPC.</p>
+<h4>XML-RPC vs SOAP</h4>
+<p>
+Если для реализации удаленного вызова
+вы используете XML, то у вас есть выбор:
+использовать XML-RPC или же SOAP (Simple Object
+Access Protocol). О последней уже написано
+множество статей, поэтому предлагаем
+только сравнить обе технологии.</p>
+<p>
+Вот некоторые характеристики, которые
+определяют различия XML-RPC или же SOAP:</p>
+
+<table>
+<tr>
+<th>Характеристика</th>
+<th>XML-RPC</th>
+<th>SOAP</th>
+</tr>
+<tr>
+<td>Скалярные типы данных</td>
+<td>+</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Структуры</td>
+<td>+</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Массивы</td>
+<td>+</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Именованные массивы и структуры</td>
+<td>-</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Определяемые разработчиком кодировки</td>
+<td>-</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Определяемые разработчиком типы данных</td>
+<td>-</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Детализация ошибок</td>
+<td>+</td>
+<td>+</td>
+</tr>
+<tr>
+<td>Легкость освоения и практического применения</td>
+<td>+</td>
+<td>-</td>
+</tr>
+</table>
+
+<p>Конечно, на первый взгляд &quot;минус&quot; в столбце SOAP встречается только единожды.
+Это создает иллюзию &quot;всереализуемости всего&quot; в нем. Но давайте присмотримся внимательнее.
+Основные типы данных у обоих конкурентов одинаковые.
+Но в XML-RPC отсутствует возможность задавать имена для массивов и структур (все структуры и массивы являются &quot;анонимными&quot;).
+Возможно, это упущение разработчиков, но решить эту проблему можно и самому,
+например вводя еще одну строковую переменную с именем массива или структуры
+(в случае, если таких объектов много, можно завести специальный массив &quot;имен массивов&quot;).</p>
+
+<p>С &quot;определяемыми разработчиком кодировками&quot; ситуация уже серьезнее.
+Сам механизм подобного ограничения не совсем ясен - ни стандарт XML, ни, тем более, транспортный уровень (протокол HTTP) таких ограничений не имеют.
+Да и стремление сделать клиент/сервер XML-RPC как можно более простым тоже не привело бы к возникновению подобного ограничения.
+Хотя, с другой стороны, SOAP тоже не блещет поддержкой кодировок (US-ASCII, UTF-8, UTF-16).
+Правда, в обеих технологиях есть возможность обойти все эти недостатки сразу - тип данных base64. Но выход ли это?</p>
+
+<p>
+Посмотрим теперь на пункт &quot;легкость
+в освоении и применении&quot;. В свете
+сегодняшних темпов развития технологий
+и стандартов, особенно Web, этот пункт
+приобретает большую важность. Реальна
+ситуация, когда крупный проект начинает
+разрабатываться на самой передовой
+основе - а в конце работы новый стандарт
+не только &quot;уже не новый&quot;, но и &quot;уже
+не стандарт вообще&quot;. Недавно W3C
+опубликовала черновой вариант SOAP Version
+1.2 - поверьте, и объем, и сложность
+документации впечатляют. Трудности
+возникают даже на этапе ознакомительного
+чтения, не говоря уже о разработке. А
+вот спецификация XML-RPC занимает около
+трех страниц А4 и предельно проста.</p>
+<p>
+Да, ни одна из этих технологий не является
+панацеей от всех бед и не претендует на
+полноту. Большинство программистов и
+разработчиков спецификаций сходятся
+на том, что:</p>
+<ul>
+<li><p>
+если вам нужна система для работы со
+сложной логикой, если вы передаете
+большие комплексные структуры данных,
+если вам нужна полная информация о
+клиенте, если вы хотите, чтобы запрос
+содержал в себе инструкции по его
+обработке, и, наконец, если для вас
+важно, чтобы за стандартом стояли гранды
+индустрии (Microsoft, IBM, Sun) - вам следует
+остановить свой выбор на SOAP; 
+</p>
+<li><p>
+если же данные являются относительно
+простыми, а приложения должны работать
+на множестве платформ и на разных
+языках, если важна скорость работы и
+логика системы не нуждается в сложных
+командах - используйте XML-RPC. 
+</p>
+</ul>
+<p>
+Выбрав SOAP, сразу смиритесь с тем, что у
+вашей команды разработчиков (или у вас
+самих) впереди много головной боли,
+которая начнется уже с момента чтения
+спецификаций. Но ведь зато вы будете
+иметь возможность в конце концов
+построить систему практически любой
+сложности и функциональности.</p>
+<p>
+Если выберете XML-RPC - написать программу
+клиента/сервера не составит труда даже
+начинающему программисту. Да и о выборе
+ПО можете не задумываться - хоть Borland
+Delphi/Kylix, хоть Phyton. Но не все задачи будут
+решаться сразу, а некоторые не будут
+решаться вообще.</p>
+
+<p><b>Заключение</b></p>
+<p>Не трудно увидеть, что стандарт XML-RPC
+очень прост - и в то же время применение
+XML как основного инструмента для описания
+данных позволяет сделать его очень
+гибким. Протокол можно модифицировать
+под каждую конкретную задачу, а
+использование хорошо зарекомендовавших
+себя стандартов на передачу данных
+(HTTP/HTTPS) позволяет успешно применять его
+на любых платформах, где имеется его
+поддержка.</p>
+
+<h1>PHP-разработки для XML-RPC</h1>
+
+<p>Проведем небольшой обзор проектов Open
+Source, которые могут облегчить вам жизнь,
+избавив от необходимости писать свой
+код для генерирования XML-RPC-запросов и
+ответов. Список кандидатов взят со
+странички <u><a href="http://www.xmlrpc.com/directory/1568/implementations">implementations</a></u>
+сайта <u><a href="http://www.xmlrpc.com/">xmlrpc</a></u>.com.
+Два основных &quot;нагрузочных испытания&quot; в нашем тестировании были:</p>
+<ul>
+<li><p>
+скорость и лёгкость установки и
+использования;</p>
+<li><p>
+поддержка программы конфигурацией
+PHP, которую мы можем обнаружить на
+среднестатистическом хосте.</p>
+</ul>
+<h4><i>XMLRPC-EPI</i>,
+<u><a href="http://xmlrpc-epi.sourceforge.net/">http://xmlrpc-epi.sourceforge.net/</a></u></h4>
+<p>
+XMLRPC-EPI изначально было разработан для
+внутреннего пользования в <u><a href="http://www.epinions.com/">epinions</a></u>
+и оказалось настолько успешным, что в
+настоящее время снабжает сам PHP
+<i>экспериментальными</i> <u><a href="http://www.php.net/manual/en/ref.xmlrpc.php">XML-RPC
+функциями</a></u>. По сути XMLRPC-EPI -это
+базовый класс, написанный в C++ (остальные
+написаны в PHP), а поэтому просто так, без
+root-а, установить на сервер его не удастся:
+потребуется перекомпилировать PHP.</p>
+<p>
+Кроме того, приложение только лишь
+интерпретирует содержание запросов и
+ответов XML-RPC, но не посылает и не принимает
+их. Техруководство по использованию
+класса вы найдёте <u><a href="http://www.devshed.com/Server_Side/PHP/XMLRPCwithPHP/">здесь</a></u>.</p>
+<h4><i>eZ xmlrpc</i>,
+<u><a href="http://developer.ez.no/article/static/53/">http://developer.ez.no/article/static/53/</a></u></h4>
+<p>
+Разработка Бэрда Фастарда (чувак,
+наверное, прётся от такой фамилии). Это
+XML-RPC класс, используемый в приложении
+<u><a href="http://developer.ez.no/">ezPublish</a></u>
+для получения запросов с её же <u><a href="http://shop.ez.no/trade/productview/25/2/">локального
+клиента</a></u>. Дизайн класса превосходен
+интуитивностью управления, кроме того,
+прекрасно описан в <u><a href="http://zez.org/article/articleview/47/">техруководстве</a></u>,
+и позволяет проводить интроспекцию.</p>
+<p>
+Всё прекрасно, но в одном класс нехорош:
+для его работы требуется, чтобы в
+конфигурации PHP был доступен и установлен
+<u><a href="http://doc.trolltech.com/2.3/xml-dom.html%20qt-dom">xml
+parser</a></u> (--with-qtdom). Для большинства
+инсталляций PHP это не типично, чаще
+встречается <u><a href="http://sourceforge.net/projects/expat/">expat
+XML parser</a></u> (--with-xml). А посему, с печалью
+в глазах, отправимся на дальнейшие
+поиски...</p>
+<h4><i>Fase 4
+XML-RPC</i>, <u><a href="http://www.fase4.com/xmlrpc/">http://www.fase4.com/xmlrpc/</a></u></h4>
+<p>
+Документация на сайте неплоха, но при
+попытке установить, а затем запустить
+демонстрационный скрипт &quot;server.php&quot;
+получаем ошибку &quot;class not found&quot;. Поскольку
+других кандидатур хватает, без разговоров
+снимаем проект с дистанции.</p>
+<h4><i>phpRPC</i>,
+<u><a href="http://sourceforge.net/projects/phprpc/">http://sourceforge.net/projects/phprpc/</a></u></h4>
+<p>
+Класс с большим потенциалом. Разработчики
+не остановились на простой интерпретации
+и управлении запросами/ответами и
+предоставили пользователю более широкую
+функциональность, как, например,
+подключение к &quot;абстрактной&quot; базе
+данных. Последняя доступная версия -
+альфа 0.9, так что сейчас проект мы
+пропустим, но стоит быть в курсе его
+развития. Если у вас в планах большие
+проекты, этот класс мог бы серьёзно
+сэкономить ваше время.</p>
+<h4><i>Keith Devens'
+XML-RPC Client/Server</i>,
+<u><a href="http://www.keithdevens.com/software/xmlrpc/">http://www.keithdevens.com/software/xmlrpc/</a></u></h4>
+<p>
+Посетив домашнюю страничку проекта,
+сразу понимаем, что это лучшее начало.
+Код представляет собой не полный класс,
+а простой набор определённых пользователем
+функций, которые нужно <u><a href="http://www.php.net/include">инклюдить</a></u>
+в скрипт.</p>
+<p>
+В данной системе к XML-RPC-серверу и клиенту
+не предъявляется требование самим
+определять тип принимаемых XML-RPC
+параметров. Это значит, что XML-RPC-клиенту
+нужно более внимательно проверять
+получаемые данные, однако здесь вас
+будут беспокоить переменные PHP (а уж к
+ним то вы привыкли) а не параметрами
+XML-RPC. Документация тоже неплоха.</p>
+<h4><i>phpxmlrpc</i>,
+<u><a href="http://phpxmlrpc.sourceforge.net/">http://phpxmlrpc.sourceforge.net/</a></u></h4>
+<p>
+Эта разработка корпорации Useful, самого
+создателя стандарта XML-RPC, очевидно
+содержит много полезного. По существу,
+приложение полностью поддерживает
+стандарт XML-RPC и, кроме того, предоставляет
+возможность отладки, которая (как мы
+увидим позже) может стать самой большой
+вашей проблемой при разработке
+web-сервиса. 
+</p>
+<p>
+Документация хорошая, много примеров,
+как и <u><a href="http://www.zend.com/zend/tut/tut-xml-rpc-client.php">
+в руководстве</a></u> по разработке клиента в той же системе.
+А посему наш тестовый web-сервис мы напишем с помощью этого проекта.</p>
+
+</body>
+</html>
