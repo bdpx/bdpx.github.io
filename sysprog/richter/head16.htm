@@ -1,0 +1,577 @@
+<HTML>
+<HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h16></A>ГЛАВА 16</FONT> <FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>Стек потока </FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иногда 
+система сама резервирует какие-то регионы в адресном пространстве Ва шего 
+процесса. Я уже упоминал в главе 13, что это делается для размещения блоков 
+переменных окружения процесса и его потоков. Еще один случай резервирования ре 
+гиона самой системой — создание стека потока </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Всякий раз, 
+когда в процессе создается поток, система резервирует регион адрес ного 
+пространства для стека потока (у каждого потока свой стек) и передает этому 
+региону какой-то объем физической памяти По умолчанию система резервирует 1 Мб 
+адресного пространства и передает ему всего две страницы памяти. Но стандартные 
+значения можно изменить, указав при сборке программы параметр компоновщика 
+/STACK</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>/STACK. 
+  reserve [, commit] </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Тогда при 
+создании стека потока система зарезервирует регион адресного про странства, 
+размер которого указан в параметре /STACK компоновщика Кроме того, объем 
+изначально передаваемой памяти можно переопределить вызовом <I>CreateThread 
+</I>или <I>_beginthreadex. </I>У обеих функций есть параметр, который позволяет 
+изменять объем памяти, изначально передаваемой региону стска Если в нем передать 
+0, систе ма будет использовать значение, указанное в параметре /STACK Далее я 
+исхожу ич того, что стек создается со стандартными параметрами. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На рис. 16-1 
+показано, как может выглядеть регион стека (зарезервированный по адресу 
+0x08000000) в системе с размером страниц no 4 Кб Регион стека и вся пере данная 
+ему память имеют атрибут защиты PAGE_READWRITE. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Зарезервировав регион, система передает физическую память двум верхним 
+его страницам. Непосредственно перед тем, как приступить к выполнению потока, 
+сис тема устанавливает регистр указателя стека на конец верхней страницы региона 
+сте ка (адрес, очень близкий к 0x08100000). Это та страница, с которой поток 
+начнет использовать свой стек Вторая страница сверху называется <I>сторожевой 
+</I>(guard page) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По мере 
+разрастания дерева вызовов (одновременного обращения ко все больше му числу 
+функций) потоку, естественно, требуется и больший объем стека. Как толь ко поток 
+обращается к следующей странице (а она сторожевая), система уведомляет ся об 
+этой попытке. Тогда система передает память еще одной странице, расположен ной 
+как раз за сторожевой. После чего флаг PAGE_GUARD, как эстафетная палочка, 
+переходит от текущей сторожевой к той странице, которой только что передана па 
+мять. Благодаря такому механизму объем памяти, занимаемой стеком, увеличивается 
+только по необходимости. Если дерево вызовов у потока будет расти и дальше, реги 
+он стека будет выглядеть примерно так, как показано на рис. l6-2 </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, 
+стек потока практически заполнен (как па рис. l6-2) и регистр указа теля стека 
+указывает на адрес 0x08003004. Тогда, как только поток вызовет еще одну функцию, 
+система, по идее, должна передать дополнительную физическую память. Но 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>когда система 
+передает! память странице по адресу 0x08001000, она делает это уже по-другому 
+Регион стека теперь выглядит, как на рис l6-3 </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=433 alt=rihter16-1.jpg src="images/rihter16-1.jpg" 
+width=422> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 16-1. Так выглядит регион стека потока сразу после его создания 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=438 alt=rihter16-2.jpg src="images/rihter16-2.jpg" 
+width=427> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 16-2. Почти заполненный регион стека потока </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=439 alt=rihter16-3.jpg src="images/rihter16-3.jpg" 
+width=425> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 16-3. Целиком заполненный регион стека потока </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как и можно 
+было предполагать, флаг PAGE_GUARD со страницы по адресу 0x08002000 удаляется, а 
+странице по адресу 0x08001000 передается физическая па мять. Но этой странице не 
+присваивается флаг PAGE_GUARD. Это значит, что региону адресного пространства, 
+зарезервированному под стек потока, теперь передана вся физическая память, 
+которая могла быть ему передана. Самая нижняя страница оста ется 
+зарезервированной, физическая память ей никогда не передается. Чуть позже я 
+поясню, зачем это сделано </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Передавая 
+физическую память странице по адресу 0x08001000, система выполня ет еще одну 
+операцию генерирует исключение EXCEPTION_STACK_OVERFLOW (в файле WinNT.h оно 
+определено как 0xC00000FD). При использовании структурной обработки исключений 
+(SEH) Ваша программа получит уведомление об этой ситуа ции и сможет корректно 
+обработать ее. Подробнее о SEH см. главы 23, 24 и 25, а так же листинг программы 
+Summation, приведенный в конце этой главы </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если поток 
+продолжит использовать стек даже после исключения, связанного с переполнением 
+стека, будет задействована вся память на странице по адресу 0x08001000, и поток 
+попытается получить доступ к странице по адресу 0x08000000 Поскольку эта 
+страница лишь зарезервирована (но не передана), возникнет исклю чение — 
+нарушение доступа. Если это произойдет в момент обращения потока к сте ку, Вас 
+ждут крупные неприятности. Система возьмет управление на себя и завершит нс 
+только данный поток, но и весь процесс И даже не сообщит об этом пользовате лю; 
+процесс просто исчезнет! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+объясню, почему нижняя страница стека всегда остается зарезервирован ной Это 
+позволяет защищать другие данные процесса от случайной перезаписи Ви дите ли, по 
+адресу 0x07FFF000 (па 1 страницу ниже, чем 0x08000000) может быть передана 
+физическая память для другого региона адресного пространства. Если бы странице 
+по адресу 0x08000000 была передана физическая память, система не суме 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ла бы 
+перехватить попытку потока расширить стек за прелелы зарезервированного региона. 
+А если бы стек расползся за пределы этого региона, поток мог бы перезапи сать 
+другие даипые в адресном пространстве своего процесса — такого *жучка» вы ловить 
+очень сложно. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h16t1></A>Стек потока в Windows 98</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 98 
+стеки ведут себя почти так же, как и в Windows 2000. Но отличия все же есть. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На рис. 16-4 
+показано, как в Windows 98 может выглядеть регион стека (зарезер вированный с 
+адреса 0x00530000) размером 1 Мб. </FONT></P>
+<TABLE height=217 cellSpacing=0 cellPadding=0 rules=all width=632 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Адрес 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Размер 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Состояние страницы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00640000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>16 
+      страниц (65 536 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Верхняя 
+      часть стека (зарезервирована для перехвата обращений к несуществующей 
+      области стека) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x0063F000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>1 
+      страница (4096 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Переданная страница с атрибутом PAGE_READWRITE (задействованная 
+      область стека) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x0063E000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>1 
+      страница (4096 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Страница с атрибутом PAGE_NOACCESS (заменяет флаг PAGE_GUARD) 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00638000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>6 
+      страниц (24 576 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Страницы, зарезервированные для перехвата переполнения стека 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00637000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>1 
+      страница (4096 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Переданная страница с атрибутом PAGE_READWRITE (для совместимости с 
+      16-разрядными компонентами) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00540000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>247 
+      страниц (1 011 712 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Страницы, зарезервированные для дальнейшего расширения стека 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=69 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00530000 </FONT></P></TD>
+    <TD vAlign=top align=left width=173 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>16 
+      страниц (65 536 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=405 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Нижняя 
+      часть стека {зарезервирована для перехвата переполнения стека) 
+    </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 16-4. Так выглядит регион стека сразу после его создания под 
+управлением Windows 98</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, 
+размер региона на самом дслс 1 Мб плюс 1 28 Кб, хотя мы хотели соз дать стек 
+объемом всего 1 Мб. В Windows 98 система резервирует под стек на 128 Кб больше, 
+чсм было запрошено. Собственно стек располагается в середине этого реги она, а 
+по обеим его границам размещаются блоки по 64 Кб каждый. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Блок перед 
+стеком предназначен для перехвата его переполнения, а блок после стска — для 
+перехвата обращений к несуществующим областям стека. Чтобы понять, какая польза 
+от последнего блока, рассмотрим такой фрагмент кода:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain(HINSTANCE hinstExe, HINSTANCE, PSTR pszCmdLine, int nGmdShow) <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+    szBuf[100]; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>szBuf[10000] 
+    - 0; // обращение к несуществующей области стека </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(0); 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+выполняется оператор присвоения, происходит попытка обращения за ко нец стека 
+потока. Разумеется, ни компилятор, ни компоновщик не уловят эту<I> </I>ошибку в 
+приведенном фрагменте кода, по, если приложение работает под управлением Win 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>dows 98, 
+выполнение этого оператора вызовет нарушение доступа. Это одна из при ятных 
+особенностей Windows 98, отсутствующих в Windows 2000, в которой сразу за стеком 
+потока может быть расположен другой регион И если Вы случайно обрати тесь за 
+пределы стека, Вы можете испортить содержимое области памяти, принадле жащей 
+другой части Вашего процесса, — система ничего <I>не заметит.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второе 
+отличие: в стске нет страниц с флагом атрибутов защиты PAGE_GUARD. Пocкoлькy 
+Windows 98 такой флаг не поддерживает, при расширении стека потока она действует 
+несколько иначе. Она помечает страницу переданной памяти, располагаемой под 
+стеком, атрибутом PAGE_NOACCESS (на рис, 16-4 — по адресу 0х0063Е000). Когда 
+поток обращается к этой странице, происходит нарушение доступа. Система пере 
+хватывает это исключение, меняет атрибут защиты страницы с PAGE_NOACCESS на 
+PAGE_READWRITE и передает память новой "сторожевой" странице, размещаемой сразу 
+за предыдущей. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третье: 
+обратите внимание на единственную страницу с атрибутом PAGE_READ WRITE по адресу 
+0x00637000. Она создается для совместимости с 16-разрядной Win dows. Хотя 
+Microsoft нигде нс говорит об этом, разработчики обнаружили, что пер вые 16 
+байтов cегмента стека 16-разрядной программы содержат информацию о ее стeке, 
+локальной куче и локальной таблице атомарного доступа. Поскольку Win32 
+приложения в Windows 98 часто обращаются к 16-разрядным DLL и некоторые из этих 
+DLL предполагают наличие тех самых 16 байтов в начале сегмента стека, Microsoft 
+пришлось эмулировать подобные данные и в Windows 98. Когда 32-разрядный код 
+обращается к 16-разрядному, Windows 98 отображает 16-битный селектор процессо ра 
+на 32-разрядный стек и записывает в регистр сегмента стека (SS) такое значение, 
+чтобы он указывал на страницу по адресу 0x00637000. И тогда 16-разрядный код, 
+получив доступ к своим 16 байтам в начале сегмента стека, продолжает выполнение 
+без всяких проблем </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По мере роста 
+стека потока, выполняемого под управлением Windows 98, блок памяти по адресу 
+0x0063F000 постепенно увеличивается, а сторожевая страница сме щается вниз до 
+тех пор, пока не будет достигнут предел в 1 Мб, после чего она исче зает так же, 
+как и в Windows 2000. Одновременно система смещает позицию страни цы, 
+предназначенной для совместимости с компонентами 16-разрядной Windows, и она, в 
+конце концов, попадает в 64-килобайтовый блок, расположенный в начале ре гиона 
+стека. Поэтому целиком заполненный стек в Windows 98 выглядит так, как по казано 
+на рис. 16-5. </FONT></P>
+<TABLE height=96 cellSpacing=0 cellPadding=0 rules=all width=633 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=80 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Адрес 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=161 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Размер 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=384 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Состояние страницы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=80 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0X00640000 </FONT></P></TD>
+    <TD vAlign=top align=left width=161 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>16 
+      страниц (65 536 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=384 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Верхняя 
+      часть стека (зарезервирована для перехвата обращений к несуществующей 
+      области стека) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=80 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0X00540000 </FONT></P></TD>
+    <TD vAlign=top align=left width=161 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>256 
+      страниц (1 Мб) </FONT></P></TD>
+    <TD vAlign=top align=left width=384 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Переданная страница с атрибутом PAGE_READWRITE (задействованная 
+      область стека) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=80 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00539000 </FONT></P></TD>
+    <TD vAlign=top align=left width=161 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>7 
+      страниц (28 672 байта) </FONT></P></TD>
+    <TD vAlign=top align=left width=384 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Страницы, зарезервированные для перехвата переполнения стека 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=80 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0X00538000 </FONT></P></TD>
+    <TD vAlign=top align=left width=161 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>1 
+      страница (4096 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=384 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Переданная страница с атрибутом PAGE_READWRITE (для совместимости с 
+      16-разрядными компонентами) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=80 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00530000 </FONT></P></TD>
+    <TD vAlign=top align=left width=161 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>8 
+      страниц (32 768 байтов) </FONT></P></TD>
+    <TD vAlign=top align=left width=384 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Нижняя 
+      часть стека (зарезервирована для перехвата переполнения стека) 
+    </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 16-5. Целиком заполненный регион стека потока в Windows 98 
+</FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h16t2></A>Функция из библиотеки С/С++ для контроля стека</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Библиотека 
+С/С++ содержит функцию, позволяющую контролировать стек. Трансли руя исходный 
+код программы, компилятор при необходимости генерирует вызовы этой функции. Она 
+обеспечивает корректную передячу страниц физической памяти стеку потока. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Возьмем, к 
+примеру, небольшую функцию, требующую массу памяти под свои локальные 
+переменные:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  SomeFunction() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+    nValues[4000]; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+    что-то делаем с массивом </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>nValuesjOj = 
+    0; // а тут что-то присваиваем </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+размещения целочисленного массива функция потребует минимум 16 000 байтов 
+стекового пространства, так как каждое целое значение занимает 4 байта. Код, 
+генерируемый компилятором, обычно выделяеттакое пространство в стеке простым 
+уменьшением указателя стека процессора на 16 000 байтов. Однако система не пере 
+даст физическую память этой нижней области стека, пока не произойдет обращения 
+по данному адресу </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В системе с 
+размерим страниц по 4 или 8 Кб это могло бы создать проблему. Если первое 
+обращение к стеку проходит по адресу, расположенному ниже сторожевой страницы 
+(как в показанном выше фрагменте кода), поток обратится к зарезервиро ванной 
+памяти, и возникнет нарушение доступа. Поэтому, чтобы можно было спокой но 
+писать функции вроде приведенной выше, компилятор и вставляет в код вызовы 
+библиотечной функции для контроля стека. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+трансляции программы компилятору известен размер страниц памяти, ис пользуемых 
+целевым процессором (4 Кб для x86 и 8 Кб для Alpha). Встречая в про грамме ту 
+или иную функцию, компилятор определяет требуемый для нее объем сте ка и, если 
+он превышает размер одной страницы, вставляет вызов функции, контро лирующей 
+стек. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Нижс показан 
+псевдокод, который иллюстрирует, что именно делает функция, контролирующая стек. 
+(Я говорю «псевдокод» потому, что обычно эта функция реа лизуется поставщиками 
+компиляторов на языке ассемблера.)</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// стандартной 
+  библиотеке С "известен" размер страницы в целевой системе </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#ifdef 
+  _M_ALPHA </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  PAGESIZE (8 * 1024) // страницы по 8 Кб </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#else 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  PAGESIZE (4 * 1024) // страницы по 4 Кб </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#endif 
+  </FONT></P>
+  <P></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  StackCheck(int nBytesNeededFromStack) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Получим 
+    значение указателя стека. В этом месте указатель стека <BR>// еще НЕ был 
+    уменьшен для учета локальных переменных функции.<BR>PBYTE<B> </B>pbStackPfr 
+    = (указатель стека процессора); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while 
+    (nBytesNeededFromStack &gt;= PAGESIZE) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// смещаем 
+      страницу вниз по стеку - должна быть сторожевой <BR>pbStackPtr -= 
+      PAGESIZE; </FONT></P></BLOCKQUOTE></BLOCKQUOTE></BLOCKQUOTE>
+<BLOCKQUOTE>
+  <BLOCKQUOTE>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      обращаемся к какому-нибудь байту на сторожевой странице, вызывая <BR>// 
+      тем самым передачу новой страницы и сдвиг сторожевой страницы вниз 
+      <BR>pbSTackPtr[0] = 0; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      уменьшаем требуемое количество байтов в стеке <BR>nBytesNeededFromStack -= 
+      PAGESIZE; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// перед 
+    возвратом управления функция StackCheck устанавливает регистр <BR>// 
+    указателя стека на адрес, следующий за локальными переменными функции 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В компиляторе 
+Microsoft Visual C++ предусмотрен параметр, позволяющий конт ролировать 
+пороговый предел числа страниц, начиная с которого компилятор авто матически 
+вставляет в программу вызов функции <I>StackCheck. </I>Используйте этот пара 
+метр, только если Вы точно знаете, что делаете, и если это действительно нужно. 
+В 99,99999 процентах из ста приложения и DLL не требуют применения упомянутого 
+параметра. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h16t3></A>Программа-пример Summation</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, "16 Summation.exe" (см. листинг на рис. 16-6), демонстрирует исполь 
+зование фильтров и обработчиков исключений для корректного восстановления пос ле 
+переполнения стека. Файлы исходного кода и ресурсов этой программы находят ся в 
+каталоге l6-Summation на компакт-диске, прилагаемом к книге. Возможно, Вам 
+придется сначала прочесть главы по SEH, чтобы понять, как работает эта 
+программа. Она суммирует числа от 0 до <I>x, </I>где <I>x — </I>число, введенное 
+пользователем. Конечно, проще было бы написать функцию с именем <I>Sum, 
+</I>которая вычисляла бы по формуле:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>Sum = (x * (x 
+  + 1)) / 2; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но для этого 
+примера я сделал функцию <I>Sum </I>рекурсивной, чтобы она использо вала большое 
+стековое пространство. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При запуске 
+программы появляется диалоговое окно, показанное ниже. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=87 alt=rihter16-4.jpg src="images/rihter16-4.jpg" 
+width=250> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом окне 
+Вы вводите число и щелкаете кнопку Calculate. Программа создает поток, 
+единственная обязанность которого - сложить все числа от 0 до <I>x. </I>Пока он 
+выполняется, первичный поток программы, вызвав <I>WaitForSingleOhject, 
+</I>просит систе му не выделять ему процессорное время. Когда новый поток 
+завершается, система вновь выделяет процессорное время первичному потоку. Тот 
+выясняет сумму, полу чая код завершения нового потока вызовом 
+<I>GetExitCodeThread, </I>и — это очень важно — закрывает свой описатель нового 
+потока, так что система может уничтожить объект ядра "поток", и утечки ресурсов 
+не произойдет. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее 
+первичный поток проверяет код завершения суммирующего потока. Если он равен 
+UINT_MAX, значит, произошла ошибка: суммирующий поток переполнил стек при 
+подсчете суммы; тогда первичный поток выведет окно с соответствующим сообщением. 
+Если же код завершения отличен от UINT_MAX, суммирующий поток </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>отработал 
+успешно; код завершения и есть искомая сумма. Б этом случае первичный поток 
+просто отображает результат суммирования в диалоговом окне. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+обратимся к суммирующему потоку, Его функция — <I>SumThreadFunc, </I>При 
+создании этого потока первичный поток передает ему в единственном параметре 
+<I>pvParam </I>количество целых чисел, которые следует просуммировать. Затем его 
+функ ция инициализирует переменную <I>uSum </I>значением UINT_MAX, т. e. 
+изначально пред полагается, что работа функции не завершится успехом Далсс 
+<I>SumThreadFunc </I>акти визирует SEH так, чтобы перехватывать любое 
+исключение, возникающее при вы полнении потока. После чего для вычисления суммы 
+вызывается рекурсивная функ ция <I>Sum.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если сумма 
+успешно вычислена, <I>SumThreadFunc </I>просто возвращает значение пе ременной 
+<I>uSum, </I>оно и будет кодом завершения потока. Но, если при выполнении <I>Sum 
+</I>возникает исключение, система сразу оценивает выражение в фильтре 
+исключений. Иначе говоря, система вызывает <I>FilterFunc, </I>передавая ей код 
+исключения. R случае переполнения стека этим кодом будет 
+EXCEPTION_STACK_OVERFLOW. Чтобы увидеть, как программа обрабатывает исключение, 
+вызванное переполнением стека, дайте ей просуммировать числа от 0 до 44000. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Моя функция 
+<I>FilterFunc </I>очень проста. Сначала она проверяет, произошло ли ис ключение, 
+связанное с переполнением стека. Если нет, возвращает EXCEPTION_CON 
+TINUE_SEARCH, а если да — EXCEPTION_EXECUTE_HANDLER Это подсказывает сис теме, 
+что фильтр готов к обработке этого исключения и что надо выполнить код в блоке 
+<I>except. </I>В данном случае обработчик исключения ничего особенного не 
+делает, просто закрывая поток с кодом завершения UINT_MAX Родительский поток, 
+получив это специальное значение, выводит пользователю сообщение с 
+предупреждением. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее, 
+что хотелось бы обсудить; почему я выделил функцию <I>Sum </I>в отдель ный поток 
+вместо того, чтобы просто создать SEH-фрейм в первичном потоке и вы зывать 
+<I>Sum </I>из его блока <I>try. </I>На то есть три причины. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, 
+всякий раз, когда создается поток, он получает стек размером 1 Мб. Если бы я 
+вызывал <I>Sum </I>из первичного потока, часть стекового пространства уже была 
+бы занята, и функция не смогла бы использовать весь объем стека. Согласен, моя 
+про грамма очень проста и, может быть, не займет слишком большое стековое 
+простран ство. А если программа посложнее? Легко представить ситуацию, когда 
+<I>Sum </I>подсчи тывает сумму целых чисел от 0 до 1000 и стек вдруг оказывается 
+чем-то занят, — тог да его переполнение произойдет, скажем, еще при вычислении 
+суммы от 0 до 750. Таким образом, работа функции <I>Sum </I>будет надежнее, если 
+предоставить ей полный стек, не используемый другим кодом. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вторая 
+причина в том, что поток уведомляется об исключении «переполнение стека» лишь 
+однажды Если бы я вызывал <I>Sum </I>из первичного потока и произошло бы 
+переполнение стека, то это исключение было бы перехвачено и корректно обрабо 
+тано. Но к тому моменту физическая память была бы передана под все зарезервиро 
+ванное адресное пространство стека, и в нем уже не осталось бы страниц с флагом 
+защиты. Начни пользователь новое суммирование, и функция <I>Sum </I>переполнила 
+бы стек, а соответствующее исключение не было бы возбуждено, Вместо этого 
+возникло бы исключение «нарушение доступа", и корректно обработать эту ситуацию 
+уже не удалось бы. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее, 
+почему я использую отдельный поток: физическую память, отведен ную под его стек, 
+можно освободить. Рассмотрим такой сценарий: пользователь про сит функцию <I>Sum 
+</I>вычислить сумму целых чисел от 0 до 30 000. Это требует передачи региону 
+стека весьма ощутимого объема памяти. Затем пользователь проводит не </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>сколько 
+операций суммирования — максимум до 5000 И окажется, что стеку передан 
+порядочный объем памяти, который больше не используется А ведь эта физическая 
+память выделяется из страничною файла Так что лучше бы освободить се и вернуть 
+системе И поскольку программа завершает поток <I>SumThreadFunc, </I>система 
+автомати чески освобождает физическую память, переданную региону стека 
+</FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/16-Summation.zip"><IMG 
+height=16 src="images/" width=16> Summation</A></FONT></P>
+<P>&nbsp;</P>
+<HR>
+
+<P>
+<A href="head15.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head17.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

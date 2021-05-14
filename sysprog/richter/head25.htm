@@ -1,0 +1,1025 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h25></A>ГЛАВА 25</FONT> <FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>Необработанные исключения и исключения С++ </FONT></B></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В<I> 
+</I>предыдущей главе мы обсудили, что происходит, когда фильтр возвращает значе 
+ние EXCEPTION_CONTШNUE_SEARCH. Оно заставляет систему искать дополнительные 
+фильтры исключений, продвшаясь вверх по дереву вызовов. А что будет, если все 
+фильтры вернут EXCEPTION_CONTINUE_SEARCH? Тогда мы получим <I>необработанное 
+исключение </I>(unhandled exception). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как Вы 
+помните из главы 6, выполнение потока начинается с функции <I>BaseProcess Start 
+</I>или <I>BaseThreadStart </I>в Kernel32.dll Единственная разница между этими 
+функция ми в том, что первая используется для запуска первичного потока 
+процесса, а вто рая — для запуска остальных потоков процесса.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  BaseProcessStart(PPROCESS_START_ROUTINE pfnStartAddr) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>ExitThread({pfnStartAddr)()); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_except 
+    (UnhandledExceptionFilter(GetExceptionInformation())) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>ExitProcess(GetExecptionCode()); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    Примечание, сюда мы никогда не попадем </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  BaseThreadStart(PTHREAD_START_ROUTINE pfnStartAddr, PVOID pvParam) <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try<BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>ExitThread((pfnStartAddr)(pvParam)); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_except 
+    (UnhandledExceptionFilter(GetExceptionInformation())} <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>ExitProcess(GetExceptionCode()); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    Примечание, сюда мы никогда не попадем </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+size=2>}</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что обе функции содержат SEH-фрейм: поток запускается из блока <I>try. 
+</I>Если поток возбудит исключение, в ответ на которое все Ваши фильтры вер нут 
+EXCEPTION_CONTINUE_SEARCH, будет вызвана особая функция фильтра, предос 
+тавляемая операционной системой:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  UnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она выводит 
+окно, указывающее на то, что поток в процессе вызвал необрабаты ваемое им 
+исключение, и предлагает либо закрыть процесс, либо начать его отладку. В 
+Windows 98 это окно выглядит следующим образом. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=267 alt=rihter25-1.jpg src="images/rihter25-1.jpg" 
+width=404> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А в Windows 
+2000 оно имеет другой вид. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=152 alt=rihter25-2.jpg src="images/rihter25-2.jpg" 
+width=434> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+2000 первая часть текста в этом окне подсказывает тип исключения и адрес 
+вызвавшей его инструкции в адресном пространстве процесса. У меня окно появилось 
+из-за нарушения доступа к памяти, поэтому система сообщила адрес, по которому 
+произошла ошибка, и тип доступа к памяти — чтение <I>UnhandledException Filter 
+</I>получает эту информацию из элемента <I>Exceptionlnformation </I>структуры 
+EXCEP TION_RECORD, инициализированной для этого исключения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В данном окне 
+можно сделать одно из двух. Во-первых, щелкнуть кнопку OK, и тогда 
+<I>UnhandledExceptionFilter </I>вернет EXCEPTION_EXECUTE_HANDLER. Это приведет к 
+глобальной раскрутке и соответственно к выполнению всех имеющихся блоков 
+<I>finally, </I>а затем и к выполнению обработчика в <I>BaseProcessStart </I>или 
+<I>BaseThreadStart. </I>Оба обработчика вызывают <I>ExitProcess, </I>поэтому-то 
+Ваш процесс и закрывается Причем кодом завершения процесса становится код 
+исключения. Кроме того, процесс закры вается его жe потоком, а не операционной 
+системой!А это означает, что Вы можете вмешаться в ход завершения своего 
+процесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-вторых, Вы 
+можете щелкнуть кнопку Cancel (сбываются самые смелые мечты программистов). В 
+этом случае <I>UnbandledExceptionFilter </I>попытается<I> </I>запустить отлад 
+чик и подключить его к процессу Тогда Вы сможете просматривать состояние гло 
+бальных, локальных и статических переменных, расставлять точки прерывания, пе 
+резапускать процесс и вообще делать все, что делается при отладке процесса. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но самое 
+главное, что сбой в программе можно исследовать в момент его возник новения. В 
+большинстве других операционных систем для отладки процесса сначала запускается 
+отладчик. При генерации исключения в процессе, выполняемом в любой из таких 
+систем, этот процесс надо завершить, запустить отладчик и прогнать про грамму 
+уже под отладчиком Проблема, правда, в том, что ошибку надо сначала вос 
+произвести; лишь потом можно попытаться ее исправить. А кто знает, какие значе 
+ния были у переменных, когда Вы впервые заметили ошибку? Поэтому найти ее та 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ким способом 
+гораздо труднее Возможность динамически подключать отладчик к уже запущенному 
+процессу — одно из лучших качеств Windows.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 2000 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>В 
+  этой книге рассматривается разработка приложений, работающих только в 
+  пользовательском режиме. Но, наверное, Вас интересует, что происходит, ког да 
+  необработанное исключение возникает в потоке, выполняемом в режиме ядра. Так 
+  вот, исключения в режиме ядра обрабатываются так же, как и исклю чения 
+  пользовательского режима. Если низкоуровневая функция для работы с виртуальной 
+  памятью возбуждает исключение, система проверяет, есть ли фильтр режима ядра, 
+  готовый обработать это исключение Если такого филь тра нет, оно остается 
+  необработанным В этом случае необработанное исклю чение окажется в 
+  операционной системе или (что вероятнее) в драйвере уст ройства, а не в 
+  приложении А это уже серьезно! </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так как 
+дальнейшая работа системы после необработанного исключения в режиме ядра 
+небезопасна, Windows не вызывает <I>UnhandledExceptionFilter. </I>Вме сто этого 
+появляется так называемый "синий экран смерти" экран переклю чается в текстовый 
+режим, окрашивается в синий фон, выводится информа ция о модуле, вызвавшем 
+необработанное исключение, и система останавли вается Вам следует записать эту 
+информацию и отправить ее в Microsoft или поставщику драйвера устройства. Прежде 
+чем продолжить работу, придется перезагрузить машину; при этом все несохраненные 
+данные теряются. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t1></A>Отладка по запросу </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 
+позволяет подключать отладчик к любому процессу в любой момент време ни — эта 
+функциональность называется отладкой по запросу (just-in-time debugging). В этом 
+разделе я расскажу, кяк она работает Щелкнув кнопку Cancel, Вы сообщаете функции 
+<I>UnhandledExceptionFilter </I>о том, что хотиге начать отладку процесса. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+активизации отладчика <I>UnhandledExceptionFilter </I>просматривает<I> 
+</I>раздел реестра.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+установили Visual Studio, то содержащийся в этом разделе параметр Debug ger 
+имеет следующее значение: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>"C:\Program 
+  Files\Microsoft Visual Studio\Common\MSDev98\Bin\msrtev Rxe" -p %ld -e 
+  %ld</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>В 
+  Windows 98 соответствующие значения хранятся не в реестре, а в файле Win.ini. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Строка, 
+приведенная выше, сообщает системе, какой отладчик надо запустить (в данном 
+случае — MSDev.exe). Естественно, Вы можете изменить это значение, указав другой 
+отладчик. <I>UnhandiedExceptionFilter </I>передает отладчику два параметра в 
+коман дной строке Первый — это идентификатор процесса, который нужно отладить, а 
+второй — наследуемое событие со сбросом вручную, которое создается функцией 
+<I>UnhandiedExceptionFilter </I>в занятом состоянии. Отладчик должен 
+распознавать ключи <I>-p </I>и <I>-e </I>как идентификатор процесса и описатель 
+события </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Сформировав 
+командную строку из идентификатора процесса и описателя собы тия, 
+<I>UnhandledExceptionFiltet </I>запускает отладчик вызовом <I>CreateProcess. 
+</I>Отладчик про </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>веряет 
+аргументы в командной строке и, обнаружив ключ -p, подключается к соот 
+ветствующему процессу вызовом <I>DebugActiveProcess-</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  DebugActiveProcess(DWORD dwProcessID); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После этого 
+система начинает уведомлять отладчик о состоянии отлаживаемого процесса, 
+сообщая, например, сколько в нем потоков и кякие DLL спроецированы на его 
+адресное пространство. На сбор этих данных отладчику нужно какое-то время, в 
+течение которого поток <I>UnhandledExceptionFilter </I>должен находиться в 
+режиме ожи дания. Для этого функция вызывает <I>WaitForSingleObject </I>и 
+передает описатель создан ного ею события со сбросом вручную. Как Вы помните, 
+оно было создано в занятом состоянии, поэтому поток отлаживаемого процесса 
+немедленно приостанавливается и ждет освобождения этого события </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив 
+инициализацию, отладчик вновь проверяет командную строку — на этот раз он ищет 
+ключ <I>-e. </I>Найдя его, отладчик считывает оиисатель события и вызывает 
+<I>SetEvent. </I>Он может напрямую использовать этот наследуемый описатель, 
+поскольку процесс отладчика является дочерним по отношению к отлаживаемому 
+процессу, который и породил его, вызвав <I>UnhandledExceptionFilter.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Переход 
+события в свободное состояние пробуждает поток отлаживаемого про цесса, и он 
+передает отладчику информацию о необработанном исключении. Полу чив эти данные, 
+отладчик загружает соответствующий файл исходного кода и Пере ходит к команде, 
+которая вызвала исключение. Вот это дейстничельно круто! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, 
+совсем не обязательно дожидаться исключения, чгобы начать отладку. Отладчик 
+можно подключить в любой момент командой "MSDEV -p <I>PID</I>"<I>, </I>где PID — 
+идентификатор отлаживаемого процесса. Task Manager в Windows 2000 еще больше 
+упрощает эту задачу. Открыв вкладку Process, Вы можете щелкнуть строку с нужным 
+процессом правой кнопкой мыши и выбрать из контекстного меню команду Debug. В 
+ответ Task Managcr обратится к только что рассмотренному разделу реестра и вы 
+зовет <I>CreatуProcess, </I>передав ей идентификатор выбранного процесса Но 
+вместо опи сателя события Task Manager передаст 0. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t2></A>Отключение вывода сообщений об исключении </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иногда нужно, 
+чтобы окно с сообщением об исключении нс появлялось на экране, — например, в 
+готовом программном продукте. Ведь если такое окно появится, пользо ватель может 
+случайно перейти в режим отладки Вашей программы. Стоит ему толь ко щелкнуть 
+кнопку Cancel, и он шагнет на незнакомую и страшную территорию попадет в 
+отладчик. Поэтому предусмотрено несколько способов, позволяющих из бежать 
+появления этого окна на экране. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t2p1></A>Принудительное завершение процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Запретить 
+функции <I>UnhandledExceptionFilter </I>вывод окна с сообщением об исключе нии 
+можно вызовом <I>SetErrorMode </I>с передачей идентификатора SEM_NOGPFAULT 
+ERKORBOX:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>UINT 
+  SetErrorMode(UINT fuErrorMode); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Тогда 
+<I>UnhandledExceptionFilter, </I>вызванная для обработки исключения, немедлен но 
+вернет EXCEPTION_EXECUTE_HANDLER, что приведет к глобальной раскрутке и 
+выполнению обработчика в <I>BaseProcessStart </I>или <I>BaseThreudStart, 
+</I>который закроет процесс. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Лично мне 
+этот способ не нравится, так как пользователь нс получает никакого 
+предупреждения — приложение просто исчезает. </FONT></P>
+<P></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t2p2></A>Создание оболочки вокруг функции потока </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Другой способ 
+состоит в том, что Вы помещаете входную функцию первичного по тока <I>(main, 
+wmain, WinMain </I>или <I>wWinMairi) </I>в блок <I>try-except. </I>Фильтр 
+исключений дол жен всегда возвращать EXCEPTION_EXECUTE_HANDLER, чтобы исключение 
+действи тельно обрабатывалось; это предотвратит вызов 
+<I>UnbandledExceptionFilter.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В обряботчике 
+исключений Вы выводите на экран диалоговое окно с какой-ни будь диагностической 
+информацией. Пользователь может скопировать эту информа цию и передать ее в 
+службу технической поддержки Вашего приложения, что помо жет выявить источник 
+проблем. Это диалоговое окно надо разработать так, чтобы пользователь мог 
+завершить приложение, но не отлаживать. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этому способу 
+присущ один недостаток: он позволяет перехватывать только те исключения, которые 
+возникают в первичном потоке Если исключение происходит в любом другом потоке 
+процесса, система вызывает функцию <I>UnhandledExceptionFilter. </I>Чтобы 
+вывернуться из этой ситуации, придется также включить блоки <I>try-except </I>во 
+входные функции всех вторичных потоков Вашего процесса. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t2p3></A>Создание оболочки вокруг всех функций потоков </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>SetUnhandledExceptionFilter </I>позволяет включать все функции потоков в SEH 
+фрейм:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PTOP_LEVEL_EXCEPTION_FILTER SetUnhandledExceptionFilter( 
+  PTOP_LEVEL_EXCEPTION_FILTER pTopLevelExceptionFilter); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После ее 
+вызова необработанное исключение, возникшее в любом из потоков процесса, 
+приведет к вызову Вашего фильтра исключений Адрес фильтра следует передать в 
+единственном параметре функции <I>SetUnhandledExceptionFilter. </I>Прототип этой 
+функции-фильтра должен выглядеть так:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  UnhandledExceptionFilter(PEXCEPTION_POINTCRS pExceptionInfo); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По форме она 
+идентична функции <I>UnhandledExceptionFilter </I>Внутри фильтра мож но 
+проводить любую обработку, а возвращаемым значением должен быть один из трех 
+идентификаторов типа EXCEPTION_*. В следующей таблице описано, что происходит в 
+случае возврата каждого из идентификаторов. </FONT></P>
+<TABLE height=193 cellSpacing=0 cellPadding=0 rules=all width=507 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=222 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентификатор </FONT></P></TD>
+    <TD vAlign=top align=left width=460 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Действие </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=222 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>EXCEPTION_EXECUTE_HANDLER </FONT></P></TD>
+    <TD vAlign=top align=left width=460 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Процесс 
+      просто завершается, так как система не выполняет никаких операций в своем 
+      обработчи ке исключений </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=222 height=74>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>EXCEPTION_CONTINUE_EXECUTION </FONT></P></TD>
+    <TD vAlign=top align=left width=460 height=74>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Выполнение продолжается с инструкции, выгнав шей исключение; Вы 
+      можете модифицировать ин формацию об исключении, па которую указывает 
+      параметр типа PEXCEPTION_POINTERS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=222 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>EXCEPTION_CONTINUE_SEARCH </FONT></P></TD>
+    <TD vAlign=top align=left width=460 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Выполняется обычная Windows-функция <I>UnhandledExceptionFilter</I> 
+      </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы функция 
+<I>UnhandledExceptionFilter </I>вновь стала фильтром по умолчанию, вызовите 
+<I>SetUnhandledExceptinnFilter </I>со значением NULL, Заметьте также, что всякий 
+раз, когда устанавливается новый фильтр для необработанных исключений, 
+<I>SetUn</I></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>handledExceptionFilter </I>возвращает адрес ранее установленного 
+фильтра. Если таким фильтром была <I>UnhandledExceptionFilter, </I>возвращается 
+NULL. Если Ваш фильтр возвра щает EXCEPTION_CONTINUE_SEARCH, Вы должны вызывать 
+ранее установленный фильтр, адрес которого вернула 
+<I>SetUnbandledExceptionFilter.</I> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t2p4></A>Автоматический вызов отладчика </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это последний 
+способ отключения окна с сообщением об исключении. В уже упомя нутом разделе 
+реестра есть еще один параметр — Auto; его значение может быть либо 0, либо 1, В 
+последнем случае <I>UnhandledExceptionFilter </I>не выводит окно, но сра зу же 
+вызывает отладчик. А при нулевом значении функция выводит сообщения и работает 
+так, как я уже рассказывал. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t3></A>Явный вызов функции UnhandledExceptionFilter </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>UnhandledExceptionFilter </I>полностью задокументирована, и Вы можете сами 
+вызывать ее в своих программах. Вот пример ее использования: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  Funcadelic() <BR>{</FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (ExpFltr(GetExceptionTnformation())) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  ExpFltr(PEXCEPTION_POINTERS pEP) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwExceptionCode - pEP-&gt;ExceptionRecord.ExceptionCode; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (dwExceptionCode == EXCEPTION_ACCESS_VIOLATION) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// что-то 
+      делаем здесь... <BR>return(EXCEPTION_CONTINUE_EXFCUTION); 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(UnhandledExceptionFilter(pEP)); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Исключение в 
+блоке <I>try </I>функции <I>Funcadelic </I>приводит к вызову <I>ExpFltr. </I>Ей 
+переда ется значение, возвращаемое <I>GetExceptionlnformation. </I>Внутри 
+фильтра определяется код исключения и сравнивается с EXCEPTION_ACCESS_VIOLATION. 
+Если было нару шение доступа, фильтр исправляет ситуацию и возвращает 
+EXCEPTION_CONTI NUE_EXECUTION. Это значение заставляет систему возобновить 
+выполнение програм мы с инструкции, вызвавшей исключение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+произошло какое-то другое исключение, <I>ExpFltr </I>вызывает <I>UnhandledExcep 
+tionFilter, </I>передавая ей адрес структуры EXCEPTION_POINTERS. Функция 
+<I>Unhandled ExceptionFilter </I>открывает окно, позволяющее завершить процесс 
+или начать отладку. Ее возвращаемое значение становится и результатом функции 
+<I>ExpFltr.</I> </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t4></A>Функция UnhandledExceptionFilter изнутри </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Начав 
+работать с исключениями, я решил, что можно извлечь массу информации, если 
+детально вникнуть в механизм работы функции <I>UnhandledExceptionFilter. 
+</I>Поэтому я тщательно его исследовал. Вот что делает функция 
+<I>UnhandledExceptionFilter.</I> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1. Если 
+возникло нарушение доступа и его причина связана с попыткой записи, система 
+проверяет, не пытались ли Вы модифицировать ресурс в EXE- или DLL модуле. По 
+умолчанию такие ресурсы предназначены только для чтения. Од нако 16-разрядная 
+Windows разрешала модифицировать эти ресурсы, и из соображений обратной 
+совместимости такие<B> </B>операции должны поддерживать ся как в 32-, так и в 
+64-разрядной Windows Поэтому, когда Вы пытаетесь мо дифицировать ресурс, 
+<I>UnhandledExeptionFilter </I>вызывает <I>VirtualProtect </I>для из менения 
+атрибута защиты страницы с этим ресурсом на PAGE_READWRTTE и возвpamae 
+EXCEPTION_CONTINUE_EXECUTION. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>2. Если Вы 
+установили свой фильтр вызовом <I>SetUnhandledExceptionFilter, </I>функция 
+<I>UnhandledExceptionFilter </I>обращается к Вашей функции фильтра. И если она 
+возвращает EXCEPTION_EXECUTE_НANDLER или EXCEPTION_CONTINUE_EXE CUTION, 
+<I>UnhandledExceptionFilter </I>передает<I> </I>его системе. Но, если Вы не 
+устанав ливали свой фильтр необработанных исключений или если функция фильтра 
+возрращает EXCEPTION_CONTINUE_SEARCH, <I>UnhandledExceptionFilter </I>перехо дит 
+к операциям, описанным в п. 3 </FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Из-за ошибки в Windows 98 Ваша функция фильтра необработанных исклю 
+  чений вызывается, только если к процессу не подключен отладчик. По той же 
+  причине в Windows 98 невозможна отладка программы Spreadsheet, представ ленной 
+  в следующем разделе </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3. Если Ваш 
+процесс выполняется под управлением отладчика, то возвращается 
+EXCEPTION_CONTINUE_SEARCH. Это может показаться странным, так как сис тема уже 
+выполняет самый «верхний» блок <I>try </I>или <I>except </I>и другого фильтра 
+выше по дереву вызовов просто нст lIo, обнаружив этот факт, система сооб щит 
+отладчику о необработанном исключении в подопечном ему процессе. В ответ на это 
+отладчик выведет окно, где предложит пачать отладку (Кстати, функция 
+<I>IsDebuggerPresent </I>позволяет узнать, работает ли данный процесс под 
+управлением очладчика.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>4. Если поток 
+в Вашем процессе вызовет <I>SetErrorMode </I>с флагом SEM_NOGPFAUL TERRORBOX, то 
+<I>UnhandledExceptionFilter </I>вернет EXCEPTION_EXECUTE_HANDLER. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>5. Если 
+процесс включен в задание (см. главу 5), на которое наложено ограниче ние 
+JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, то <I>UnhandledExcep tionFtlter 
+</I>также<I> </I>вернет EXCEPTION_EXECUTE_HANDLER</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Windows 98 не поддерживает задания, и в ней этот этап 
+  пропускается.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>6. 
+<I>UnhandledExceptionFilter </I>считывает в реестре значение параметра Auto. 
+Если оно равно 1, происходит переход на этап 7, в ином случае выводится окно с 
+информацией об исключении. Если в реестре присутствует и параметр Debug ger, в 
+этом окне появляются кнопки OK и Cancel. A если этого параметра нет — только 
+кнопка ОК. Как только пользователь щелкнет кнопку OK, функция 
+<I>UnbandledExceptionFilter </I>вернет EXCEPTION_EXECUTE_HANDLER. Щелчок кноп ки 
+Cancel (если она ссть) вызывает переход на следующий этап.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>В 
+  Windows 98 упомянутые параметры хранятся не в реестре, а в файле Win.ini. 
+  </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>7. На этом 
+этапе <I>UnhandledExceptionFilter </I>запускает отладчик как дочерний про цесс. 
+Но сначала создает событие со сбросом вручную в занятом состоянии и наследуемым 
+описателем. Затем извлекает из реестра значение параметра Debugger и вызывает 
+<I>sprintf </I>для<I> </I>вставки идентификатора процесса (получен ного через 
+функцию <I>GetCurrentProcessd) </I>и описателя события в командную строку. 
+Элементу <I>lpDesktop </I>структуры STARTUPINFO присваивается значение 
+"Winsta0\\Default", чтобы отладчик был доступен в интерактивном рсжимс на 
+рабочем столе. Далее вызывается <I>CreateProcess </I>со значением TRUE в парамет 
+ре <I>bInherttHandles, </I>благодаря чему отладчик получает возможность 
+наследовать описатель объекта "событие" После этого <I>UnhandledExceptionFilter 
+</I>ждет<I> </I>завер шения инициализации отладчика, вызвав 
+<I>WaitForSingleObjectEx </I>с передачей ей описателя события. Заметьте, что 
+вместо <I>WaitForSingleObject </I>используется <I>Wait ForSingleObjectEx </I>Это 
+заставляет поток ждать в "тревожном* состоянии, кото рое позволяет ему 
+обрабатывать все поступающие AРС-вызовы. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>8. Закончив 
+инициализацию, отладчик освобождает- событие, и поток <I>Unbandled 
+ExceptionFilter </I>пробуждается. Теперь, когда процесс находится под управлени 
+ем отладчика, <I>UnbandledExceptionFilter </I>возвращает EXCEPTION_CONTINUE_ 
+SEARCH. Обратите внимание: все, что здесь происходит, точно соответствует этапу 
+3. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t5></A>Исключения и отладчик </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Отладчик 
+Microsoft Visual C++ предоставляет фантастические возможности для отлад ки после 
+исключений Когда поток процесса вызывает исключение, операционная система 
+немедленно уведомляет об этом отладчик (если он, конечно, подключен). Это 
+уведомление называется "первым предупреждением" (first-chance notification). 
+Реаги руя на него, отладчик обычно заставляет поток искать фильтры исключений. 
+Если все фильтры возвращают EXCEPTION_CONTINUE_SEARCH, операционная система 
+вновь уведомляет отладчик, но на этот раз даст "последнее предупреждение" 
+(last-chance notification). Существование этих двух типов предупреждений 
+обеспечивает больший контроль за отладкой при исключениях </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+сообщить отладчику, как реагировать на первое предупреждение, исполь зуйте 
+диалоговое окно Exceptions отладчика. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=204 alt=rihter25-3.jpg src="images/rihter25-3.jpg" 
+width=421> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+оно содержит список всех исключений, определенных в системе. Для каждого из них 
+сообщаются 32-битный код, текстовое описание и ответные действия отладчика. Я 
+выбрал исключение Access Violation (нарушение доступа) и указал для него Stop 
+Always. Теперь, если поток в отлаживаемом процессе вызовет это исключе ние, 
+отладчик выведет при первом предупреждении следующее окно. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=116 alt=rihter25-4.jpg src="images/rihter25-4.jpg" 
+width=432> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К этому 
+моменту поток еще <I>не </I>получал шанса на поиск фильтров исключений Сейчас я 
+могу поместить в исходный код точки прерывания, просмотреть значения переменных 
+или проверить стек вызовов потока Пока ни один фильтр не выполнял ся — 
+исключение произошло только что Когда я попытаюсь начать пошаговую от ладку 
+программы, на экране появится новое окно </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=119 alt=rihter25-5.jpg src="images/rihter25-5.jpg" 
+width=319> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кнопка Cancel 
+вернст нас в отладчик Кнопка No заставит поток отлаживаемого процесса повторить 
+выполнение неудавшейся машинной команды При большинстве исключений повторное 
+выполнение команды ничего не даст, так как вновь вызовет исключение Однако, если 
+исключение было сгенерировано с помощью функции <I>RaiыeException, </I>это 
+позволит возобновить выполнение потока, и он продолжит рабо ту, как ни в чем ни 
+бывало Данный метод может быть особенно полезен при отладке программ на С++ 
+получится так, будто оператор <I>throw </I>никогда не выполнялся (К обработке 
+исключений в С++ мы вернемся в конце главы) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец 
+кнопка Yes разрешит потоку отлаживаемого процесса начать поиск фильтров 
+исключений Если фильтр исключения, возвращающий EXCEPTION_EXE CUTE_HANDLER или 
+EXCEPTION_CONTINUE_EXECUTION, найден, то все хорошо и поток продолжает работу 
+Еспи же все фильтры вернут EXCEPTION_CONTINUE_ SEARCH, огладчик получит 
+последнее предупреждение и выведет окно с сообщением, аналогичным тому, которое 
+показано ниже </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=118 alt=rihter25-6.jpg src="images/rihter25-6.jpg" 
+width=425> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Здесь Вам 
+придется либо начать отладку, либо закрыть приложение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я 
+продемонстрировал Вам, что случится, ссли ответным действием отладчика выбран 
+вариант Stop Always Но для большинства исключений по умолчанию предла гается 
+варианг Stop If Not Handled B этом случае отладчик, получив первое предуп 
+реждение, просто сообщает о нсм в своем окне Output. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=261 alt=rihter25-7.jpg src="images/rihter25-7.jpg" 
+width=506> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После этого 
+отладчик разрешит потоку искать подходящие фильтры и, только если исключение не 
+будет обработано, откроет следующее окно </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=113 alt=rihter25-8.jpg src="images/rihter25-8.jpg" 
+width=427> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Очень важно помнить, что первое предупреждение вовсе не говорит о 
+  каких либо проблемах или "жучках" в приложении В сущности, оно появляется толь 
+  ко при отладке. Отладчик просто сообщает о возникновении исключения, и, если 
+  после эгого он не выводит уже известное Вам окно, это означает лишь одно 
+  фильтр обработал исключение, приложение продолжает нормально ра ботать. А вот 
+  последнее предупреждение говорит о том, что в Вашей програм ме есть некая 
+  проблема, которую надо устранить. </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прежде чем 
+закончить обсуждение этой темы, хотелось бы упомянуть еще об од ной особенности 
+диалогового окна Exceptions отладчика Оно полностью поддержи вает любые 
+определяемые Вами программные исключения. От Вас требуется лишь указать 
+уникальный числовой код исключения, сго название и ответное действие от ладчика, 
+а затем, щелкнув киопку Add, добавить это повое исключение в список По смотрите, 
+как это сделал я, определив собственное исключение. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=209 alt=rihter25-9.jpg src="images/rihter25-9.jpg" 
+width=415> </FONT></P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t5p1></A>Программа-пример Spreadsheet </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этя 
+программа, «25 Spreadsheet.exe» (см. листинг на рис. 25-1), демонстрирует, как 
+передавать физическую память зарезервированному региону адресного простран ства 
+— но не всему региону, а только его областям, нужным в данный момент. Алго ритм 
+опирается на структурную обработку исключений. Файлы исходного кода и ре сурсов 
+этой программы находятся в каталоге 25-Spreadshect на компакт-диске, при 
+лагаемом к книге. После запуска Spreadsheet на экране появляется диалоговое 
+окно, показанное ниже. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=294 alt=rihter25-10.jpg src="images/rihter25-10.jpg" 
+width=253> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Программа 
+Spreadsheet резервирует регион для двухмерной таблицы, содержащей 256 строк и 
+1024 колонки, с размером ячеек по 1024 байта Если бы программа за ранее 
+передавала физическую память под всю таблицу, то ей понадобилось бы 268 435 456 
+байтов, или 256 Мб. Поэтому для экономии драгоценных ресурсов про грамма 
+резервирует в своем адресном пространстве регион размером 256 Мб, нс пе редавая 
+ему физическую память. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, 
+пользователь хочет поместить значение 12345 в ячейку на пересечении строки 100 и 
+колонки 100 (как на предыдущей иллюстрации) Кактолько он щелкнет кнопку Write 
+Cell, программа попытается записать это значение в указанную ячейку таблицы. 
+Естественно, это вызовет нарушение доступа. Но, так как я использую в про грамме 
+SEH, мой фильтр исключений, распознав попытку записи, выведет в нижней части 
+диалогового окна сообщение «Violation: Attempting to Write», передаст память под 
+нужную ячейку и заставит процессор повторить выполнение команды, возбудив шей 
+исключение Теперь значение будет сохранено в ячсйкс таблицы, поскольку этой 
+ячейке нередана физическая память. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проделаем еще 
+один эксперимент. Попробуем считать значение из ячейки на пересечении строки 5 и 
+колонки 20 Этим мы вновь вызовем нарушение доступа. На этот раз фильтр 
+исключений не передаст память, а выведет в диалоговом окне сооб щение 
+«Violation: Attempting to Read». Программа корректно возобновит свою работу 
+после неудавшейся попытки чтения, очистив поле Value диалогового окна. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третий 
+эксперимент: попробуем считать значение из ячейки на пересечении стро ки 100 и 
+колонки 100. Так как этой ячейке передана физическая память, никаких ис ключений 
+не возбуждается, и фильтр не выполняется (что положительно сказывается на 
+быстродействии программы). Диалоговое окно будет выглядеть следующим об разом. 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ну и 
+последний эксперимент запишем значение 54321 в ячейку на пересечении строки 100 
+и колонки 101 Эта операция пройдет успешно, без исключений, потому что данная 
+ячейка находится на тоЙ жс странице памяти, что и ячейка (100, 100) В 
+подтверждение этого Вы увидите сообщение "No Violation raised" в нижней части 
+диалогового окна </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=608 alt=rihter25-11.jpg src="images/rihter25-11.jpg" 
+width=539> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В своих 
+проектах я довольно часто пользуюсь виртуальной памятью и SEH. Как то раз я 
+решил создать шаблонный С++-класс CVMArray, который инкапсулирует все, что нужно 
+для использования этих механизмов Его исходный код содержится в фай ле VMArrayh 
+(он является частью программы-примера Spreadsheet) Вы можете рабо тать с классом 
+CVMArray двумя способами Во-первых, просто создать экземпляр это го класса, 
+передав конструктору максимальное число элементов массива Класс авто матически 
+устанавливает действующий на уровне всего процесса фильтр необрабо танных 
+исключений, чтобы любое обращение из любого потока к адресу в виртуаль ном 
+массиве памяти заставляло фильтр вызывать <I>VirtualAlloc </I>(для передачи 
+физичес кой памяти новому элементу) и возвращать EXCEPTION_CONTINUE_EXFCUTION Ta 
+кое применение класса CVMArray позволяет работать с разреженной памятью (sparse 
+storage), не забивая SEH-фреймами исходный код программы Единственный недоста 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ток в том, 
+что Ваше приложение не сможет возобновить корректную работу, если по каким то 
+причинам передать память не удается </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй способ 
+использования CVMArray — создание производного С++-класса Производный класс даст 
+Вам все преимущества базового класса, и, кроме того, Вы сможете расширить его 
+функциональность — например, заменив исходную виртуаль ную функцию 
+<I>OnAccessViolation </I>собственной реализацией, более аккуратно обрабаты 
+вающей нехватку памяти Программа Spreadsheet как раз и демонстрирует этот спо 
+соб использования класса CVMArray. </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/25-Spreadsheet.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>Spreadsheet</A></FONT></P>
+<P>&nbsp;</P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t6></A>Исключения С++ и структурные исключения </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разработчики 
+часто спрашивают меня, что лучше использовать: SEH или исключения С++. Ответ на 
+этот вопрос Вы найдете здесь. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для начала 
+позвольте напомнить, что SEH — механизм операционной системы, доступный в любом 
+языке программирования, а исключения С++ поддерживаются только в С++. Создавая 
+приложение на С++, Вы должны использовать средства имен но этого языка, а не 
+SEH. Причина в том, что исключения С++ — часть самого языка и его компилятор 
+автоматически создает код, который вызывает деструкторы объектов и тем самым 
+обеспечивает корректную очистку ресурсов. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Однако Вы 
+должны иметь в виду, что компилятор Microsoft Visual С++ реализует обработку 
+исключений С++ на основе SEH операционной системы. Например, когда Вы создаете 
+С++-блок <I>try, </I>компилятор генерирует SEH-блок _<I>try. </I>С++-блок 
+<I>catch </I>ста новится SEH-фильтром исключений, а код блока <I>catch — 
+</I>кодом SEH-блока __<I>except. </I>По сути, обрабатывая С++-оператор <I>throw, 
+</I>компилятор генерирует вызов Windows функции <I>RaiseException, </I>и 
+значение переменной, указанной в <I>throw, </I>передастся этой функции как 
+дополнительный аргумент. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Сказанное 
+мной поясняет фрагмент кода, показанный ниже. Функция слева ис пользует средства 
+обработки исключений С++, а функция справа демонстрирует, как компилятор С++ 
+создает соответствующие им SEH-эквиваленты. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  ChunkyFunky() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// тело 
+      блока try <BR>... </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>throw 5; 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>catch (int 
+    x) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// тело 
+      блока catch <BR>... </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  ChunkyFunky() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// тело 
+      блока try <BR>... <BR>RaiseException(Code=OxE06D7363, 
+      Flag=EXCEPTION_NONCONTINUABLE,Args=5); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_except 
+    ((ArgType == Integer) ? EXCEPTION_EXECUTE_HANDLER : 
+    EXCEPTION_CONTINUE_SFARCH) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// тело 
+      блока catch <BR>... </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание на несколько интересных особенностей этого кода. Во-пер вых, 
+<I>RaiseExeption </I>вызывается с кодом исключения 0xE06D7363- Это код программ 
+ного исключения, выбранный разработчиками Visual C++ на случай выталкивания 
+(throwing) исключений С++ Вы можете сами в этом убедиться, открыв диалоговое 
+окно Exceptions отладчика и прокрутив его список до конца, как на следующей ил 
+люстрации. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=210 alt=rihter25-12.jpg src="images/rihter25-12.jpg" 
+width=416> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте 
+также, что при выталкивании исключения С++ всегда используется флаг 
+EXCEPTION_NONCONTINUABLE. Исключения С++ не разрешают возобновлять выпол нение 
+программы, и возврат EXCEPTION_CONTINUE_EXECUTION фильтром, диагно стирующим 
+исключения С++, был бы ошибкой. Если Вы посмотрите на фильтр _<I>except </I>в<I> 
+</I>функции справа, то увидите, что он возвращает только EXCEPTION_EXECUTE_HAND 
+LER или EXCEPTION_CONTINUE_SEARCH. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Остальные 
+аргументы <I>RaiseException </I>используются механизмом, который факти чески 
+выталкивает (throw) указанную переменную. Точный механизм того, как дан ные из 
+переменной передаются <I>RaiseExceplion, </I>не задокументирован, но догадаться 
+о его реализации в компиляторе нс так уж трудно. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее, 
+о чем хотелось бы сказать Назначение фильтра __<I>except — </I>сравни вать тип 
+<I>throw</I>-переменных с типом переменной, используемой в С++-операторе 
+<I>catch. </I>Если их типы совпадают, фильтр возвращает 
+EXCEPTION_EXECUTE_HANDLER, вызы вая выполнение операторов в блоке <I>catch 
+</I>(_<I>except) </I>А если они нс совпадают, фильтр возвращает 
+ЕХСЕРТION_СОМTINUE_SЕАRСНдля проверки "вышестоящих" подереву вызовов фильтров 
+<I>catch.</I> </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE: 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>Так 
+  как исключения С++ реализуются через SEH, оба эти механизма можно ис 
+  пользовать в одной программе. Например, я предпочитаю передавать физичес кую 
+  память при исключениях, вызываемых нарушениями доступа Хотя С++ во обще не 
+  поддерживает этот тип обработки исключений (с возобновлением вы полнения), он 
+  позволяет применять SEH в тсх местах программы, где это нуж но, и Ваш фильтр 
+  _<I>except </I>может возвращать EXCEPTION_CONTINUE_EXECU TION Ну а в остальных 
+  частях исходного кода, где возобновление выполне ния после обработки 
+  исключения нс требуется, я пользуюсь механизмом об работки исключений, 
+  предлагаемым С++. </FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h25t6p1></A>Перехват структурных исключений в С++ </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно 
+механизм обработки исключений в С++ не позволяет приложению восста новиться 
+после таких серьезных исключений, как нарушение доступа или деление на нуль. 
+Однако Microsoft добавила поддержку соответствующей функциональности в свой 
+компилятор. Так, следующий код предотвратит аварийное завершение 
+процесса.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void main() 
+  <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>* (PBYTE) 
+      0 = 0; // нарушение доступа </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>catch ( ..) 
+    <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// этот 
+      код обрабатывает исключения, связанные с нарушением доступа 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// процесс 
+    завершается корректно </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+size=2>}</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И это 
+прекрасно, так как приложение может корректно справляться с серьезны ми 
+исключениями. Но было бы еще лучше, если бы блок <I>catch </I>как-то различал 
+коды исключений — чтобы мы могли писать, например, такой исходный код 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  Functastic() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>* (PBYTE) 
+      0 = 0; // нарушение доступа </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int x = 0; 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>x = 5 / x; 
+      // деление на нуль </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>catch 
+    (StructuredFxception) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+      (StructuredExceptionCode) <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+        EXCEPTION_ACCESS_VIOLATION:</FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          здесь обрабатывается нарушение доступа <BR>break; 
+        </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+        EXCEPTION_INT_OIVIDE_BY_ZERO: </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          здесь обрабатывается деление на нуль <BR>break; </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>default: 
+        </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          другие исключения мы не обрабатываем throw; <BR>// может, какой-нибудь 
+          другой блок catch <BR>// обработает это исключение 
+        </FONT></P></BLOCKQUOTE></BLOCKQUOTE></BLOCKQUOTE></BLOCKQUOTE></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <BLOCKQUOTE>
+    <BLOCKQUOTE>
+      <BLOCKQUOTE>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>break; 
+          </FONT></P>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          никогда не выполняется </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так вот, хочу 
+Вас порадовать. В Visual С++ теперь возможно и такое. От Вас потре буется 
+создать С++-класс, используемый специально для идентификации структурных 
+исключений. Например:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#include 
+  &lt;eh.h&gt; // для доступа к _set_se_translator </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>class 
+  CSE<BR>{</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>public:</FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вызовите 
+    эту функцию для каждого потока </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>static void 
+    MapSEtoCE() { _set_se_translator(TranslateSEtoCE); } </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>operator 
+    DWORD() { return(m_er.ExcepUonCude); } </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>privale: 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CSE(PEXCEPTION_POINTERS pep) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>m_er = 
+    *pep-&gt;ExceptionRecord; <BR>m_context = *pep-&gt;ContextRecord; 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>static void 
+  _cdecl TranslateSEtoCE(UINT dwEC, PEXCEPTION_POINTERS pep) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>throw 
+    CSE(pep); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>private: 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>EXCEPTION_RECORD m_er; <BR>// машинно-независимая информация ofi 
+    исключении </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>CONTEXT 
+    m_context; <BR>// машинно-зависимая информация об исключении 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>};</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Внутри 
+входных функций потоков вызывайте статическую функцию-член <I>Map SEtoCE. </I>В 
+свою очередь она обращается к библиотечной С-функции <I>_set_sefranslator, 
+</I>передавая ей адрес функции <I>TranslateSEtoCE </I>класса CSE. Вызов 
+<I>_set_se_translator </I>сооб щает С++, что при возбуждении структурных 
+исключений Вы хотите вызывать <I>Trans lateSEtoCE. </I>Эта функция вызывает 
+конструктор CSE-объектя и инициализирует два элемента данных машинно-зависимой и 
+машинно-независимой информацией об исключении. Созданный таким образом 
+CSE-объскт может быть вытолкнут ак же, как и любая другая переменная. И теперь 
+Ваш С++-код способен обрабатывать структур ные исключения, захватывая (catching) 
+переменную этого типа. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот пример 
+захвата такого С++-объекта.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  Functastic() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>CSE::MapSEtoCE(); // должна быть вызвана до возникновения исключений 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>* (PBYTE) 
+      0 = 0; // нарушение доступа </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int x = 0; 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>x = 5 / x; 
+      // деление на нуль </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>catch (CSE 
+    se) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+      (se) <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        вызывает функцию-член оператора DWORD() </FONT></P>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case<B> 
+        </B>EXCEPTION_ACCESS_VIOLATION </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          здесь обрабатывается исключение вызванное нарушением доступа 
+          <BR>break; </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+        EXCEPTION_INT_DIVIDE_BY_ZERO </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          здесь обрабатывается исключение, вызванное делением на нуль <BR>break; 
+          </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>default: 
+        </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          другие исключения мы не обрабатываем throw; <BR>// может, какой-нибудь 
+          другой блок catch <BR>// обработает это исключение <BR>break; 
+          </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        никогда не выполняется </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P>
+<A href="head24.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head26.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

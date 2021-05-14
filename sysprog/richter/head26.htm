@@ -1,0 +1,1374 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><B><FONT 
+color=#990000>ЧАСТЬ VI </FONT></B></FONT><FONT color=#990000><B><FONT 
+face="Times New Roman, Times, serif" size=3>ОПЕРАЦИИ С ОКНАМИ 
+</FONT></B></FONT></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h26></A>ГЛАВА 26 Оконные сообщения </FONT></B></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этой главе 
+я расскажу, как работает подсистема передачи сообщений в Windows применительно к 
+приложениям с графическим пользовательским интерфейсом Раз рабатывая подсистему 
+управления окнами в Windows 2000 и Windows 98, Microsoft преследовала две 
+основные цели </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>обратная 
+  совместимость с 16-разрядной Windows, облегчающая перенос суще ствующих 
+  16-разрядных приложении, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>отказоустойчивость подсистемы управления окнами, чтобы ни один поток не 
+  мог нарушить работу других потоков в системе </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К сожалению, 
+эти цели прямо противоречат друг другу В 16-разрядной Windows передача сообщения 
+в окно всегда осуществляется синхронно отправитель не может продолжить работу, 
+пока окно не обработает полученное сообщение Обычно так и нужно Но, если на 
+обработку сообщения потребуется длительное время или если окно «зависнет», 
+выполнение отправителя просто прекратится А значит, такая операцион ная система 
+не вправе претендовать на устойчивость к сбоям </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это 
+противоречие было серьезным вызовом для команды разработчиков из Micro soft В 
+итоге было выбрано компромиссное решение, отвечающее двум вышеупомя нутым целям 
+Помните о них, читая эту главу, и Вы поймете, почему Microsoft сделала именно 
+такой выбор </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для начала 
+рассмотрим некоторые базовые принципы Один процесс в Windows может создать до 10 
+000 User-объектов различных типов — значков, курсоров, окон ных классов, меню 
+таблиц клавиш-акселераюров и т д Когда поток из какого-либо процесса вызывает 
+функцию, создающую один из этих объектов последний перехо дит во владение 
+процесса Поэтому, если процесс завершается, не уничтожив данный объект явным 
+образом, операционная система делает этo за него Однако два User объектa (окна и 
+ловушки) принадлежат только создавшему их потоку И вновь, если поток создает 
+окно или устанавливает ловушку а потом завершается, операционная система 
+автоматически уничтожает окно или удаляет ловушку </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот принцип 
+принадлежности окон и ловушек создавшему их потоку оказывает существенное 
+влияние на механизм функционирования окон поток создавший окно, должен 
+обрабатывать все его сообщения Поясню данный принцип на примере До пустим, поток 
+создал окно, а затем прекратил работу Тогда его окно уже не получит сообщение 
+WM_DESTROY или WM_NCDESTROY, потому что поток уже завершился и обрабатывать 
+сообщения, посылаемые этому окну, больше некому </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это также 
+означает, чю каждому потоку, создавшему хотя бы одно окно, система выделяет 
+очередь сообщений, используемую для их диспетчеризации Чтобы окно в конечном 
+счете получило эти сообщения поток <I>должен </I>иметь собственный цикл выборки 
+сообщений В этой главе мы детально рассмотрим, что представляют собой 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>очереди 
+сообщений потоков. В частности, я расскажу, как сообщения помещаются в эту 
+очередь и как они извлекаются из нее, а потом обрабатываются. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h26t1></A>Очередь сообщений потока</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил, одна из главных целей Windows — предоставить всем приложени ям 
+отказоустойчивую среду. Для этого любой поток должен выполняться в такой сре де, 
+где он может считать себя единственным. Точнее, у каждого потока должны быть 
+очереди сообщений, полностью независимые от других потоков. Кроме того, для каж 
+дого потока нужно смоделировать среду, позволяющую ему самостоятельно управлять 
+фокусом ввода с клавиатуры, активизировать окна, захватывать мышь и т. д 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создавая 
+какой-либо поток, система предполагает, что он не будет иметь отноше ния к 
+поддержке пользовательского интерфейса. Это позволяет уменьшшь объем выделяемых 
+ему системных ресурсов. Но, как только поток обратится к той или иной 
+GUI-функции (например, для проверки очереди сообщений или создания окна), сис 
+тема автоматически выделит сму дополнительные ресурсы, необходимые для выпол 
+нения задач, связанных с пользовательским интерфейсом А ссли конкретнее, то сис 
+тема создает структуру THREADINFO и сопоставляет ее с этим потоком </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элементы этой 
+структуры используются, чтобы обмануть поток — заставить его считать, будто он 
+выполняется в среде, принадлежащей только ему. THREADINFO — это внутренняя 
+(недокументированная) структура, идентифицирующая очередь асин хронных сообщений 
+потока (posted-message queue), очередь синхронных сообщений потока (sent-message 
+queue), очередь ответных сообщений (reply-message queue), оче редь виртуального 
+ввода (virtualized input queue) и флаги пробуждения (wakc flags), она также 
+включает ряд других переменных-членов, характеризующих локальное состояние ввода 
+для данного потока На рис 26-1 показаны структуры THREADINFO, сопоставленные с 
+тремя потоками. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Структура 
+THREADINFO — фундамент всей подсистемы передачи сообщений; чи тая следующие 
+разделы, время от времени посматривайте на эту иллюстрацию. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h26t2></A>Посылка асинхронных сообщений в очередь потока</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда с 
+потоком связывается структура THREADINFO, он получает свой набор очере дей 
+сообщений. Если процесс создает три потока и все они вызывают функцию <I>Create 
+Window, </I>то и наборов очередей сообщений будет тоже три Сообщения ставятся в 
+очередь асинхронных сообщений вызовом функции <I>PostMessage:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  PostMessage( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+этой функции система определяет, каким потоком создано окно, иден тифицируемое 
+параметром <I>hwnd, </I>Далее система выделяет блок пямяти, сохраняет в нем 
+параметры сообщения и записывает этот блок в очередь асинхронных сообще ний 
+данного потока. Кроме того, функция устанавливает флаг пробуждения QS_POST 
+MESSAGE (о нем — чуть позже). Возврат из <I>PostMessage </I>происходит сразу 
+после того, как сообщение поставлено в очередь, поэтому вызывающий поток 
+остается в неведе нии, обработано ли оно процедурой соответствующего окна На 
+самом деле вполне вероятно, что окно даже не получит это сообщение Такое 
+возможно, если поток, создавший это окно, завершится до того, как обработает все 
+сообщения из своей очереди. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=727 alt=rihter26-1.jpg src="images/rihter26-1.jpg" 
+width=755> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 26-1. Три потока и соответствующие им структуры THREADINFO 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Сообщение 
+можно поставить в очередь асинхронных сообщений потока и вызо вом 
+<I>PostThreadMessage:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  PostThreadMessage( DWORD dwThreadId, UINT uMsg, WPARAM wParam, LPARAM 
+  lParam);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE</FONT> <BR>Какой поток создал окно, можно определить с 
+  помощью <I>GetWindowThreadPro cessId:</I> </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>DWORD 
+    GetWindowThreadProcessId( HWND hwnd PDWORD pdwProccssId); 
+  </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+возвращает уникальный общесистемный идентификатор потока, ко торый создал окно, 
+определяемое параметром <I>hwnd. </I>Передав адрес перемен ной типа DWORD в 
+параметре <I>pdwProcessId, </I>можно получить и уникальный общесистемный 
+идентификатор процесса, которому принадлежит этот поток. Но обычно такой 
+идентификатор не нужен, и мы просто передаем NULL </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Нужный поток 
+идентифицируется первым параметром, <I>dwThreadId. </I>Когда сооб щение помещено 
+в очередь, элемент <I>hwnd </I>структуры MSG устанавливается как NULL. 
+Применяется эта функция, когда приложение выполняет какую то особую обработку в 
+основном цикле выборки сообщений потока, — в этом случае он пишется так, что бы 
+после выборки сообщения функцией <I>GetMessage </I>(или <I>PeekMessage) </I>код 
+в цикле сравнивал <I>hwnd </I>с NULL и, выполняя эту самую особую обработку, мог 
+проверить зна чение элемента <I>msg </I>структуры MSG. Если поток определил, что 
+сообщение не адре совано какому-либо окну, <I>DispatchMessage </I>не вызывается, 
+и цикл переходит к выбор ке следующего сообщения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как и 
+<I>PostMessage, </I>функция<I> PostThreadMessage </I>возвращает управление сразу 
+после того, как сообщение поставлено в очередь потока И вновь вызывающий поток 
+оста ется в неведении о дальнейшей судьбе сообщения </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, 
+еще одна функция, позволяющая поместить сообщение в очередь асин хронных 
+сообщений потока:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  PostOuitMessage(int nExilCode); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+вызывается для того, чтобы завершить цикл выборки сообщений потока Ее вызов 
+аналогичен вызову</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PostThreadMessage(GetCurrentThreadId(), WM_OUIT, nExitCode, 0); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но в 
+действительности <I>PostQuitMessage </I>не помещает сообщение ни в одну из оче 
+редей структуры THREADINFO. Эта функция просто устанавливает флаг пробуждения 
+QS_QUIT (о нем я тоже расскажу чуть позже) и элемент <I>nExitCode </I>структуры 
+THREAD INFO. Так как эти операции не могут вызвать ошибку, функция 
+<I>PostQuitMessage </I>не возвращает никаких значений (VOID). </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h26t3></A>Посылка синхронных сообщений окну</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Оконное 
+сообщение можно отправить непосредственно оконной процедуре вызовом 
+<I>SendMessage:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LRESULT 
+  SendMessage( HWNO hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Оконная 
+процедура обработает сообщение, и только по окончании обработки функция 
+<I>SendMessage </I>вернет управление. Благодаря этому ее используют гораздо 
+чаще, чем <I>PostMessage </I>или <I>PostThreadMessage </I>При переходе к 
+выполнению следующей стро ки кода поток, вызвавший <I>SendMessage, </I>может 
+быть уверен, что сообщение уже обра ботано. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот как 
+работает <I>SendMessage </I>Если поток вызывает <I>SendMessage </I>для посылки 
+со общения окну, созданному им же, то функция просто обращается к оконной проце 
+дуре соответствующего окна как к подпрограмме. Закончив обработку, оконная про 
+цедура передает функции <I>SendMessage </I>некое значение, а та возвращает его 
+вызвавше му потоку. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Однако, если 
+поток посылает сообщение окну, созданному другим потоком, опе рации, выполняемые 
+функцией <I>SendMessage, </I>значительно усложняются. Windows требует, чтобы 
+оконное сообщение обрабатывалось потоком, создавшим окно. Поэто му, если вызвать 
+<I>SendMessage </I>для отправки сообщения окну, созданному в другом про цессе и, 
+естественно, другим потоком, Ваш поток не сможет обработать это сообще ние — 
+ведь он не работает в адресном пространстве чужого процесса, а потому не имеет 
+доступа к коду и данным соответствующей оконной процедуры. И действитель но, Ваш 
+поток приостанавливается, пока другой поток обрабатывает сообщение. По этому, 
+чтобы один поток мог отправить сообщение окну, созданному другим пото ком, 
+система должна выполнить следующие действия. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, 
+переданное сообщение присоединяется к очереди сообщений пото ка-приемника, в 
+результате чего для зтого потока устанавливается флаг QSSEND MESSAGE. Во-вторых, 
+если поток-приемник в данный момент выполняет какой-то код и не ожидает 
+сообщений (через вызов <I>GetMessage, PeekMessage </I>или <I>WaitMessage), 
+</I>пе реданное сообщение обработать не удастся — система нс прсрвст работу 
+потока для немедленной обработки сообщения. Но когда поток-приемпик ждет 
+сообщений, си стема сначала проверяет, установлен ли флаг пробуждения 
+QS_SENDMESSAGE, и, если да, просматривает очередь синхронных сообщений, 
+отыскивая первое из них. В оче реди может находиться более одного сообщения 
+Скажем, несколько потоков одно временно послали сообщение одному и тому же окну. 
+Тогда система просто ставит эти сообщения в очередь синхронных сообщений потока. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, когда 
+поток ждет сообщений, система извлекает ил очереди синхронных сообщений первое и 
+вызывает для ею обработки нужную оконную процедуру Если таких сообщений больше 
+нет, флаг QS_SENDMESSAGE сбрасывается. Пока поток-при емник обрабатывает 
+сообщение, поток, отправивший сообщение через <I>SendMessage, </I>простаивает, 
+ожидая появления сообщения в очереди ответных сообщений По окон чании обработки 
+значение, возвращенное оконной процедурой, передается асинх ронно в очередь 
+ответных сообщений потока-отправителя Теперь он пробудится и извлечет упомянутое 
+значение из ответного сообщения. Именно это значение и бу дет результатом вызова 
+<I>SendMessage </I>C этого момента поток-отправитель возобнов ляет работу в 
+обычном режиме </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ожидая 
+возврата управления функцией <I>SendMessage, </I>поток в основном простаи вает. 
+Но кое-чем он может заняться, если другой поток посылает сообщение окну, 
+созданному первым (ожидающим) потоком, система тут же обрабатывает это сооб 
+щение, не дожидаясь, когда поток вызовет <I>GetMessage, PeekMessage </I>или 
+<I>WaitMessage</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+Windows обрабатывает межпоточные сообщения описанным выше образом, Ваш поток 
+может зависнуть Допустим, в потоке, обрабатывающем синхрон ное сообщение, 
+имеется "жучок", из-за которого поток входит в бесконечный цикл Что же 
+произойдет с потоком, вызвавшим <I>SendMessage? </I>Возобновится ли когда-нибудь 
+его выполнение? Значит ли это, что ошибка в одном приложении «подвесит» другое? 
+Ответ — да!</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это верно 
+даже в том случае, если оба потока принадлежит одному процессу </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Избегать 
+подобных ситуаций позволяют четыре функции, и первая из них — 
+<I>SendMessageTimeout</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LRESULT 
+  SendMessageTimeout( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT 
+  fuFlags, UINT uTimeout, PDWORD_PTR pdwResult);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она позволяет 
+задавать отрезок времени, в течение которого Вы готовы ждать ответа от другого 
+потока на Ваше сообщение Ее первые четыре параметра идентич ны параметрам 
+функции <I>SendMessage. </I>В пэраметре <I>fuFlags</I> можно передавать флаги 
+SMTO_NORMAL (0), SMTO_ABORTIFHUNG, SMTO_BLOCK, SMTO_NOTIMEOUTIFNO THUNG или 
+комбинацию этих флагов. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+SMTO_ABORTIFHUNG заставляет <I>SendMessageTimeout </I>проверить, не завис ли 
+ноток приемник^, и, если да, немедленно вернуть управление Флаг SMTO_NOTIME 
+OUTIFNOTHUNG сообщает функции, что она должна игнорировать ограничение по 
+времени, если поток-приемник не завис. Флаг SMTO_BLOCK предотвращает обработ ку 
+вызывающим потоком любых других синхронных сообщений до возврата из <I>Send 
+MessageTimeout, </I>Флаг SMTO_NORMAL определен в файле WinUser.h как 0, он 
+исполь зуется в том случае, если Вы нс указали другие флаги </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я уже 
+говорил, что ожидание потоком окончания обработки синхронного сооб щения может 
+быть прервано для обработки другого синхронного сообщения. Флаг SMTO_BLOCK 
+предотвращает такое прерывание Он применяется, только если поток, ожидая 
+окончания обработки своего сообщения, не в состоянии обрабатывать про чие 
+синхронные сообщения. Этот флаг иногда приводит к взаимной блокировке по токов 
+до конца таймаута Так, если Ваш поток отправит сообщение другому, а тому нужно 
+послать сообщение Вашему, ни один из них не сможет продолжить обработку, и оба 
+зависнут </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>uTimeout </I>определяет таймаут <I>— </I>время (в миллисекундах), в течение 
+которого Вы готовы ждать ответного сообщения. При успешном выполнении функ ция 
+возвращает TRUE, а результат обработки сообщения копируется no адресу, ука 
+занному в параметре <I>pdwResult,</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, 
+прототип этой функции в заголовочном файле WinUser.h неверен. Функ цию следовало 
+бы определить как возвращающую значение типа BOOL, поскольку значение типа 
+LRFSULT на самом деле возвращается через ее параметр Это создает определенные 
+проблемы, так как <I>SendAlebbageTimeout </I>вернет FALSE, если Вы переда дите 
+неверный описатель окна или если закончится заданный период ожидания. Един 
+ственный способ узнать причину неудачного завершения функции — вызвать 
+<I>GetLast Error. </I>Последняя вернет 0 (ERROR_SUCCESS), если ошибка связана с 
+окончанием пе риода ожидания. А если причина в неверном описателе, 
+<I>GetLastError </I>даст код 1400 (ERROR_INVALID_WINDOW_HANDLE). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+обращаетесь к <I>SendMessageTimeout </I>для<I> </I>посылки сообщения окну, 
+создан ному вызывающим потоком, система просто вызывает оконную процедуру, 
+помещая возвращаемое значение в <I>pdwResult. </I>Из-за этого код, расположенный 
+за вызовом </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Операционная 
+система считает поток зависшим, если он прекращает обработку сообще ний более 
+чем на <I>5 </I>секунд. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>SendMessageTimeout, </I>не выполняется до тех пор, пока не 
+заканчивается обрабочка сообщения, — ведь все эти операции осуществляются одним 
+потоком. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+рассмотрим вторую функцию, предназначенную для отправки межпоточ 
+ныхсообщений:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SendMessageCallhack( HWND hwnd, UINT uHsg, WPARAM лРагат, LPARAM lParam, 
+  SENDASYNCPROC pfnResultCallBack, ULONG_PTR dwOata);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И вновь 
+первые четыре параметра идентичны параметрам функции <I>SendMessage </I>При 
+вызове Вашим потоком <I>SendMessageCallback </I>отправляет сообщение в очередь 
+синхронных сообщений потока-приемника и тут же возвращает управление вызыва 
+ющему (т e Вашему) потоку Закончив обработку сообщения, поток-приемник асин 
+хронно отправляет свое сообщение в очередь ответных сообщений Вашего потока. 
+Позже система уведомит Ваш поток об этом, вызвав написанную Вами функцию; у нее 
+должен быть следующий прототип,</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID CALLBACK 
+  ResultCallBack( HWND hwnd. UINT uMsg, ULONG_PIR dwData, LRESULT 
+  lResult);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Адрес этой 
+функции обратного вызова передается <I>SendMessageCallback </I>в параметре 
+<I>pfnResultCallBack </I>А при вызове <I>ResultCallBack </I>в первых двух 
+параметрах передаются описатель окна, закончившего обработкусообщения, и код 
+(значение) самого сооб щения. Параметр <I>dwData </I>функции <I>ResultCallBack 
+</I>всегда получает значение, передан ное <I>SendMessageCallback </I>в 
+одноименном параметре. (Система просто берет то, что указано там, и передает 
+Вашей функции <I>ResultCallBack) </I>Последний параметр функ ции 
+<I>ResultCallBack </I>сообщает результат обработки сообщения, полученный от окон 
+ной процедуры </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+<I>SendMessageCallback, </I>передавая сообщение другому потоку, немедлен но 
+возвращает управление, <I>ResultCallBack </I>вызывается после обработки 
+сообщения потоком-приемником не сразу, а с задержкой. Сначала поток-приемник 
+асинхронно ставит сообщение в очередь ответных сообщений потока-отправителя 
+Затем при первом же вызове потоком-отправителем любой из функций <I>GetMessage, 
+PeekMessage, WaitMessage </I>или одной из <I>Send</I>-функций сообщение 
+извлекается из очереди ответных сообщений, и лишь потом вызывается Ваша функция 
+<I>ResultCallback.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Существует и 
+другое применение функции <I>SendMessageCallback </I>В Windows пре дусмотрен 
+метод, позволяющий разослать сообщение всем перекрывающимся окнам (overlapped 
+windows) в системе; он состоит в том, что Вы вызываете <I>SendMessage </I>и в 
+параметре <I>hwnd</I> передаете ей HWND_BROAUCAST (определенный как -1) Этот ме 
+тод годится только для широковещательной рассылки сообщений, возвращаемые 
+значения которых Вас не интересуют, поскольку функция способна вернуть лишь одно 
+значение, LRESULT. Но, используя <I>SendMessageCallback, </I>можно получить 
+резуль таты обработки "широковещательного" сообщения от каждого перекрытого окна 
+Ваша функция <I>SendMessageCallback </I>будет вызываться с рсзульгатом обработки 
+сооб щения от каждого из таких окон. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+<I>SendMessageCallback </I>вызывается для отправки сообщения окну, созданному 
+вызывающим потоком, система немедленно вызывает оконную процедуру, а после 
+обработки сообщения — функцию <I>ResultCallBack, </I>После возврата из 
+<I>ResultCallback </I>выполнение начинается со строки, следующей за вызовом 
+<I>SendMessageCallback.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третья 
+функция, предназначенная для передачи межпоточных сообщений:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SendNotifyMessage( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поместив 
+сообщение в очередь синхронных сообщений потока-приемника, она немедленно 
+возвращает управление вызывающему потоку. Так. ведет себя и <I>PostMessage, 
+</I>помните? Но два отличия <I>SendNotifyMessage </I>от <I>PostMessage </I>все 
+же есть. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, 
+если <I>SendNotifyMessage </I>посылает сообщение окну, созданномудругим потоком, 
+приоритет данного синхронного сообщения выше приоритета асинхрон ных сообщений, 
+находящихся в очереди потока-приемника Иными словами, сооб щения, помещаемые в 
+очередь с помощью <I>SendNolifyMessage, </I>всегда извлекаются до выборки 
+сообщений, отправленных через <I>PostMessage,</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-вторых, 
+если сообщение посылается окну, созданному вызывающим потоком, 
+<I>SendNotifyMessage </I>работает точно так же, как и <I>SendMessage, </I>т. e 
+не возвращает управ ление до окончания обработки сообщения </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Большинство 
+синхронных сообщений посылается окну для уведомления — что бы сообщить ему об 
+изменении состояния и чтобы оно как-то отреагировало на это, прежде чем Вы 
+продолжите свою работу. Например, WM_ACTIVATE, WM_DESTROY, WM_ENABLE, WM_SIZE, 
+WM_SETFOCUS, WM_MOVE и многие Другие сообщения - это просто уведомления, 
+посылаемые системой окну в синхронном, а не асинхронном режиме. Поэтому система 
+не прерывает свою работу только ради того, чтобы окон ная процедура могла их 
+обработать. Прямо противоположный эффект дает отправка сообщения WM_CREATE — 
+тогда система ждет, когда окно закончит его обработку. Если возвращено значение 
+-1, значит, окно не создано. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, 
+четвертая функция, связанная с обработкой межпоточных сообщений:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  ReplyMessage(LRESULT lResult); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+отличается от трех описанных выше. В то время как <I>Send</I>-функции использу 
+ются посылающим сообщения потоком для защиты себя от зависания, <I>ReplyMessage 
+</I>вызывается потоком, принимающим оконное сообщение Вызвав ее, поток как бы 
+говорит системе, что он уже получил результат обработки сообщения и что этот ре 
+зультат нужно упаковать и асинхронно отправить в очередь ответных сообщений 
+потока-отправителя Последний сможет пробудиться, получить результат и возобно 
+вить работу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток, 
+вызывающий <I>ReplyMessage, </I>передаст результат обработки сообщения через 
+параметр <I>lResult </I>После вызова <I>ReplyMessage </I>выполнение 
+потока-отправителя возоб новляется, а поток, занятый обработкой сообщения, 
+продолжает эту обработку. Ни один из потоков не приостанавливается — оба 
+работают, как обычно. Когда поток, обрабатывающий сообщение, выйдет из своей 
+оконной процедуры, любое возвраща емое значение просто игнорируется. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте: 
+<I>ReplyMessage </I>надо вызывать из оконной процедуры, получившей сооб щение, 
+но нс из потока, вызвавшего одну из <I>Send</I>-функций. Поэтому, чтобы написать 
+"защищенный от зависаний" код, следует заменить все вызовы <I>SendMessage 
+</I>вызовами </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>одной из трех 
+<I>Send</I>-функций и не полагаться на то, что оконная процедура будет вызывать 
+именно <I>ReplyMessage.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Учтите также, 
+что вызов <I>ReplyMessage </I>при обработке сообщения, посланного этим же 
+потоком, не влечет никаких действий. На это и указывает значение, возвращаемое 
+<I>ReplyMessage- </I>TRUE. — при обработке межпоточного сообщения и FALSE — при 
+попыт ке вызова функции для обработки внутрипоточного сообщения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вас 
+интересует, является обрабатываемое сообщение внутрипоточным или межпоточным, 
+вызовите функцию <I>InSendMessage:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  InSendMessage(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Имя<B> 
+</B>этой функции не совсем точно соответствует тому, что она делает в действи 
+тельности На первый взгляд, функция должна возвращать TRUE, ссли поток обраба 
+тывает синхронное сообщение, и FALSE — при обработке им асинхронного сообще ния. 
+Но это не так. Она возвращает TRUE, если поток обрабатывает межпоточное син 
+хронное сообщение, и FALSE — при обработке им внутрипоточного сообщения (син 
+хронного или асинхронного). Возвращаемые значения функций <I>lnSendMessage </I>и 
+<I>ReplyMessage </I>идентичны. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть еще одна 
+функция, позволяющая определить тип сообщения, которое обра батывается Вашей 
+оконной процедурой:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  InSendMessageEx(PVOID pvReserved); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызывая ее, 
+Вы должны передать NULL в параметре <I>pvReserved. </I>Возвращаемое зна чение 
+указывает на тип обрабатываемого сообщения. Значение ISMEX_NOSEND (0) говорит о 
+том, что поток обрабатывает внутрипоточное синхронное или асинхрон ное 
+сообщение. Остальные возвращаемые значения представляют собой комбинацию битовых 
+флагов, описанных в следующей таблице </FONT></P>
+<TABLE height=134 cellSpacing=0 cellPadding=0 rules=all width=696 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=144 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=144 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>ISMEX_ 
+      SEND </FONT></P></TD>
+    <TD vAlign=top align=left height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      обрабатывает межпоточное синхронное сообщение, посланное через 
+      <I>SendMessage </I>или <I>SendMessageTtmeout; </I>если флаг ISMEX REPLIED 
+      не установлен, поток-отправитель блокируется в ожидании ответа 
+    </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=144 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ISMEX_NOTIFY </FONT></P></TD>
+    <TD vAlign=top align=left height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      обрабатывает межпоточное синхронное сообщение, посланное череч 
+      <I>SendNotify Message, </I>поток- отправитель не ждет ответа и не блоки 
+      руется </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=144 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ISMEX_CALLBACK </FONT></P></TD>
+    <TD vAlign=top align=left height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      обрабатывает межпоточное синхронное сообщение, посланное через 
+      <I>SendMessageCallback; </I>поток- отправитель не ждет ответа и не бло 
+      кируется </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=144 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ISMEX_REPLIED </FONT></P></TD>
+    <TD vAlign=top align=left height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      обрабатывает межпоточпое синхронное сообщение и уже выз вал 
+      <I>ReplyMessage; </I>поток-отправитель не блокируется 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h26t4></A>Пробуждение потока</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда поток 
+вызывает <I>GetMessage </I>или <I>WaitMessage </I>и никаких сообщений для пего 
+или созданных им окон нет, система может приостановить выполнение потока, и 
+тогда он уже не получаст процессорное время Как только потоку будет отправлено 
+синх ронное или асинхронное сообщение, система установит флаг пробуждения, 
+указыва ющий, что теперь поток должен получать процессорное время и обработать 
+сообще ние Если пользователь ничего нс набирает на клавиатуре и не трогает мышь, 
+то обыч но в таких обстоятельствах никаких сообщений окнам не посылается А это 
+значит, что большинство потоков в системе не получаст процессорное время. 
+</FONT></P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h26t4p1></A>Флаги состояния очереди </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во время 
+выполнения поток может опросить состояние своих очерсдсй вызовом 
+<I>GetQueueStatus:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetQueueStatus(UINT fuFlags); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметру 
+<I>fuFlags</I> — флаг или группа флагов, объединенных побитовой операци ей OR, 
+он позволяет проверить значения отдельных битов пробуждения (wake bits) 
+Допустимые значения флагов и их смысл описаны в следующей таблице. </FONT></P>
+<TABLE height=406 cellSpacing=0 cellPadding=0 rules=all width=676 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщение <I>в </I>очереди </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>QS_KEY 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WM_KEYUP,WM_KEYDOWN, WM_SYSKEYUP или WM_SYSKEYDOWN 
+</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_MOUSEMOVE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WM_MOUSEMOVE </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_MOUSEBTITTON </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WM_?BUTTON* (где знак вопроса заменяет букву L, М или R, а 
+      звездочка — DOWN, UP или DBLCLK) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_MOUSE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То же, 
+      что QS_MOUSEMOVE | QS_MOUSEBUTTON </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_INPUT </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То же, 
+      что QS_MOUSE | QS_KEY </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_PAINT </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WM_PAINT </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_TIMER </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WM_TIMER </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_HOTKEY </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WM_HOTKEY </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_POSTMESSAGE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Асинхронное сообщение (отличное от события аппаратного ввода), этот 
+      флаг идентичен QS_ALLPOSTMESSAGE с тем исклю чением, что сбрасывается при 
+      отсутствии асинхронных сообще ний в диапазоне действия фильтра сообщений 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=47>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_ALLPOSTMESSAGE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=47>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Асинхронное сообщение (отличное от события аппаратного вво да); 
+      этот флаг идентичен QS_POSTMESSAGE с тем исключением, что сбрасывается 
+      лишь при полном отсутствии каких-либо асин хронных сообщений (вне 
+      зависимости от фильтра сообщений) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>QS 
+      ALLEVENTS </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тоже, 
+      что QS_INPUT | QS_POSTMESSAGE | QS_TIMER | QS_PAINT | QS_HOTKEY 
+    </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>QS_QUIT 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает о вызове <I>PostQuitMessage, </I>этот флаг не 
+      задокументиро ван, его нет в WinUser.h, и он используется самой системой 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_SENUMESSAGE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Синхронное сообщение, посланное другим потоком </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=162 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>QS_ALLINPUT </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То же, 
+      что QS_ALLEVENTS | QS_SENDMESSAGF </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+<I>GetQueueStatus </I>параметр <I>fuFlags </I>сообщает функции, наличие каких 
+типов сообщений в очереди следует проверить. Чем меньше идентификаторов QS_* 
+объединено побитовой операцией OR, тем быстрее отрабатывается вызов Результат 
+сообщается в старшем слове значения, возвращаемого функцией. Возвращаемый на бор 
+флагов всегда представляет собой подмножество того набора, который Вы зап росили 
+от функции. Например, если Вы делаете такой вызов.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  fPaintMsgWaiting = HIWORD(GetQueueStatus(QS TIMER)) &amp; OS_PAINT; 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ю значение 
+<I>fPaintMsgWaiting </I>всегда будет равно FALSE независимо от наличия в оче 
+реди сообщения WM_PAINT, так как флаг QS_PAINT функции не передан </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Младшсс слово 
+возвращаемого значения содержит типы сообщений, которые помещены в очередь, но 
+не обработаны с момента последнего вызова <I>GetQueueStatus, GetMessage </I>или 
+<I>PeekMessage.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Не все флаги 
+пробуждения обрабатываются системой одинаково Флаг QS_MOUSE MOVE 
+устанавливается, если в очереди есть необработанное сообщение WM_MOUSE 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>MOVE. Когда 
+<I>GetMessage </I>или <I>PeekMessage </I>(с флагом PM_REMOVE) извлекают 
+последнее сообщение WM_MOUSEMOVE, флаг сбрасывается и остается в таком 
+состоянии, пока в очереди ввода снова не окажется сообщение WM_MOUSEMOVE. Флаги 
+QS_KEY, QS_MOUSEBUTTON и QS_HOTKEY действуют при соответствующих сообщениях ана 
+логичным образом. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг QS_PAINT 
+обрабатывается иначе. Он устанавливается, если в окне, созданном данным потоком, 
+имеется недействительная, требующая псрсрисовки область Когда область, занятая 
+всеми окнами, созданными одним потоком, становится действитель ной (обычно в 
+результате вызова <I>ValidateRect, ValidateRegion </I>или <I>BeginPaint</I>)<I>, 
+</I>флаг QS_PAINT сбрасывается. Еще pay подчеркну: данный флаг сбрасывается, 
+только если становятся действительными все окна, принадлежащие потоку. Вызов 
+<I>GetMessage </I>или <I>PeekMessage </I>на этот флаг пробуждения пе влияет. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+QS_POSTMESSAGE устанавливается, когда в очереди асинхронных сообщений потока 
+есть минимум одно сообщение. При этом не учитываются аппаратные сооб щения, 
+находящиеся в очереди виртуального ввода потока. Этот флаг сбрасывается после 
+обработки всех сообщений из очереди асинхронных сообщений </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг QS_TIMER 
+устанавливается после срабатывания таймера (созданного пото ком). После того как 
+функция <I>GetMessage </I>или <I>PeekMessage </I>вернет WM_TIMER, флаг 
+сбрасывается и остается в таком состоянии, пока таймер вновь не сработает 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+QS_SENDMESSAGE указывает, что сообщение появилось в очереди синхрон ных 
+сообщений. Он используется системой для идентификации и обработки межпо точных 
+синхронных сообщений, а для внутрипоточных синхронных сообщений не применяется. 
+Вы можете указывать флаг QS_SENDMESSAGE, но необходимость в нем возникает крайне 
+редко. Я ни разу не видел его ни в одном приложении. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть еще один 
+(недокументированный) флаг состояния очереди — QS_QUIT. Он устанавливается при 
+вызове потоком <I>PostQuitMessage. </I>Сообщение WM_QUIT при этом не добавляется 
+к очереди сообщений И учтите, что <I>GetQueueStatus </I>не возвращает состояние 
+этого флага </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h26t4p2></A>Алгоритм выборки сообщений из очереди потока </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда поток 
+вызывает <I>GetMessage </I>или <I>PeekMessage, </I>система проверяет флаги 
+состоя ния очередей потока и определяет, какое сообщение надо обработать (рис 
+26-2) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1. Если флаг 
+QS_SENDMESSAGE установлен, система отправляет сообщение соот ветствующей оконной 
+процедуре <I>GetMessage </I>и <I>PeekMessage </I>контролируют процесс обработки 
+и пе передают управление потоку сразу после того, как оконная процедура 
+обработает сообщение, вместо этого обе функции ждут следующего сообщения. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>2. Если 
+очередь асинхронных сообщений потока не пуста, <I>GetMessage </I>и <I>Peek 
+Message </I>заполняют переданную им структуру MSG и возвращают управление Цикл 
+выборки сообщений (расположенный в потоке) в этот момент обычно обращается к 
+<I>DispatchMessage, </I>чтобы соответствующая оконная процедура об работала 
+сообщение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3. Если флаг 
+QS_QUIT установлен, <I>GetMessage </I>и <I>PeekMessage </I>возвращают сообще ние 
+WM__QUIT (параметр <I>wParam </I>которого содержит указанный код заверше ния) и 
+сбрасывают этот флаг. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>4 Если в 
+очереди виртуального ввода потока есть какие-то сообщения, <I>GetMessage </I>и 
+<I>PeekMessage </I>возвращают сообщение, связанное с аппаратным вводом. 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>5. Если флаг 
+QS_PAINT установлен, <I>GetMessage </I>и <I>PeekMessage </I>возвращают сооб 
+щение WM_PAINT для соответствующего окна </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>6 Если флаг 
+QS_TIMER установлен, <I>GetMessage </I>и <I>PeekMessage </I>возвращают сооб 
+щение WM_TIMER. </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2><IMG height=693 alt=rihter26-2.jpg src="images/rihter26-2.jpg" 
+width=907>Рис. 26-2 Алгоритм выборки сообщений из очереди потока</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хоть и трудно 
+в это поверить, но для такого безумия есть своя причина. Главное, из чего 
+исходила Microsoft, разрабатывая описанный алгоритм, — приложения долж ны 
+слушаться пользователя, и именно его действия (с клавиатурой и мышью) управ ляют 
+программой, порождая события аппаратного ввода Работая с программой, поль 
+зователь может нажать кнопку мыши, что приводит к генерации последовательности 
+определенных собьний. А программа порождает отдельные события, асинхронно 
+отправляя сообщения в очсрсдь потока </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так, нажатие 
+кнопки мыши могло бы заставить окно, которое обрабатывает сооб щение 
+WM_LBUTTONDOWN, послать три асинхронных сообщения разным окнам Поскольку эти три 
+программных события возникают в результате аппаратного собы тия, система 
+обрабатывает их до того, как принимает новое аппаратное событие, инициируемое 
+пользователем. И именно поэтому очередь асинхронных сообщений проверяется раньше 
+очереди виртуального ввода </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прекрасный 
+пример такой последовательности событий — вызов функции <I>Trans lateMessage, 
+</I>проверяющей, не было ли выбрано из очереди ввода сообщение WM_KEY DOWN или 
+WM_SYSKEYDOWN. Если одно из <B>этих </B>сообщений выбрано, система про веряет, 
+можно ли преобразовать информацию о виртуальной клавише в символьный эквивалент. 
+Если это возможно, <I>TranslateMessage </I>вызывает <I>PostMessage, </I>чтобы 
+помес тить в очередь асинхронных сообщений WM_CHAR или WM_SYSCHAR При следую щем 
+вызове <I>GetMessage </I>система проверяет содержимое очереди асинхронных сооб 
+щений и, если в ней есть сообщение, извлекает его и возвращает потоку. 
+Возвращает ся либо WM_CHAR, либо WM_SYSCHAR. При следующем вызове <I>GetMessage 
+</I>система обнаруживает, что очсрсдь асинхронных сообщений пуста Тогда она 
+проверяет оче редь ввода, где и находит сообщение WM_(SYS)KEYUP; именно оно и 
+возвращается функцией <I>GetMessage.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+система устроена так, а нс иначе, последовательность аппаратных со бытий: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>WM_KEYDOWN 
+  <BR>WM_KEYUP </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>генерирует 
+следующую последовательность сообщений для оконной процедуры (при этом 
+предполагается, что информацию о виртуальной клавише можно преобразовать в ее 
+символьный эквивалент): </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>WM_KEYDOWN 
+  </FONT><BR><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>WM_CHAR </FONT><BR><FONT face="Courier New, Courier, mono" 
+  color=#9900ff size=2>WM_KEYUP </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вернемся к 
+тому, как система решает, что за сообщение должна вернуть функций <I>GctMessage 
+</I>или <I>PeekMessage. </I>Просмотрев очередь асинхронных сообщений, система, 
+прежде чем перейти к проверке очереди виртуального ввода, проверяет флаг QS_QUIT 
+Вспомните этот флаг устанавливается, когда поток вызывает <I>PostQuitMessage. 
+</I>Вызов <I>PostQuitMcssage </I>дает примерно ют же эффект, что и вызов 
+<I>PostMessage, </I>которая поме щает сообщение в конец очереди и тем самым 
+заставляет обрабатывать его до про верки очереди ввода Так почему же 
+<I>PostQuitMessage </I>устанавливает флаг вместо того, чтобы поместить WM_QUIT в 
+очередь сообщений? На то есть две причины. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, в 
+условиях нехватки памяти может получиться так, что асинхронное сообщение нс 
+удастся поместить в очередь Но, если приложение хочет завершиться, оно должно 
+завершиться — тем более при нехватке памяти. Вторая причина в том, чго этот флаг 
+позволяет потоку закончить обработку остальных асинхронных сооб щений до 
+завершения его цикла выборки сообщений. Поэтому в следующем фрагмен </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>те кода 
+сообщение WM_USER будет извлечено до WM_QUIT, даже если WM_USER асин хронно 
+помещено в очередь после вызова <I>PostQuitMessage.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case WM_CLOSE: 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>PostQuitMessage(0); <BR>PostMessage(hwnd, WM_USER, 0, 0); 
+  </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь о 
+последних двух сообщениях: WM_PAINT и WM_TIMER. Сообщение WM_PAINT имеет низкий 
+приоритет, так как прорисовка экрана — операция не са мая быстрая. Если бы это 
+сообщение посылалось всякий раз, когда окно становится недействительным, 
+быстродействие системы снизилось бы весьма ощутимо. Но по мещая WM_PAINT после 
+ввода с клавиатуры, система работает гораздо быстрее. На пример, из меню можно 
+вызвать какую-нибудь команду, открывающую диалоговое окно, выбрать в нем что-то, 
+нажать клавишу Enter — и проделать все это даже до того, как окно появится на 
+экране. Достаточно быстро нажимая клавиши, Вы наверняка за метите, что сообщения 
+об их нажатии извлекаются прежде, чем дело доходит до со общений WM_PAINT. А 
+когда Вы нажимаете клавишу Enter, подтверждая тем самым значения параметров, 
+указанных в диалоговом окне, система разрушает окно и сбра сывает флаг QS_PAINT 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Приоритет 
+WM_TIMER еще ниже, чем WM_PAINT. Почему? Допустим, какая-то программа обновляет 
+свое окно всякий раз, когда получает сообщение WM_TIMER. Если<B> </B>бы оно 
+поступало слишком часто, программа просто не смогла бы обновлять свое окно Но 
+поскольку сообщения WM_PAINT обрабатываются до WM_TIMER, такая проблема не 
+возникает. </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE</FONT> <BR>Функции <I>GetMessage </I>и <I>PeekMessage 
+  </I>проверяют флаги пробуждения только для вызывающего потока. Это значит, что 
+  потоки никогда не смогут извлечь сооб щения из очереди, присоединенной к 
+  другому потоку, включая сообщения для потоков того же процесса. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h26t4p3></A>Пробуждение потока с использованием объектов ядра или флагов 
+состояния очереди </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функции 
+<I>GetMessage </I>и <I>PeekMessage </I>приостанавливают поток до тех пор, пока 
+ему не понадобится выполнить какую-нибудь задачу, связанную с пользовательским 
+интер фейсом. Иногда то же самое было бы удобно и при обработке других задач. 
+Для этого поток должен как-то узнавать о завершении операции, не относящейся к 
+пользова тельскому интерфейсу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы поток 
+ждал собственных сообщений, вызовите функцию <I>MsgWaitForMultiple Objects 
+</I>или <I>MsgWaitForMultipleObjectsEx:</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  MsgWaitForMultipleOb]ects( DWORD nCount, PHANDLE phOb]ects, BOOL fWaitAll, 
+  DWORD dwMilUseconds, DWORD dwWakeMask);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  MsgWaitForMultipleObjectsEx( DWORD nCount, PHANDLE phObjects, DWORD 
+  dwMilUseconds,DWORD dwWakeMask, DWORD dwFlags);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти функции 
+аналогичны <I>WaitForMultipleObjects </I>(см главу 9). Разница в том, что при их 
+использовании поток становится планируемым, когда освобождается какой нибудь из 
+указанных объектов ядра или когда оконное сообщение нужно переслать окну, 
+созданному этим потоком. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Внутренне 
+система просто добавляет объект ядра "событие" в массив описателей ядра Параметр 
+<I>dwWakeMask </I>сообщает системе, в какой момент объект-событие дол жно 
+переходить R свободное состояние. Его допустимые значения идентичны тем, которые 
+можно передавать в функцию <I>GetQueueStatus.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>WaitForMultipleObjects </I>обычно возвращает индекс освобожденного 
+объекта (в диа пазоне от WAIT_OBJECT_0 до WAIT_OBJECT_0 + <I>nCount </I>- 1). 
+Задание параметра <I>dwWa keMask </I>равносильно добавлению еще одного описателя 
+При выполнении условия, определенного маской 
+пробуждения<I>,MsgWaitForMullipleObjects(Ex) </I>возвращает значе ние 
+WAIT_OBJECT_0 + <I>nCount.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот пример 
+вызова <I>MsgWaitForMultipleObjects</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>MsgWaitForMultipleObjects(0, NULL, TRUE, INFINITE, QS_INPUT); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Описатели 
+синхронизирующих объектов в этом операторе не передаются — па раметры 
+<I>nCount</I> и <I>phObjects </I>равны соответственно 0 и NULL. Мы указываем 
+функции ждать освобождения всех объектов Но в действительности задан лишь один 
+объект, и с тем же успехом параметру<I> fWaitAll</I> можно было бы присвоить 
+знячение FALSE. Мы также сообщаем, что будем ждать — сколько бы времени это ни 
+потребовало — появ ления в очереди ввода потока сообщения от клавиатуры или 
+мыши. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Начав 
+пользоваться функцией <I>MsgWaitForMultipleObjects </I>в своих программах, Вы 
+быстро поймете, что она лишена многих важных качеств. Вот почему Microsoft при 
+шлось создать более совершенную функцию <I>MsgWaitForMultipleObjectsEx, 
+</I>которая по зволяет задать в параметре <I>dwFlags </I>любую комбинацию 
+следующих флагов. </FONT></P>
+<TABLE height=141 cellSpacing=0 cellPadding=0 rules=all width=538 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=164 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=527 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=164 height=70>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>MWMO_WAITALL </FONT></P></TD>
+    <TD vAlign=top align=left width=527 height=70>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Функция 
+      ждет освобождения всех объектов ядра и появления в </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>очереди потока 
+      указанных сообщений (без этого флага функ ция ждет освобождения одного из 
+      объектов ядра или появле ния в очереди одного из указанных сообщений) 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=164 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>MWMO_ALERTABLE </FONT></P></TD>
+    <TD vAlign=top align=left width=527 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Функция 
+      ждет в «тревожном» состоянии </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=164 height=44>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>MWMO_INPUTAVAILABLE </FONT></P></TD>
+    <TD vAlign=top align=left width=527 height=44>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Функция 
+      ждет появления в очереди потока одного из указан ных сообщений 
+    </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вам не 
+нужны эти дополнительные возможности, передайте в <I>dwFlags </I>нуле вое 
+значение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+использовании <I>MsgWaitForMultipIeObjects(Ex) </I>учитывайте, что. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>эти 
+  функции лишь включают описатель внутреннего объекта ядра «событие» в массив 
+  описателей объектов ядра, и значение параметра <I>nCount </I>не должно 
+  превышать 63 (MAXIMUM_WAIT_OBJECTS - 1); </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>если в 
+  параметре <I>fWaitAll</I> передастся FALSE, функции возвращают управление при 
+  освобождении объекта ядра <I>или </I>при появлении в очереди потока сооб щения 
+  заданного типа, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>если в 
+  параметре <I>fWaitAll</I> передается TRUE, функции возвращают управление при 
+  освобождении всех объектов ядра <I>и </I>появлении в очереди потока 
+  сообще</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>ния заданного типа. Такое поведение этих функций преподносит сюрприз 
+  многим разработчикам Ведь очень часто поток надо пробуждать при освобож дении 
+  всех объектов ядра или при появлении сообщения указанного типа. Но функции, 
+  действующей именно так, нет; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>при вызове 
+  любая из этих функций на самом деле проверяет в очереди пото ка только новые 
+  сообщения заданного типа. </FONT></LI></UL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+и последняя особенность этих функций — не очень приятный сюр приз для многих 
+разработчиков. Возьмем простой пример Допустим, в очереди по токи находятся два 
+сообщения о нажатии клавиш. Если теперь вызвать MsgWaitForMul tipleObjects(Ex) и 
+задать в <I>dwWakeMask</I> значение QS_INPUT, поток пробудится, извле чет из 
+очереди первое сообщение и обработает его Но на повторный вызов MsgWait 
+ForMultipleObjects(Ex) поток никак не отреагирует — ведь новых сообщений в очере 
+ди нет. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот механизм 
+создал столько проблем разработчикам, что Microsoft пришлось добавить в 
+MsgWaitForMultipleObjectsEx поддержку флага MWMO_INPUTAVATLABLE </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот как надо 
+писать цикл выборки сообщений при использовании MsgWaitForMul 
+tipleObjectsEx</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL fQuit = 
+  FALSE; // надо ли завершить цикл<SUP>?</SUP> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while (!fQuit) 
+  <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// поток 
+    пробуждается при освобождении обьекта ядра ИЛИ <BR>// для обработки 
+    сообщения от пользовательского интерфейса </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwResult = MsgWaitForMultipleObjectsEx(1, &amp;hEvent, INFINITE, 
+    QS_ALLEVENTS, MWMO_INPUTAVAILABLE); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+    (dwResult} <BR>{ </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    WAIT_OBJECT_0: </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      освободилось событие <BR>break; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    WAIT_OBJECT_0 + 1: </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// в 
+      очереди появилось сообщение <BR>// разослать все сообщения MSG msg; 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while 
+      (PeekMessage(&amp;msg, NULL, 0, 0, PM_REMOVE)) <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+        (msg.message == WM_QUIT) <BR>{ </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          сообщение WM_QUIT - выходим из цикла <BR>fQuit = TRUE; 
+        </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+        <BR>else <BR>{ </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          транслируем и пересылаем сообщение <BR>TranslateMessage(&amp;msg); 
+          <BR>DispatchMessage(&amp;msg);</FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+        </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// наша 
+      очередь пуста <BR>break; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// конец цикла 
+  while </FONT></P></BLOCKQUOTE>
+
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h26t5></A>Передача данных через сообщения</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Здесь мы 
+обсудим, как система обеспечивает передачу данных между процессами с помощью 
+сообщений В некоторых оконных сообщениях параметр <I>lParam </I>задает адрес 
+блока памяти. Например, сообщение WM_SETTEXT использует <I>lParam </I>как ука 
+затель на строку (с нулевым символом в конце), содержащую новый текст для окна. 
+Рассмотрим такой вызов:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SendMessage(FindWindow{NULL, "Calculator"), WM_SETTEXT, 0, (LPARAM) "A 
+  Test Caption" ); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вроде бы все 
+достаточно безобидно определяется описатель окна Calculator и делается попытка 
+изменить его заголовок на «A Test Caption». Но приглядимся к тому, что тут 
+происходит </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В <I>lParam 
+</I>передается адрес строки (с новым заголовком), расположенной в адрес ном 
+пространстве Вашего процесса. Получив это сообщение, оконная процедура программы 
+Calculator берет <I>lParam </I>и пытается манипулировать чем-то, что, «по ее 
+мнению", является указателем на строку с новым заголовком. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По адрес в 
+<I>lParam </I>указывает на строку в адресном пространстве Вашего процес са, а не 
+программы Calculator Вот Вам и долгожданная неприятность — нарушение доступа к 
+памяти. Но если Вы все же выполните показанную ранее строку, все будет работать 
+нормально. Что за наваждение<SUP>5</SUP> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А дело в том, 
+что система отслеживает сообщения WM_SETTEXT и обрабатывает их не так, как 
+большинство других сообщений. При вызове <I>SendMessage </I>внутренний код 
+функции проверяет, не пытаетесь ли Вы послать сообщение WM_SETTEXT. Если это 
+так, функция копирует строку из Вашего адресного пространства в проекцию файла и 
+делает его доступным другому процессу. Затем сообщение посылается пото ку 
+другого процесса. Когда поток-приемник готов к обработке WM_SETTEXT, он оп 
+ределяет адрес общей проекции файла (содержащей копию строки) в адресном про 
+странстве своего процесса Параметру <I>lParam </I>присваивается значение именно 
+этого адреса, и WM_SETTEXT направляется нужной оконной процедуре. После 
+обработки этого сообщения, проекция файла уничтожается Не слишком ли тут 
+накручено, а? </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К счастью, 
+большинство сообщений не требует такой обработки — она осуществ ляется, только 
+если сообщение посылается другому процессу. (Заметьте: описанная обработка 
+выполняется и для любого сообщения, параметры <I>wParam </I>или <I>lParam </I>ко 
+торого содержат указатель на какую-либо структуру данных ) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А вот другой 
+случай, когда от системы требуется особая обработка, — сообщение WM_GETTEXT. 
+Допустим, Ваша программа содержит код:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+  szBuf[200]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SendMessage(FindWindow(NULL, "Calculator"), WM_GETTEXT, Sizeof(szBuf), 
+  (LPARAM) szBuf); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>WM_GETTEXT 
+требует, чтобы оконная процедура программы Calculator помести ла в буфер, на 
+который указывает <I>szBuf, </I>заголовок своего окна. Когда Вы посылаете это 
+сообщение окну другого процесса, система должна на самом деле послать два 
+сообщения. Сначала — WM_GETTEXTLENGTH Оконная процедура возвращает число 
+символов в строке заголовка окна. Это значение система использует при создании 
+проекции файла, разделяемой двумя процессами, </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав 
+проекцию файла, система посылает для cro заполнения сообщение WM_GET TEXT Затем 
+переключается обратно на процесс, первым вызвавший функцию <I>SendMes-</I> 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>sage, 
+</I>копирует данные из общей проекции файла в буфер, на который указывает 
+<I>szBuf, </I>и заставляет <I>SendMessage </I>вернуть управление </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Что ж, все 
+хороши, пока Вы посылаете сообщения, известные системе А если мы определим 
+собственное сообщение (WM_USER + <I>x), </I>собираясь отправить его окну другого 
+процесса? Система не «поймет», что нам нужна общая проекция файла для 
+корректировки указателей при их пересылке. Но выход есть — что сообщение 
+WM_COPYDATA:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>COPYDATASTRUCT 
+  cds; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SendMessage(hwndReceiver, WM_COPYDATA, (WPARAM) hwndSender, (LPARAM) 
+  &amp;cds); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>COPYDATASTRUCT <I>— </I>структура, определенная в WinUser.h:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  tagCOPYDATASTRUCT <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>ULONG_PTR 
+    dwData; <BR>DWORD cbData; <BR>PVOID lpData; </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  COPYDATASTRUCT;</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+переслать данные окну другого процесса, нужно сначала инициализиро вать эту 
+структуру. Элемент <I>dwData </I>резервируется для использования в Вашей про 
+грамме В него разрешается записывать любое значение. Например, передавая в дру 
+гой процесс данные, в этом элементе можно указывать тип данных </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элемент 
+<I>cbData </I>задает число байтов, пересылаемых в другой процесс, a <I>lpData 
+</I>указывает на первый байт данных Адрес, идентифицируемый элементом <I>lpData, 
+</I>на ходится, конечно же, в адресном пространстве отправителя </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Увидев, что 
+Вы посылаете сообщение WM_COPYDATA, <I>SendMessage </I>создает проек цию файла 
+размером <I>cbData </I>байтов и копирует данные из адресного пространства Вашей 
+программы в эту проекцию. Затем отправляет сообщение окну-приемнику При 
+обработке этого сообщения принимающей оконной процедурой параметр <I>lParam 
+</I>указывает на структуру COPYDATASTRUCT, которая находится в адресном простран 
+стве процесса-приемника Элемент <I>lpData </I>этой структуры указывает на 
+проекцию файла в адресном пространстве процесса-приемника. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вам следует 
+помнить о трех важных вещах, связанных с сообщением WM_COPY DATA </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Отправляйте его всегда синхронно, никогда не пытайтесь делать этого 
+  асинх ронно Последнее просто невозможно: как только принимающая оконная про 
+  цедура обработает сообщение, система должна освободить проекцию файла. При 
+  передаче WM_COPYDATA как асинхронного сообщения появится неопре деленность в 
+  том, когда оно будет обработано, и система не сможет освобо дить память, 
+  занятую проекцией файла. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На 
+  создание копии данных в адресном пространстве другого процесса неиз бежно 
+  уходит какое-то время Значит, пока <I>SendMessage </I>не вернст управление, 
+  нельзя допускать изменения содержимого общей проекции файла каким-либо другим 
+  потоком </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Сообщение 
+  WM_COPYDATA позволяет 16-разрядным приложениям взаимо действовать с 
+  32-разрядными (и наоборот), как впрочем и 32-разрядным — с 64-разрядными (и 
+  наоборот). Это удивительно просюй способ общения меж ду новыми и старыми 
+  приложениями. К тому же, WM_COPYDATA полностью поддерживается как в Windows 
+  2000, так и в Windows 98 Но, если Вы все еще пишете 16-разрядные 
+  Windows-приложсния, учтите, что сообщение WM_COPY </FONT></LI></UL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>DATA и 
+структура COPYDATASTRUCT в Microsoft Visual С++ версии 1 52 не оп ределены Вам 
+придется добавить <B>их </B>определения самостояельно.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// включите 
+  этот код в свою 16-разрядную Windows-программу <BR>#define WM_COPYDATA 0x004A 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef VOID 
+  FAR* PVOID; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  taqCOPYDATASTRUCT <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwData; <BR>DWORD cbDdta; <BR>PVOID lpData;</FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  COPYDATASTRUCT, FAR* PCOPYDATASTRUCT;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Сообщение 
+WM_COPYDATA — мощный инструмент, позволяющий разработчикам экономить массу 
+времени при решении проблем связи между процессами И очень жаль, что применяется 
+оно нечасто Насколько полезно это сообщение, иллюстриру ет программа-пример 
+LastMsgBoxInfo из главы 22 </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h26t5p1></A>Программа-пример CopyData </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «26 CopyData.exe» (см. листинг иа рис 26-3), демонстрирует приме 
+нение сообщения WM_COPYDAIA при пересылке блока данных из одной программы в 
+другую Файлы исходного кода и ресурсов этой программы находятся в каталоге 26 
+CopyData на компакт-диске, прилагаемом к книге Чтобы увидеть программу CopyData 
+в действии, запустите минимум две ее копии, при этом каждая копия открывает диа 
+логовое окно, показанное ниже </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=91 alt=rihter26-3.jpg src="images/rihter26-3.jpg" 
+width=336> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотите посмотреть, как данные копируются из одного приложения в дру гое, то 
+сначала измените содержимое полей Datal и Data2 Затем щелкните одну из двух 
+кнопок Send Data* To Other Windows Программа отправит данные всем выпол няемым 
+экземплярам CopyData, и в их полях появится новые данные </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь 
+обсудим принцип работы программы. Щелчок одной из двух кнопок приводит к. 
+</FONT></P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Инициализации элемента <I>dwData </I>структуры COPYDATASTRUCT нулевым 
+  зна чением (если выбрана кнопка Scnd Datal To Other Windows) или единицей 
+  (если выбрана кнопка Send Data2 To Other Windows) </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подсчету 
+  длины текстовой строки (в символах) из соответствующего поля с добавлением 
+  единицы, чтобы учесть нулевой символ в конце Полученное чис ло символов 
+  преобразуется в количество байтов умножением на <I>sizeof(TCHAR), </I>и 
+  результат записывается в элемент <I>cbData </I>структуры COPYDATASTRUCT 
+</FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызову 
+  <I>_alloca, </I>чтобы выделить блок памяти, достаточный для хранения стро ки с 
+  учетом концевого нулевого символа Адрес этого блока записывается в элемент 
+  <I>lpData </I>все той же структуры </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Копированию текста из поля в выделенный блок памяти </FONT></LI></OL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь все 
+готово для пересылки в другие окна Чтобы определить, каким окнам следует 
+посылать сообщение WM_COPYDATA, программа вызывает <I>FindWindowEx </I>и 
+передает заголовок своего диалогового окна - благодаря этому перечисляются толь 
+ко другие экземпляры данной программы. Найдя окна всех экземпляров, программа 
+пересылает им сообщение WM_COPYDATA, что заставляет их обновить содержимое своих 
+полей. </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/26-CopyData.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>CopyData</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h26t6></A>Как Windows манипулирует с ANSI/Unicode-символами и 
+строками</B></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></H2>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Windows 98 поддерживает классы и процедуры окон только в формате 
+  ANSI </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Регисрируя 
+новый класс окна, Вы должны сообщить системе адрес оконной проце дуры, которая 
+отвечает за обработку сообщений для этого класса. В некоторых сооб щениях 
+(например, WM_SETTEXT) параметр <I>lParam </I>является указателем на строку. Для 
+корректной обработки сообщения система должна заранее знать, в каком формате 
+оконная процедура принимает строки — ANSI или Unicode. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выбирая 
+конкретную функцию для регистрации класса окна, Вы сообщаете сис теме формат, 
+приемлемый для Вашей оконной процедуры Если Вы создаете структу ру WNDCLASS и 
+вызываете <I>RegisterClassA, </I>система считает, что процедура ожидает 
+исключительно ANSI-строки и символы А регистрация класса окна через <I>Rеgister 
+ClassW </I>заставит систему полагать, что процедуре нужен Unicode. И, конечно 
+же, в за висимости от того, определен ли UNICODE при компиляции модуля исходного 
+кода, макрос <I>RegisterClass </I>будет раскрыт либо в <I>RegisterClassA, 
+</I>либо в <I>RegisterClassW</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Располагая 
+описателем окна, Вы можете выяснить, какой формат символов и строк требует 
+оконная процедура Для этого вызовите функцию:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  IsWindowUnicode(HWND hwnd); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если оконная 
+процедура ожидает передачи данных только в Unicode, эта функция возвращает TRUE, 
+в ином случае — FALSE. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+сформировали ANSI-строку и посылаете сообщение WM_SETTEXT окну, чья процедура 
+принимает только Unicode-строки, то система перед отсылкой сооб щения 
+автоматически преобразует его в нужный формат. Так что необходимость в вызове 
+<I>lsWindowUnicode </I>возникает нечасто </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+автоматически выполняет все преобразования и при создании подклас ca окна. 
+Допустим, что для заполнения своего поля ввода оконная процедура ожида ет 
+передачи символов и строк в Unicode Кроме того, где-то в программе Вы создаете 
+поле ввода и подкласс оконной процедуры, вызывая </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG_PTR 
+  SetWindowLongPtrA( HWND hwnd, int nlndex, LONG_PTR dwNewLong); 
+</FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>или 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG_PTR 
+  SetWindowLongPtrW( HWND bwnd, int nIndGx, LONG_PTR dwNewLong);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При этом Вы 
+передаете в параметре <I>nlndex </I>значение GOLP_WNDPROC, а в пара мегре 
+<I>dwNewLong </I>— адрес своей процедуры полкласса. Но что будет, если Ваша про 
+цедура ожидает передачи символов и строк в формате ANSI? B принципе, это чрева 
+то проблемами. Система определяет, как преобразовывать строки и символы в зави 
+симости от функции, вызванной Вами для создания подкласса Используя <I>SetWmdow 
+LongPtrA, </I>Вы сообщаете Windows, что новая оконная процедура (Вашего 
+подкласса) принимает строки и символы только в ANSI. (Вызвав <I>IsWindowUnicode 
+</I>после <I>SetWin dowLongPtrA, </I>Вы получили бы FALSE, так как новая 
+процедура не принимает строки и символы в Unicode.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но теперь у 
+нас новая проблема: как сделать так, чтобы исходная процедура полу чала символы 
+и строки в своем формате? Для корректного преобразования системе нужно знать две 
+вещи. Во-первых, текущий формат символов и строк. Эту информа цию мы 
+предоставляем, вызывая одну из двух функций — <I>CallWindowProcA </I>или 
+<I>CalWin dowProcW</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LRESULT 
+  CallWindowProcA( WNDPROC wndprcPrev, HWND hwnd, UINT uMsg, WPARAM wParam, 
+  LPARAM lParam); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LRESULT 
+  CallWindowProcW( WNDPROC wndprcPrev, HWND hwnd, UINT uMsg, WPARAM wParam, 
+  LPARAM lParam); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При передаче 
+исходной оконной процедуре ANSI-строк процедура подкласса дол жна вызывать 
+<I>CalWindowProcA, </I>а при передаче Unicode-строк — <I>CallWtndowProcW</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второе, о чем 
+должна знать система, — тип символов и строк, ожидаемый исход ной оконной 
+процедурой Система получает эту информацию по адресу этой проце дуры. Когда Вы 
+вызываете <I>SetWindowLongPtrA </I>или <I>SetWindowIongPtrW, </I>система прове 
+ряет, создаете ли Вы ANSI-подкласс Unicode-процедуры окна или наоборот. Если при 
+создании подкласса тип строк нс меняется, <I>SetWindowLongPtr </I>просто 
+возвращает ад рес исходной процедуры. В ином случае <I>SetWmdowLongPtr 
+</I>вместо этого адреса воз вращает описатель внутренней структуры данных. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта структура 
+содержит адрес исходной оконной процедуры и значение, которое указывает на 
+ожидаемый ею формат строк При вызове <I>CallWindowProc </I>система про веряет, 
+что Вы передаете — адрес оконной пропедуры или описатель внутренней структуры 
+данных. В первом случае система сразу обращается к исходной оконной процедуре, 
+так как никаких преобразований не требуется, а во втором случае систе ма сначала 
+преобразует символы и строки в соответствующую кодировку и только потом вызывает 
+исходную оконную процедуру. </FONT></P>
+<HR>
+
+<P><A href="head25.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head27.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

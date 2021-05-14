@@ -1,0 +1,768 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0054)head11.htm -->
+<HTML><HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h11></A>ГЛАВА 11 Пулы потоков</FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В главе 8 мы 
+обсудили синхронизацию потоков без перехода в режим ядра Замеча тельная 
+особенность такой синхронизации — высокое быстродействие. И если Вы озабочены 
+быстродействием потока, сначала подумайте, нельзя ли обойтись синхро низацией в 
+пользовательском режиме. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы уже 
+знаете, что создание многопоточных приложений — дело трудное. Вас подстерегают 
+две серьезные проблемы: управление созданием и уничтожением по токов и 
+синхронизация их доступа к ресурсам. Для решения второй проблемы в Windows 
+предусмотрено множество синхронизирующих примитивов- события, сема форы, 
+мьютексы, критические секции и др. Все они довольно просты в использова нии. Но 
+если бы сисгема автоматически охраняла разделяемые ресурсы, вот тогда создавать 
+многопоточные приложения было бы по-настоящемулегко Увы, операци онной системе 
+Windows до этого еще далеко. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проблему 
+того, как управлять созданием и уничтожением потоков, каждый реша ет по-своему. 
+За прошедшие годы я создал несколько реализаций пулов потоков, рас считанных на 
+определенные сценарии. Однако в Windows 2000 появился ряд новых функций для 
+операций с пулами потоков; эти функции упрощают создание, уничто жение и общий 
+контроль за потоками. Конечно, встроенные в них механизмы носят общий характер и 
+не годятся на все случаи жизни, но зачастую их вполне достаточ но, и они 
+позволяют экономить массу времени при разработке многопоточного при ложения. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти функции 
+дают возможность вызывать другие функции асинхронно, через определенные 
+промежутки времени, при освобождении отдельных объектов ядра или при завершении 
+запросов на асинхронный ввод-вывод. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пул 
+подразделяется на четыре компонента, которые описываются в таблице 11-1. 
+</FONT></P>
+<TABLE height=234 cellSpacing=0 cellPadding=0 rules=all width=644 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=82 height=41 rowSpan=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><FONT 
+      face="Times New Roman, Times, serif"><FONT size=2><FONT 
+      color=#000000></FONT></FONT></FONT></FONT></P></TD>
+    <TD vAlign=top align=left width=162 height=41 rowSpan=2>
+      <P><FONT face="Times New Roman, Times, serif"><FONT size=2><FONT 
+      color=#000000></FONT></FONT></FONT></P></TD>
+    <TD vAlign=top align=left colSpan=3 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Компонент поддержки </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=85 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ожидания</I></FONT></P></TD>
+    <TD vAlign=top align=left width=116 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ввода-вывода</I></FONT></P></TD>
+    <TD vAlign=top align=left width=200 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>Других операций</I> <I>таймера</I></FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=82 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Начальное число потоков </FONT></P></TD>
+    <TD vAlign=top align=left width=162 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Всегда 
+      1</FONT></P></TD>
+    <TD vAlign=top align=left width=85 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1</FONT></P></TD>
+    <TD vAlign=top align=left width=116 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0</FONT></P></TD>
+    <TD vAlign=top align=left width=200 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=82 height=107>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Когда 
+      поток создается </FONT></P></TD>
+    <TD vAlign=top align=left width=162 height=107>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      вызове первой функции таймера пула потоков</FONT></P></TD>
+    <TD vAlign=top align=left width=85 height=107>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Один 
+      поток для каждых 63 зарегист рированных объектов</FONT></P></TD>
+    <TD vAlign=top align=left colSpan=2 height=107>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>В 
+      системе применяются эвристические методы, но на создание потока влияют 
+      следующие факторы <BR>• после добавления потока прошло определенное время 
+      <BR>• установлен флаг WT_EXECUTELONGFUNCTION <BR>• число элементов в 
+      очереди превышает пороговое значение </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=82 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Когда 
+      поток разрушается </FONT></P></TD>
+    <TD vAlign=top align=left width=162 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      завершении процесса </FONT></P></TD>
+    <TD vAlign=top align=left width=85 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      отсутст вии зарегист рированных объектов ожидания </FONT></P></TD>
+    <TD vAlign=top align=left width=116 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      отсутствии у потока текущих запросов на ввод-вывод и простое в течение 
+      определенного порогового времени (около минуты) </FONT></P></TD>
+    <TD vAlign=top align=left width=200 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      простое потока в течение определен ного порогового времени (около минусы) 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=82 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Как 
+      поток ждет </FONT></P></TD>
+    <TD vAlign=top align=left width=162 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>В 
+      "тревожном"состоянии </FONT></P></TD>
+    <TD vAlign=top align=left width=85 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>WaitFor Multiple ObjectsEx</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=116 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>В 
+      "тревожном" состоянии </FONT></P></TD>
+    <TD vAlign=top align=left width=200 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>GetQueued CompletionStatus</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=82 height=112>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Когда 
+      поток пробуждается </FONT></P></TD>
+    <TD vAlign=top align=left width=162 height=112>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      освобожде нии «ожидаемого таймера", кото рый посылает в очередь АРС-вызов 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=85 height=112>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      освобождении объекта ядра </FONT></P></TD>
+    <TD vAlign=top align=left width=116 height=112>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      посылке в очередь АРС-вызова или завершении запроса на ввод- вывод 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=200 height=112>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      поступлении запроса о статусе завершения или о завершении ввода вывода 
+      (порт завер шения требует, чтобы число потоков не превышало число 
+      процессоров более чем в 2 раза) </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 11-1. Компоненты поддержки пула потоков </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+инициализации процесса никаких издержек, связанных с перечисленными в таблице 
+компоненчами поддержки, не возникает. Однако, как только вызывается одна из 
+функций пула потоков, для процесса создается набор этих компонентов, и неко 
+торые из них сохраняются до его завершения. Как видите, издержки от применения 
+этих функций отнюдь не малые: частью Вашего процесса становится целый набор 
+потоков и внутренних структур данных. Так что, прежде чем пользоваться ими, тща 
+тельно взвесьте все «за» и «против» </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, 
+теперь, когда я Вас предупредил, посмотрим, как все это работает.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h11t1></A>Сценарий 1: асинхронный вызов функций</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, у 
+Вас есть серверный процесс с основным потоком, который ждет клиен тский запрос. 
+Получив его, он порождает отдельный поток для обработки этого зап роса Тем самым 
+основной поток освобождается для приема следующего клиентского запроса. Такой 
+сценарий типичен в клиент-серверных приложениях. Хотя он и так то незагейлив, 
+при желании его можно реализовать с использованием новых функ ций пула потоков. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Получая 
+клиентский запрос, основной поток вызывает:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  QueueUserWorkItem( PTHREAD_START_ROUTINE pfnCallback, PVOID pvContext, ULONG 
+  dwFlags);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+помещает «рабочий элемент" (work item) в очсрсдь потока в пулс и тут же 
+возвращает управление. Рабочий элемент — это просто вызов функции (па которую 
+ссылается параметр <I>pfnCallback), </I>принимающей единственный параметр, 
+<I>pvContext. </I>В конечном счете какой-то поток из пула займется обработкой 
+этого эле </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>мента, в 
+результате чего будет вызвана Ваша функция. У этой функции обратного вызова, за 
+реализацию которой отвечаете Вы, должен быть следующий прототип:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD WINAPI 
+  WorkItemFunc(PVOID pvContext); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Несмотря па 
+то что тип возвращаемого значения определен как DWORD, на са мом деле оно 
+игнорируется. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что Вы сами никогда не вызываете <I>CreateThread </I>Она вызы вается 
+из пула потоков, автоматически создаваемого для Вашего процесса, а к функ ции 
+<I>WorkItemFunc </I>обращается один из потоков этого пула. Кроме того, данный 
+поток не уничтожается сразу после обработки клиентского запроса, а возвращается 
+в пул, оставаясь готовым к обработке любых других элементов, помещаемых в 
+очередь. Ваше приложение может стать гораздо эффективнее, так как Вам больше не 
+придется со здавать и уничтожать потоки для каждого клиентского запроса. А 
+поскольку потоки связаны с определенным портом завершения, количество 
+одновременно работающих потоков не может превышать число процессоров более чем в 
+2 раза. За счет этого переключения контекста происходят реже. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Многое в пуле 
+потоков происходит скрытно от разработчика: <I>QueueUserWorkItem </I>проверяет 
+число потоков, включенных в сферу ответственности компонента поддер жки других 
+операций (нс относящихся к вводу-выводу), и в зависимости от текущей нагрузки 
+(количества рабочих элементов в очереди) может передать емудругие по токи. После 
+этого <I>QueueUserWorkltem </I>выполняет операции, эквивалентные вызову 
+<I>PostQueuedCompletionStatus, </I>пересылая информацию о рабочем элементе в 
+порт за вершения ввода-вывода. В конечном счете поток, ждущий на этом объекте, 
+извлекает Ваше сообщение (вызовом <I>GetQueuedCompletionStatus} </I>и обращается 
+к Вашей функ ции. После того как она возвращает управление, поток вновь вызывает 
+<I>GetQueued ComplettonStatus, </I>ожидая появления следующего рабочего элемента 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пул рассчитан 
+на частую обработку асинхронного ввода-вывода — всякий раз, когда поток помещает 
+в очередь запрос на ввод-вывод к драйверу устройства Пока драйвер выполняет его, 
+поток, поставивший запрос в очередь, не блокируется и мо жет заниматься другой 
+работой. Асинхронный ввод-вывод — ключ к созданию высо коэффективных, 
+масштабируемых приложений, так как позволяет одному потоку обрабатывать запросы 
+от множества клиентов по мере их поступления; ему не при ходится обрабатывать их 
+последовательно или останавливаться, ожидая завершения ввода вывода. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но Windows 
+накладывает одно ограничение на запросы асинхронного ввода-вы вода, если поток, 
+послав такой запрос драйверу устройства, завершается, данный зап рос теряется н 
+никакие потоки о его судьбе не уведомляются. В хорошо продуман ном пуле, число 
+потоков увеличивается и уменьшается в зависимости от потребнос тей его клиентов 
+Поэтому, если поток посылает запрос и уничтожается из-за сокра щения пула, то 
+уничтожается и этот запрос. Как правило, это не совсем то, что хоте лось бы, и 
+здесь нужно найти какое-то решение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотите поместить в очередь рабочий элемент, который выдает запрос на асинхронный 
+ввод-вывод, то не сможете передать этот элемент компоненту поддер жки других 
+операций в пуле потоков. Его примет лишь компонент поддержки ввода вывода. 
+Последний включает набор потоков, которые не завершаются, пока есть хотя бы один 
+запрос на ввод-вывод; поэтому для выполнения кода, выдающего запросы на 
+асинхронный ввод-вывод, Вы должны пользоваться только этими потоками. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+передать рабочий элемент компоненту поддержки ввода-вывода, Вы може те 
+по-прежнему пользоваться функцией <I>QueueUserWorkltem, </I>но в параметре 
+<I>dwFlags</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>следует 
+указать флаг WT_EXECUTEINIOTHREAD. А обычно Вы будете указывать в этом параметре 
+флаг WT_EXECUTEDEFAULT (0) — он заставляет систему передать рабочий элемент 
+компоненту поддержки других операций (не связанных с вводом-выводом). 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+есть функции (вроде <I>RegNotifyChangeKeyValue), </I>которые асинхронно 
+выполняют операции, не относящиеся к вводу-выводу. Они также требуют, чтобы 
+вызывающий поток не завершался преждевременно. С этой целью Вы можете исполь 
+зовать флаг WT_EXECUTETNPERSISTENTTHREAD, который заставляет поток таймера 
+выполнять поставленную в очередь функцию обратного вызова для рабочего элемен 
+та. Так как этот компонент существует постоянно, асинхронная операция в конечном 
+счете обязательно будет выполнена Вы должны позаботиться о том, чтобы функция 
+обратного вызова выполнялась быстро и не блокировала работу компонента поддер 
+жки таймера. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хорошо 
+продуманный пул должен также обеспечивать максимальную готовность потоков к 
+обработке запросов. Если в пуле четыре потока, а в очереди сто рабочих 
+элементов, то единовременно можно обработать только четыре элемента Это не 
+проблема, если на обработку каждого элемента уходит лишь несколько миллисекунд, 
+но в ином случае программа не сумеет своевременно обслуживать запросы. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Естественно, 
+система не настолько умна, чтобы предвидеть, чем будет заниматься функция Вашего 
+рабочего элемента, но если Вам заранее известно, что па это уйдет длительное 
+время, вызовите <I>QueueUserWorkltem </I>с флагом WT_EXECUTELONGFUNC TION — он 
+заставит пул создать новый поток, если остальные потоки будут в это вре мя 
+заняты. Так, добавив в очередь 10 000 рабочих элементов (с флагом WT_EXECUTE 
+LONGFUNCTION), Вы получите 10 000 новых потоков в пуле. Чтобы избежать этого, 
+делайте перерывы между вызовами <I>QueueUserWorkltem, </I>и тогда часть потоков 
+успсст завершиться до порождения новых. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ограничение 
+на количество потоков в пуле накладывать нельзя, иначе может воз никать взаимная 
+блокировка потоков. Представьте очередь из 10 000 элементов, заб локированных 10 
+001-м и ждущих его освобождения. Установив предел в 10 000, Вы запретите 
+выполнение 10001-го потока, и в результате целых 10 000 потоков оста нутся 
+навечно заблокированными. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Используя 
+функции пула, будьте осторожны, чтобы нс доводить дело до тупико вых ситуаций. 
+Особую осторожность проявляйте, если функция Вашего рабочего эле мента 
+использует критические секции, семафоры, мьютексы и др. — это увеличивает 
+вероятность взаимной блокировки. Вы должны всегда точно знать, поток какого ком 
+понента пула выполняет Ваш код. Также будьте внимательны, если функция рабочего 
+элемента содержится в DLL, которая может быть динамически выгружена из памяти. 
+Поток, вызывающий функцию из выгруженной DLL, приведет к нарушению доступа. 
+Чтобы предотвратить выгрузку DLL при наличии рабочих элементов в очереди, со 
+здайте контрольный счетчик для таких элементов: его значение должно 
+увеличиваться перед вызовом <I>QueueUserWorkItem </I>и уменьшаться после 
+выполнения функции рабо чего элемента. Выгрузка DLL допустима только после того, 
+как этот счетчик обиулится.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h11t2></A>Сценарий 2: вызов функций через определенные интервалы 
+времени</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иногда 
+какие-то операции приходится выполнять чсрсз определенные промежутки времени. В 
+Windows имеется объект ядра «ожидаемый таймер", который позволяет легко 
+получатьуведомления по истечении заданного времени. Многие программис ты создают 
+такой объект для каждой привязанной к определенному времени задаче, но это 
+ошибочный путь, ведущий к пустой трате системных ресурсов. Вместо этого 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+создать единственный ожидаемый таймер и каждый раз перенастраивать его на другое 
+время ожидания. Однако такой код весьма непрост. К счастью, теперь эту работу 
+можно поручить новым функциям пула потоков. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+какой-то рабочий элемент выполнялся через определенные интервалы времени, первым 
+делом создайте очередь таймеров, вызвав функцию:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateTimerQueue(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Очередь 
+таймеров обеспечивает организацию набора таймеров. Представьте, что один 
+исполняемый файл предоставляет несколько сервисов. Каждый сервис может 
+потребовать создания таймеров, скажем, для определения того, какой клиент 
+перестал отвечать, для сбора и обновления некоей статистической информации по 
+расписа нию и т. д, Выделять каждому сервису ожидаемый таймер и отдельный поток 
+крайне неэффективно. Вместо этого у каждого сервиса должна быть своя очередь 
+таймеров (занимающая минимум системных ресурсов), а поток компонента поддержки 
+тайме ра и объект ядра «ожидаемый таймер» должны разделяться всеми сервисами. По 
+окон чании работы сервиса его очередь вместе со всеми созданными в ней таймерами 
+просто удаляется. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+создавать таймеры в очереди, вызывая функцию:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>ROOL 
+  CreateTimerQueueTimer( PHANDLE phNewTimer, HANDLE hTimerQueue, 
+  WAITORTIMERCALLBACK pfnCallback, PVOID pvContext, DWORD dwOueTime, DWORD 
+  dwPeriod, ULONG dwFlags);</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во втором 
+параметре Вы передаете описатель очереди, в которую нужно помес тить новый 
+таймер. Если таймеров немного, в зтом параметре можно передать NULL и вообще не 
+вызывать <I>CreateTimerQueue, </I>Такое значение параметра заставит функцию 
+<I>CreateTimerQueueTimer </I>использовать очередь по умолчанию и упростит 
+программи рование. Параметры <I>pfnCallback </I>и <I>pvContext</I> указывают на 
+Вашу функцию обратного вызова и данные, передаваемые сй в момент срабатывания 
+таймера. Параметр <I>dwDue Time </I>задает время первого срабатывания, a 
+<I>dwPeriod </I>— время последующих срабаты ваний. (Передача в <I>dwDueTime 
+</I>нулевого значения заставляет систему вызвать Вашу функцию по возможности 
+немедленно, что делает функцию <I>CreateTimerQueueTimer </I>похожей на 
+<I>QueueUserWorkItem,) </I>Если <I>dwPeriod </I>равен 0, таймер сработает лишь 
+раз, и рабочий элемент будет помещен в очередь только единожды. Описатель нового 
+тай мера возвращается в пареметре <I>phNewTimer.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прототип 
+Вашей функции обратного вызова должен выглядеть так:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID WINAPI 
+  WaitOrTimerCallback( PVOTD pvContext, BOOL fTimerOrWaitFired); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда она 
+вызывается, параметр <I>fTimerOrWaitFired </I>всегда принимает значение TRUE, 
+сообщая тем самым, что таймер сработал. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+поговорим о параметре <I>dwFlags </I>функции <I>CreateTimerQueueTimer. </I>Он 
+сооб щает функции, как обрабатывать рабочий элемент, помещаемый в очередь. Вы 
+може те указать флаг WT_EXECUTEDEFAULT, если хотите, чтобы рабочий элемент был 
+об работан одним из потоков пула, контролируемых компонентом поддержки других 
+операций, WT_EXECUTEINIOTHREAD — если в определенный момент нужно выдать 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>асинхронный 
+запрос на ввод-вывод, или WT_EXECUTEINPERSISTENTTHREAD — если элементом должен 
+заняться один из постоянных потоков. Для рабочего элемента, требующего 
+длительного времени обработки, следует задать флаг WT_EXECUTELONG FUNCTION 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+пользоваться еще одним флагом, WT_EXECUTEINTIMERTHREAD, кото рый нуждается в 
+более подробном объяснении. Как видно из таблицы 11-1, пул пото ков включает 
+компонент поддержки таймера Этот компонент создает единственный объект ядра 
+"ожидаемый таймер», управляя временем его срабатывания, и всегда со стоит из 
+одного потока Вызывая <I>CreateTimerQueueTimer, </I>Вы заставляете его пробу 
+диться, добавить Ваш таймер в очередь и перенастроить объект ядра "ожидаемый 
+таймер». После этого поток компонента поддержки таймера переходит в режим «тре 
+вожного» ожидания АРС-вызова от таймера. Обнаружив АРС-вызов в своей очереди, 
+поток пробуждается, обновляет очередь таймеров, перенастраивает объект ядра "ожи 
+даемый таймер", а зачем решает, что делать с рабочим элеменюм, который теперь 
+следует обработать. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее поток 
+проверяет наличие следующих флагов: WT_EXУCUTEDEFAULT, WT_EXE CUTEINTOTHREAD, 
+WT_EXECUTEINPERSISTENTTHREAD, WT_EXECUTELONGFUNCTION и WT_EXECUTEINTIMERTHREAD И 
+сейчас Вы, наверное, поняли, что делает флаг WT_EXECUTEINTIMERTHREAD: он 
+заставляет поток компонента поддержки таймера обработать рабочий элемент. Хотя 
+такой механизм обработки элемента более эффек тивен, он очень опасен! Пока 
+выполняется функция рабочего элемента, поток ком понента поддержки таймера ничем 
+другим заниматься не может Ожидаемый таймер будет по-прежнему ставить АРС-вызовы 
+в соответствующую очередь потока, но эти рабочие элементы не удастся обработать 
+до завершения текущей функции. Так что, поток компонента поддержки танмера 
+годится для выполнения лишь «быстрого" кода, не блокирующего этот ресурс 
+надолго. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаги 
+WT_EXECUTEINIOTHREAD, WT_EXECUTEINPERSISTENTTHREAD и WT_EXE CUTEINTIMERTHREAD 
+являются взаимоисключающими. Если Вы не перелаете ни один из этих флагов (или 
+используете WT_EXECUTEDEFAULT), рабочий элемент помеща ется в очередь одною из 
+потоков в компоненте поддержки других операций (не свя занныхс вводом-выводом), 
+Kpоме того, WT_EXECUTELONGFUNCTION игнорируется, если задан флаг 
+WT_EXECUTEINTIMERTHREAD. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ненужный 
+таймер удаляется с помощью функции.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  DeleteTimerQueueTimer( HANDLE hTimerQueue, HANDLE hTimer, HANDLE 
+  hCompletionEvent); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы должны 
+вызывать ее даже для «одноразовых» таймеров, если они уже сработа ли Параметр 
+<I>hTimerQueue </I>указывает очередь, в которой находится таймер, a <I>hTimer — 
+</I>удаляемый таймер, последний описатель возвращается <I>CreateTtmetQuetteTtmer 
+</I>при создании таймера </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+параметр, <I>hCompletionEvent, </I>определяет, каким образом Вас следует 
+уведомлять об отсутствии необработанных рабочих элементов, поставленных в оче 
+редь этим таймером. Если в нем передать INVALID_HANDLE_VALUE, функция <I>Delete 
+TimerQueueTimer </I>вернет управление только после обработки всех поставленных в 
+очередь элементов. Задумайтесь, что это значит: удалив таймер в процессе обработ 
+ки запущенного им рабочего элемента, Вы создаете тупиковую ситуацию, так? Вы 
+ждете окончания его обработки и сами жс прерываете ее! Вот почему ноток может 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>удалить 
+таймер, только если это не он обрабатывает рабочий элемент, поставленный в 
+очередь данным таймером. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме того, 
+используя поток компонента поддержки таймера, никогда не удаляй те какой-либо из 
+таймеров во избежание взаимной блокировки. Попытка удалить таймер приводит к 
+тому, что в очередь этого потока помещается АРС-уведомление. Но если поток ждет 
+удаления таймера, то сам удалить его он уже не в состоянии — вот и тупик. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вместо 
+значения INVALID_HANDLE_VALUE в параметре <I>hCompletionEvent </I>можни передать 
+NULL. Это подскажет функции, что таймер следует удалить — и чем раньше, тем 
+лучше. В таком случае <I>DeleteTimerQueueTimer </I>немедленно вернет управление, 
+но Вы не узнаете, когда будут обработаны все элементы, поставленные в очередь 
+этим таймером. И, наконец, в параметре <I>hCompletionEvent </I>можно<I> 
+</I>передать описатель объек та ядра "событие». Тогда <I>DeleteTimerQueueTimer 
+</I>немедленно вернет управление, а по ток компонента поддержки таймера 
+освободит событие, как только будут обработа ны все элементы из очереди, Но 
+прежде чем вызывать <I>DeleteTimerQueueTimer, </I>Вы дол жны позаботиться о том, 
+чтобы это событие находилось в занятом состоянии, иначе Ваша программа ошибочно 
+решит, что всс элементы уже обработаны. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+изменять время первого и последующих срабатываний существующе го таймера, 
+используя функцию:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  ChangeTimerQueueTimer( HANDLF hTimerQueue, HANDLE hTimer, ULONG dwDueTime, 
+  ULONG dwPeriod); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ей передаются 
+описатели очереди и самого таймера, который надо перенастро ить, а также 
+параметры <I>dwDueTime </I>и <I>dwPeriod </I>(время срабатывания и 
+периодичность). Учтите: эта функция нс влияет на уже сработавший «одноразовый" 
+таймер. Вы може те применять ее совершенно свободно, без всяких опасений насчет 
+тупиковых ситу аций. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для удаления 
+очереди таймеров предназначена функция:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  DeleteTimerQueueEx( HANDLE hTimerQueue, HANDLE hCompletionEvent); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она принимает 
+описатель существующей очереди и удаляет все таймеры в ней, избавляя от 
+необходимости вызова <I>DeleteTimerQueueTimer </I>для каждого таймера по 
+отдельности. Параметр <I>hCompletionEvent </I>идентичен такому же параметру 
+функции <I>DeleteTimerQueueTimer, </I>а это значит, что, как и в предыдущем 
+случае, Вы должны по мнить о возможности тупиковых ситуаций, — будьте осторожны. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прежде чем 
+рассматривать следующий вариант, позвольте обратить Ваше внима ние на несколько 
+нюансов. Компонент поддержки таймера создает объект ядра «ожи даемый таймер», и 
+тот посылает АРС-вызовы в очередь, а не переходит в свободное состояние. Иначе 
+говоря, операционная система постоянно ставит АРС-вызовы в оче редь, и события 
+таймера никогда не теряются. Такой механизм гарантирует, что на писанная Вами 
+функция обратного вызова будет срабатывать с заданной периодич ностью. Только 
+имейте в виду, что все это происходит с использованием множества потоков, а 
+значит, какие-то части этой функции, видимо, потребуют синхронизации. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вас это 
+не устраивает и Вы хотите, чтобы новый вызов помещался в очередь, скажем, через 
+10 секунд после завершения обработки предыдущего, создавайте в кон це функции 
+рабочего элемента однократно срабатывающие таймеры. Или единствен </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ный таймер, 
+ни с длительным временем ожидания, а<I> </I>в конце все той же функции вызывайте 
+<I>ChangeTimerQueueTimer </I>для<I> </I>псренастройкитаймера </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h11t2p1></A>Программа-пример TimedMsgBox </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «11 TimedMsgBox.exe» (см листинг на рис 11-1), показывает, как 
+пользоваться таймерными функциями пула потоков для создания окна, автоматичес ки 
+закрываемого через заданное время в отсутствие реакции пользователя Файлы 
+исходного кода и ресурсов этой программы находятся в каталоге 11 TimedMsgBox на 
+компакт-диске, прилагаемом к книге </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При запуске 
+программа присваивает глобальной переменной <I>g_nSecLeft </I>значение 10 Этa 
+переменная определяет, сколько времени (в секундах) программа ждет реакции 
+пользователя на сообщение, показанное в окнс Далее вьпывается 
+<I>CreateTtmerQueue Timer, </I>настраивающая пул на ежесекундный вызов 
+<I>MsgBoxTimeout </I>Инициализировав все необходимые переменные, программа 
+обращается к <I>MessageBox </I>и выводит окно, показанное ниже </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=92 alt=h11-1.jpg src="images/h11-1.jpg" width=188> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пока 
+ожидается ответ от пользователя, один из потоков пула каждую секунду вы зывает 
+функцию <I>MsgBoxTimeout, </I>которая находит описатель этого окна, уменьшает 
+значение глобальнй переменной <I>g_nSecLeft </I>на 1 и обновляет строку в окне 
+При пер вом вызове <I>MsgBoxTimeout </I>окно выглядит так </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=95 alt=h11-2.jpg src="images/h11-2.jpg" width=184> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Десятый вызов 
+<I>MsgBoxTimeout </I>обнуляет <I>g_nSecLeft, </I>и тогда <I>MsgBoxTimeout 
+</I>вызыва ет <I>EndDialog, </I>чтобы закрыть окно После этого функция 
+<I>MessageBox, </I>вызванная пер вичным потоком, возвращает управление, и 
+вызывается <I>DeletelimerQueueTtmer, </I>застав ляющая пул прекратить вызовы 
+<I>MsgBoxTimeout </I>В результате открывается другое окно, где сообщается о том, 
+что никаких действий в отведенное время не предпринято </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=98 alt=h11-3.jpg src="images/h11-3.jpg" width=103> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если же 
+пользователь успел отреагировагь на первое сообщение, на экране появ ляется то 
+же окно, но с другим !екстом </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=98 alt=h11-4.jpg src="images/h11-4.jpg" width=102> 
+</FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/11-TimedMsgBox.zip"><IMG 
+height=16 src="images/" width=16>TimedMsgBox</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h11t3></A>Сценарий 3: вызов функций при освобождении отдельных объектов 
+ядра</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+обнаружила, что во многих приложениях потоки порождаются только для того, чтобы 
+ждать на тех или иных объектах ядра. Как только объект освобождается, поток 
+посылает уведомление и снова переходит к ожиданию того же объекта. Неко торые 
+разработчики умудряются писать программы так, что в них создается несколь ко 
+потоков, ждущих один объект. Это невероятное расточительство системных ресур сов 
+Конечно, издержки от создания потоков существенно меньше, чем от создания 
+процессов, но и потоки не воздухом питаются У каждого из них свой стек, не 
+говоря уж об огромном количестве команд, выполняемых процессором при создании и 
+унич тожении потока Поэтому надо стараться сводить любые издержки к минимуму. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотитe зарегистрировать рабочий элемент так, чтобы он обрабатывался при 
+освобождении какого-либо объекта ядра, используйте еще одну новую функцию пула 
+потоков</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  RegisterWaitForSingleOb]ect( PHANOLE phNewWaitObject, HANDLE hObject, 
+  WAITORTIMERCALLBACK pfnCallback, PVOIO pvContext, ULONG dwMilliseconrts, ULONG 
+  dwFlags);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+передает Ваши параметры компоненту поддержки ожидания в пуле , потоков. Вы 
+сообщаете ему, что рабочий элемент надо поставить в очередь, как толь 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ко 
+освободится объект ядра (на который указывает <I>bObject) </I>Кроме того, Вы 
+можете задать ограничение по времени, т. e. элемент будет помещен в очередь 
+через опреде ленное время, даже если объект ядра так и нс освободится (При этом 
+допустимы значения INFINITE и 0.) В общем, эта функция похожа на хорошо 
+известную функ цию <I>WattForSingIeObject </I>(см. главу 9). Зарегистрировав 
+рабочий элемент на ожидание указанного объекта, <I>RegisterWaitForStngleObject 
+</I>возвращает в параметре <I>phNewWait Object </I>описатель, идентифицирующий 
+объект ожидания </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Данный 
+компонент реализует ожидание зарегистрированных объектов через <I>Wait 
+ForMultipleObjects </I>и поэтому накладывает те же ограничения, что и эта 
+функция Одно из них заключается в том, что нельзя ожидать тот жс объект 
+несколько paз. Так что придется вызывать <I>DuplicateHandle </I>и отдельно 
+регистрировать исходный и продуб лированный описатель Вам должно быть известно, 
+что единовременно функция <I>WaitForMultipleObjects </I>способна отслеживать не 
+болсе 64 (MAXIMUM_WAIT_OBJECTS) объектов А что будет, если попробовить 
+зарегистрировать с ее помощью более 64 объектов? Компонент поддержки ожидания 
+создаст еще один поток, который тоже вы зовет <I>WaitForMultipleObjects. </I>(На 
+самом деле новый поток создается на каждые 63 объек та, потому что потокам 
+приходится использовать объект ядра «ожидаемый таймер", контролирующий таймауты) 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По умолчанию 
+рабочий элемент, готовый к обработке, помещается в очередь к потокам компонента 
+поддержки других операций (не связанных с вводом-выводом). В конечном счете один 
+из его потоков пробудится и вызовет Вашу функцию, у кото рой должен быть 
+следующий прототип. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID WINAPI 
+  WaitOrTimerCallbackFunc( PVOID pvContext, BOOLEAN fTimerOrWaitFired); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр<I> 
+pfTimerOrWaitFired </I>принимает значение TRUE, если время ожидания ис текло, 
+или FALSE, если объект освободился раньше. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В параметре 
+<I>dwFlags </I>функции <I>RegisterWaitForSingleObject </I>можно передать флаг 
+WT_EXECUTEINWAITTHREAD, который заставляет выполнить функцию рабочего эле мента 
+в одном из потоков компонента поддержки ожидания. Это эффективнее, пото му что 
+тогда рабочий элемент не придется ставить в очередь компонента поддержки других 
+операций. Но в то же время и опаснее, так как этот поток не сможет ждать 
+освобождения других объектов. Используйте этот флаг, только если Ваша функция 
+выполняется быстро </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+также передать флаг WT_EXECUTEINIOTHREAD, если Ваш рабочий эле мент выдаст 
+запрос на асинхронный ввод-вывод, или WT_EXECUTEINPERSISTENT THREAD, если ему 
+понадобится операция с использованием постоянно существующе го потока. В случае 
+длительного выполнения функции рабочего элемента можно при менить флаг 
+WT_EXECUTELONGFUNCTION Указывайте этот флаг, только если рабо чий элемент 
+передается компоненту поддержки ввода-вывода или других операций, — функцию, 
+требующую продолжительной обработки, нельзя выполнять в потоке, ко торый 
+относится к компоненту поддержки ожидания. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последний 
+флаг, о котором Вы должны знать, — WT_EXECUTEONLYONCE. До пустим, Вы 
+зарегистрировались на ожидание объекта ядра "процесс" После перехо да в 
+свободное состояние он так и останется в этом состоянии, что заставит компо нент 
+поддержки ожидания постоянно включать в очередь рабочие элементы. Так вот, чтобы 
+избежать этого, Вы можете использовать флаг WT_EXECUTEONLYONCE — он сообщает 
+пулу потоков прекратить ожидание объекта после первой обработки рабо чего 
+элемента. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+представьте, что Вы ждете объект ядра "событие с автосбросом": сразу после 
+освобождения он тут же возвращается в занятое состояние; при этом в очередь ста 
+вится соответствующий рабочий элемент. На этом этапе пул продолжает отслеживать 
+объект и снова ждет его освобождения или того момента, когда истечет время, выде 
+ленное на ожидание. Если состояние объекта Вас больше не интересует, Вы должны 
+снять его с регистрации. Это необходимо даже для отработавших объектов, зарегис 
+трированных с флагом WT_EXECUTEONLYONCE. Вот как выглядит требуемая для этого 
+функция:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  UnregisterWaitEx( HANOLE hWaitHandle, HANDLE hCompletionEvent); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+параметр указывает на объект ожидания (его описатель возвращается 
+<I>RegisterWaitForSingleObject), </I>а второй определяет, каким образом Вас 
+следует уведом лять о выполнении последнего элемента в очереди. Как и в 
+<I>DeleteTimerQueueTimer, </I>Вы можете передать в этом параметре NULL (если 
+уведомление Вас не интересует), INVA LID_HANULEVALUF, (функция блокируется до 
+завершения обработки всех элементов в очереди) или описатель объекта-события 
+(переходящего в свободное состояние при завершении обработки очередного 
+элемента). В ответ на неблокирующий вызов <I>Unre gisterWaitEx </I>возвращает 
+TRUE, если очередь пуста, и FALSE в ином случае (при этом <I>GetLastError 
+</I>возвращает STATUS_PENDING). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И вновь 
+будьте осторожны, передавая значение INVALIDHANDLE_VALUE. Функция рабочего 
+элемента заблокирует сама себя, если попытается снять с регистрации выз вавший 
+cc объект ожидания. Такая попытка подобна команде: приостановить меня, пока я не 
+закончу выполнение, — полный тупик. Но <I>UnregisterWaitEx </I>разработана так, 
+чтобы предотвращать тупиковые ситуации, когда поток компонента поддержки ожи 
+дания выполняет рабочий элемент, а тот пытается снять с регистрации запустивший 
+его объект ожидания. И еще один момент: не закрывайте описатель объекта ядра до 
+тех пор, пока не снимете его с регистрации. Иначе недействительный описатель по 
+падет в <I>WaitForMultipleObjects, к </I>которой обращается поток компонента 
+поддержки ожидания. Функция моментально завершится с ошибкой, и этот компонент 
+переста нет корректно работать. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее- 
+никогда не вызывайте <I>PulseEvent</I> для освобождения объекта-события, 
+зарегистрированного на ожидание. Поток компонента поддержки ожидания скорее 
+всего будет чем-то занят и пропустит этот импульс от <I>PulseEvent. </I>Но эта 
+проблема для Вас не нова — <I>PulseEvent </I>создает ее почти во всех 
+архитектурах поддержки потоков</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h11t4></A>Сценарий 4; вызов функций по завершении запросов на асинхронный 
+ввод-вывод</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+сценарий самый распространенный. Ваше серверное приложение выдает запросы на 
+асинхронный ввод-вывод, и Вам нужен пул потоков, готовых к их обра ботке. Это 
+как раз тот случай, на который и были изначально рассчитаны порты за вершения 
+ввода-вывода Если бы Вы управляли собственным пулом потоков, Вы со здали бы порт 
+завершения ввода-вывода и пул потоков, ждущих на этом порте Kpo мс того, Вы 
+открыли бы пару-тройку устройств ввода-вывода и связали бы их описа тели с 
+портом. По мерс завершения асинхронных запросов на ввод-вывод, драйверы 
+устройств помещали бы «рабочие элементы» в очередь порта завершения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это 
+прекрасная архитектура, позволяющая небольшому количеству потоков эф фективно 
+обрабатывать несколько рабочих элементов, и очень хорошо, что она за </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ложена в 
+функции пуля потоков. Благодаря этому Вы сэкономите уйму времени и сил. Для 
+использования преимуществ данной архитектуры надо лишь открыть требуемое 
+устройство и сопоставить его с компонентом поддержки других операций (не свя 
+занных с вводом-выводом) Учтите, что все потоки в этом компоненте ждут на порте 
+завершения Чтобы сопоставить устройство с компонентом поддержки других опе 
+раций, вызовите функцию:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  BindIoCompletionCallback( HANDLE hDevice, POVERLAPPED_COMPLETION_ROUTINE 
+  pfnCallback, ULONG dwFlags);</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+обращается к <I>CreateIoCompletionPort, </I>передавая eй <I>hDevice </I>и описа 
+тель внутреннего порта завершения. Ее вызов также гарантирует, что в компоненте 
+поддержки других операций есть хотя бы один поток Ключ завершения, сопостав 
+ленный с устройством, — это адрес перекрывающейся подпрограммы завершения Так 
+что, когда ввод-вывод на устройство завершается, компонент пула уже знает, какую 
+функцию надо вызвать для обработки завершенного запроса. У подпрограммы завер 
+шения должен быть следующий прототип:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID WINAPI 
+  OverlappedCompletionRoutine( DWORD dwErrorCode, DWORD 
+  dwNumberOfBytesTransfeгred, POVERLAPPED pOverlapped); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, 
+структура OVERLAPPED передается не в <I>BindIoCompletionCallback, </I>а в 
+функции типа <I>ReadFile </I>и <I>WriteFile. </I>Сиосма внутренне отслеживает 
+эту структуру вме сте с запросом на ввод-вывод. После его завершения система 
+поместит адрес струк туры в порт завершения для последующей передачи Вашей 
+<I>OverlappedCompletion Routine </I>А поскольку адрес подпрограммы завершения — 
+это и ключ завершения, то для передачи дополнительной контекстной информации в 
+<I>OverlappedCompletion Routine </I>Вы должны прибегнуть к традиционному трюку и 
+разместить эту информа цию в конце структуры OVERLAPPED. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Также учтите, 
+что закрытие устройства приводит к немедленному завершению всех текущих запросов 
+на ввод-вывод и дает ошибку Будьте готовы к этому в своей функ ции обратного 
+вызова Если Вы хотите, чтобы после закрытия устройства функции обратного вызова 
+больше не выполнялись, создайте в своем приложении контроль ный счетчик. При 
+выдаче запроса на ввод-вывод Вы будете увеличивать его значение на 1, а при 
+завершении — соответственно уменьшать. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каких-то 
+специальных флагов для функции <I>BindloComplettonCallback </I>сейчас не 
+предусматривается, поэтому Вы должны передавать 0 в параметре <I>dwFlags. 
+</I>Но, по моему, один флаг, WT_EXECUTEINIOTHREAD, ей следовало бы поддерживать. 
+После завершения запроса на ввод-вывод он заставил бы поместить этот запрос в 
+очередь одного из потоков компонента поддержки других операций (не связанных с 
+вводом выводом) Всдь <I>OverlappedCompletionRoutine, </I>вероятно, выдаст еще 
+один запрос на асинхронный ввод-вывод. Однако, если поток завершается, всс 
+выданные им запро сы на ввод-вывод автоматически уничтожаются Кроме того, надо 
+учесть, что потоки в компоненте поддержки других операций создаются и 
+уничтожаются в зависимости от текущей нагрузки. При низкой нагрузке поток может 
+быть закрыт, оставив неза вершенные запросы. Если бы функция 
+<I>BtndIoCompletionCallback </I>поддерживала флаг WT_EXECUTEINIOTHREAD, то 
+поток, ждущий на порте завершения, мог бы пробудить ся и передать результат 
+потоку компонента поддержки ввода-вывода И поскольку эти </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>потоки 
+никогда не завершаются при наличии запросов, Вы могли бы выдавать такие запросы, 
+не опасаясь потерять их </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+WT_EXECUTEINIOTHREAD был бы, конечно, очень удобен, но Вы можете </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>легко эмулировать все 
+то, о чем я сейчас говорил В своей функции <I>OverlappedComple</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3><I>tionRoutme 
+</I>просто вызовите <I>QueueUserWorkltem с </I>флагом WT_EXECUTEINIOTHREAD 
+</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3>и 
+передайте нужные данные (наверное, как минимум, структуру OVERLAPPED) 
+Ниче</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3>го 
+другого функции пула Вам и не предложили бы. </FONT></P>
+<HR>
+
+<P>
+<A href="head10.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head12.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

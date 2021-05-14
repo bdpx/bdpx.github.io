@@ -1,0 +1,1333 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h5></A>ГЛАВА 5 Задания </FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Гpynny 
+процессов зачастую нужно рассматривать как единую сущность. Например, когда Вы 
+командуете Microsoft Developer Studio собрать проект, он порождает про цесс 
+Ct.exe, а тот в свою очередь может создать другие процессы (скажем, для допол 
+нительных проходов компилятора) Но, если Вы пожелаете прервать сборку, Developer 
+Studio должен каким-то образом завершить C1.exe и все его дочерние процессы. Ре 
+шение этой простой (и распространенной) проблемы в Windows было весьма затруд 
+нительно, поскольку она не отслеживает родственные связи между процессами. В ча 
+стности, выполнение дочерних процессов продолжается даже после завершения ро 
+дительского </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+разработке сервера тоже бывает полезно группировать процессы. Допустим, 
+клиентская программа просит сервер выполнить приложение (которое создает ряд 
+дочерних процессов) и сообщить результаты Поскольку к серверу может обратиться 
+сразу несколько клиентов, было бы неплохо, если бы он умел как-то ограничивать 
+ресурсы, выделяемые каждому клиенту, и тем самым не давал бы одному клиенту мо 
+нопольно использовать все серверные ресурсы. Под ограничения могли бы подпадать 
+такие ресурсы, как процессорное время, выделяемое на обработку клиентского зап 
+роса, и размеры рабочего набира (working set). Кроме того, у клиентской 
+программы не должно быть возможности завершить работу сервера и т д. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Wmdows 2000 
+введен новый объект ядра — задание job). Он позволяет группи ровать процессы и 
+помещать их в нечто вроде песочницы, которая определенным образом ограничивает 
+их действия. Относитесь к этому объекту как к контейнеру процессов Кстати, очень 
+полезно создавать задание и с одним процессом — это по зволяет налагать на 
+процесс- ограничения, которые иначе указать нельзя </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Взгляните на 
+мою функцию <I>StartRestrictedProcess </I>(рис. 5-1). Она включает процесс в 
+задание, которое ограничивает возможность выполнения определенных 
+операций</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WININDOWS 98</FONT> <BR>Windows 98 не поддерживает задания. 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  StartRestictedProcess() { <BR>// создаем объект ядра "задание" HANDLE hjob = 
+  CreateJobObject(NULL, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вводим 
+  oграничения для процессов в задании <BR>// сначала определяем некоторые 
+  базовые ограничения <BR>JOBOBJECT_BASIC_LIMIT_INFORMATION jobli = { 0 }; 
+  </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// процесс 
+  всегда выполняется с классом приоритета idle<BR>jobli.PriontyClass = 
+  IDLE_PRIORITY_CLASS; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// задание не 
+  может использовать более одной секунды процессорного времени 
+  <BR>jobli.PerJobUserTimeLimit.QuadPart = 10000000; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1 секунда, 
+  выраженная в 100-наносекундных интервалах </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// два 
+  ограничения, которые я налагаю на задание (процесс) <BR>jobli.LimitFlags = 
+  JOB_OBJECT_LIMIT_PRIORITY_CLASS | JOB_OBJECT_LIMIT_JOB_TIME; 
+  <BR>SetInforrnationJobObject(hjob, JobOb]ectBasicLimitInformation, &amp;jobli, 
+  sizeof(jobli)); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// теперь 
+  вводим некоторые ограничения по пользовательскому интерфейсу </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>JOBOBJECT_BASIC_UI_RESTRICTIONS jobuir;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>jobuir.UTRestrictionsClass = JOB_OBJECT_UILIMIT_NONE; <BR>// 
+  "замысловатый" нуль </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// процесс не 
+  имеет права останавливать систему <BR>jobuir.UIRestrictionsClass |= 
+  JOB_OBJECT_UILIMIT_EXITWINDOWS; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// процесс не 
+  имеет права обращаться к USER-объектам в системе (например, к другим окнам) 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>jobuir.UIRestrictionsClass |= JOB_OBJECT_UILIMIT_HANDLES; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetInrormationJobObject(hjob, JobObjectBasicUIRestrictions, 
+  &amp;jobuir, sizeof(jobuir)); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Порождаем 
+  процесс, который будет размещен в задании. </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    ПРИМЕЧАНИЕ: процесс нужно сначала создать и только потом поместить <BR>// в 
+    задание А это значит, что поток процесса должен быть создан <BR>// и тут же 
+    приостановлен, чтобы он не смог выполнить какой-нибудь код <BR>// еще до 
+    введения ограничений, </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>STARTUPTNFO si 
+  = { sizeof(si) }; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PROCESS_INFORMATION pi; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CreatePiocess(NULL, "CMD", NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, 
+  NULL, &amp;si, &amp;pi); <BR>// Включаем процесс в задание </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    ПРИМЕЧАНИЕ, дочерние процессы, порождаемые этим процессом, <BR>// 
+    автоматически становятся частью того же задания. 
+    <BR>AssignProcessToJobObject(hjob, pi hProcess); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// теперь 
+  потоки дочерних процессов могут выполнять код </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>ResumeThread(pi.hThread); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(pi.hThread); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ждем, когда 
+  процесс завершится или будет исчерпан <BR>// лимит процессорного времени, 
+  указанный для задания<SUB> </SUB><BR>HANDLE h[2]; <BR>h[0] = pi.hProcess;<I> 
+  </I><BR>h[1] = hjob; </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dw = 
+  WaitForMultipleObjects(2, h, FALSE, INFINITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch (dw - 
+  WAIT_OBJECT_0){<I> </I></FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 0: // 
+    процесс завершился., <BR>break; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 1: 
+    <BR>// лимит процессорного времени исчерпан <BR>break; 
+</FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// проводим 
+очистку <BR>CloseHandle(pi hProcess), CloseHandle(hjob);</FONT></P>
+<P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 5-1. Функция StartRestrictedProcess </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь я 
+объясню, как работает <I>StartRestrictedProcess. </I>Сначала я создаю новый 
+объект ядра «задание», вызывая: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateJobObject( PSECURITY_ATTRIBUTES psa, PCTSTR 
+pszName);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как и любая 
+функция, создающая объекты ядра, <I>CreateJobObject </I>принимает в пер вом 
+параметре информацию о защите и сообщает системе, должна ли она вернуть 
+наследуемый описатель. Параметр <I>pszName </I>позволяет присвоить заданию имя, 
+что бы к нему могли обращаться другие процессы через функцию 
+<I>OpenJobObject.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenJobObject( DWORD dwDesiredAccess, BOOL bInheritHandle, PCTSTR pszName); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив 
+работу с объектом-заданием, закройте сго описатель, вызвав, как всегда, 
+<I>CloseHandle </I>Именно так я и делаю в конце своей функции 
+<I>StartRestrictedProcess </I>Имейте в виду, что закрытие объекта-задания не 
+приводит к автоматическому завершению всех его процессов. На самом деле этот 
+объект просто помечается как подлежащий разрушению, и система уничтожает его 
+только после завершения всех включенных в него процессов </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+после закрытия описателя объект-задание становится недоступным для процессов, 
+даже несмотря на то что объект все еще существует Этот факт иллю стрирует 
+следующий код: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  именованный объект-задание <BR>HANDlF hjob = CreateJobObject(NULL, 
+  TEXT("Jeff"));</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// включаем в 
+  него наш процесс <BR>AssignProcessToJobObject(hjob, 
+  GetCurrentProcess());</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// закрытие 
+  обьекта-задания не убивает ни наш процесс, ни само задание, <BR>// но 
+  присвоенное ему имя ('Jeff') моментально удаляется </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hjob); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// пробуем 
+  открыть существующее задание </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hjob = 
+  OpenJobObject(JOB_OBJECT_ALL_ACCESS, FALSE, TEXT("Jeff"));</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  OpenJobOb]ect терпит неудачу и возвращает NULL, поскольку имя ('Jeff") 
+  </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// уже не 
+  указывает на объект-задание после вызова CloseHandle; // получить описатель 
+  этого объекта больше нельзя </FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h5t1></A>Определение ограничений, налагаемых на процессы в задании</B> 
+</FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав 
+задание, Вы обычно строите "песочницу" (набор ограничений) для включае мых в 
+него процессов. Ограничения бывают нескольких видов: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>базовые и 
+  расширенные базовые ограничения — не дают процессам в задании монопольно 
+  захватывать системные ресурсы; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>базовые 
+  ограничения по пользовательскому интерфейсу (UI) — блокируют возможность его 
+  изменения; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>ограничения, связанные с защитой, — перекрывают процессам в задании дос 
+  туп к защищенным ресурсам (файлам, подразделам реестра и т. д,). 
+</FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ограничения 
+на задание вводятся вызовом: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetInformationJobObject( HANDLE hJob, JOBOBJECTINFOCLASS 
+  JobObjectInformationClass, PVOID pJobObjectTnformation, DWORD 
+  cbJobObjectInformationLength); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+параметр определяет нужное Вам задание, второй параметр (перечисли мого типа) — 
+вид ограничений, третий — адрес структуры данных, содержащей под робную 
+информацию о задаваемых ограничениях, а четвертый — размер этой струк туры 
+(используется для указания версии). Следующая таблица показывает, как уста 
+навливаются ограничения. </FONT></P>
+<TABLE height=197 cellSpacing=0 cellPadding=0 rules=all width=658 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=8 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Вид 
+      ограничений </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение второго параметра </FONT></P></TD>
+    <TD vAlign=top align=left width=214 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Структура, указываемая в третьем параметре </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=8 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Базовые 
+      ограничения </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>JobObjectBasicLimitInformation</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=214 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOBOBJECT_BASIC_ LIMIT_INFORMATION </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=8 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Расширенные базовые ограничения </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>JobObjectExtendedLimitInformation</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=214 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOBOBJECT_EXTENDED_ LIMIT_INFORMATION </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=8 height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Базовые 
+      ограничения по ользовательскому интерфейсу </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>JobObjectBasicUIRestrictions</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=214 height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOBOBJECT_BASIC UI_RESTRICTIONS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=8 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Ограничения, связанные с защитой </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>JobObjectSecurityLimitInformation</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=214 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOBOBJECT_SECURITY_ LIMIT_INFORMATION 
+</FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В функции 
+<I>StartRestrictedProcess я </I>устанавливаю для задания лишь несколько базовых 
+ограничений. Для этого я создаю структуру JOB_OBJECT_BASIC_LIMIT_INFOR MATION, 
+инициализирую ее и вызываю функцию <I>SetInformationJobObject. </I>Данная струк 
+тура выглядит так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _JOBOBJECT_BASIC_LIMIT_INFORMATION <BR>{ <BR>LARGE_INTEGER 
+  PerProcessUserTimeLimit; <BR>LARGE_INTEGER PorJobUserTimeLimit; <BR>DWORD 
+  LimitFlags; <BR>DWORD MinimumWorkingSetSize; </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  MaximumWorkingSetSize; <BR>DWORD ActiveProcessLimit; <BR>DWORD^PTR Affinity; 
+  <BR>DWORD PriorityClass; <BR>DWORD SchedulingClass; <BR>} 
+  JOBOBJECT_BASIC_LIMIT_INFORMATION, 
+  *PJOBOBJECT_BASIC_LIMIT_INFORMATION;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все элементы 
+этой структуры кратко описаны в таблице 5-1. </FONT></P>
+<TABLE height=501 cellSpacing=0 cellPadding=0 rules=all width=740 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Элементы </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Примечание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>PerProcessUser</I></FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>TtmeLimit</I> 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Максимальное время в пользова </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>тельском режиме, 
+      выделяемое </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>каждому процессу (в порциях </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>по 100 нс) 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Система 
+      автоматически завершает любой процесс, который пытается </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>использовать 
+      больше обведенного времени. Это ограничение вводится </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>флагом JOB 
+      OBJECT LIMIT PROCESS_TIME в <I>LimitFlags</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=81>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>PerJobUser</I></FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2><I>TimeLimit</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=81>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Максимальное время в пользова </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>тельском режиме 
+      для всех </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>процессов в данном задании </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>(в порциях по 
+      100 нс) </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=81>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>По 
+      умолчанию система автомати чески завершает все процессы, когда 
+      заканчивается это время Данное значение можно изменять в процес 
+      е</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=2>е 
+      выполнения задания. Это ограни</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>чение вводится 
+      флагом </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJFCT_LIMIT_JOB_TIME </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>в 
+      <I>LimitFlags</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>LimitFlags</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Виды 
+      ограничений для задания </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>См 
+      раздел после таблицы. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=175>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>MinimumWorking</I></FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>SetSize и</I> 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>MaximumWorking</I></FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>SetSize</I> 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=175>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Верхний 
+      и нижний предел </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>рабочего набора для каждого </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>процесса (а не 
+      для всех процессов </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>в задании) </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=175>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Обычно 
+      рабочий набор процесса </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>может расширяться за стандартный </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>предел; указав 
+      <I>MaximumWorking</I></FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2><I>SetSize, </I>Вы введете жесткое ограни</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>чение. Когда 
+      размер рабочего набо</FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ра какого-либо процесса достигнет </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>заданного 
+      предела, процесс начнет </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>сбрасывать свои страницы на диск. <BR></FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Вызовы функции 
+      <I>SetProcessWorking</I></FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2><I>SetSize </I>этим процессом будут игно</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>рироваться, если 
+      только он не обра </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>щается к ней для того, чтобы очис</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>тить свой 
+      рабочий набор. Это огра</FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ничение вводится флагом </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_LIMIT_WORKINGSET </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>в 
+      <I>LimitFlags.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=93>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ActiveProcessLimit</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=93>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Максимальное количество процес</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>сов, 
+      одновременно выполняемых </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>в задании </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=93>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Любая 
+      попьпка обойти такое огра</FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ничение приведет к завершению </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>нового процесса 
+      с ошибкой </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>"not enough quota" ("превышение </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>квоты") Это 
+      ограничение вводится </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>флагом JOB_OBJECT_LIMIT_ACTIVE_ </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>PROCESS в 
+      <I>LimitFlags.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=137 height=56>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>Affinity</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=283 height=56>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Подмножество процессоров, </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>на которых можно 
+      выполнять </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>процессы этого задания </FONT></P></TD>
+    <TD vAlign=top align=left width=293 height=56>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Для 
+      индивидуальных процессов это </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>ограничение 
+      можно еще больше </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>детализировать. Вводится флагом </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>JOB_OBJECT_LIMIT 
+      AFFINITY </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>в<I> LimitFlags.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=143 height=155>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>PriorityClass</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=155>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета для всех процессов в задании </FONT></P></TD>
+    <TD vAlign=top align=left width=296 height=155>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Вызванная процессом функция <I>SetPriorityClass </I>сообщает об 
+      успехе даже в том случае, если на самом деле она не выполнила свою задачу, 
+      a <I>GetPriorityClass </I>возвращает класс приоритета, каковой и пытался 
+      уста новить процесс, хотя в реальности его класс может быть совсем другим. 
+      Кроме того, <I>SetThreadPriority </I>не может поднять приоритет потоков 
+      выше normal, но позволяет понижать его. Это ограничение вводится флагом 
+      JOB_OBJECT_LIMIT_ PRIORITY_CLASS в <I>LimitFlags.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=143 height=85>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>SchedulingClass</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=85>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Относительная продолжительность кванта времени, выделяемого всем 
+      потокам в задании </FONT></P></TD>
+    <TD vAlign=top align=left width=296 height=85>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Этот 
+      элемент может принимать значения от 0 до 9; по умолчанию устанавливается 
+      5. Подробнее о его назначении см. ниже. Это ограниче ние вводится флагом 
+      JOB_OBJECT_ LIMIT_SCHEDULING_CLASS в <I>LimitFlags.</I> 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 5-1. Элементы структуры JOBOBJECT_BASIC_LIMIT_INFORMATION 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хочу пояснить 
+некоторые вещи, связанные с этой структурой, которые, по-моему довольно туманно 
+изложены в документации Platform SDK, Указывая ограничения для задания, Вы 
+устанавливаете те или иные биты в элементе <I>LimitFlags. </I>Например, в 
+<I>StartRestrictedProcess </I>я использовал флаги 
+JOB_OBJECT_LIMIT_PRIORITY_CLASS и JOB_ OBJECT_LIMIT_JOB_TIME, т. e. определил 
+всего два ограничения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+выполнении задание ведет учет по нескольким показателям — например, сколько 
+процессорного времени уже использовали его процессы. Всякий раз, когда Вы 
+устанавливаете базовые ограничения с помощью флага JOB_OBJECT_LIMIT_JOB_ TIME, 
+из общего процессорного времени, израсходованного всеми процессами, вы читается 
+то, которое использовали завершившиеся процессы. Этот показатель сооб щает, 
+сколько процессорного времени израсходовали активные на данный момент процессы, 
+А что если Вам понадобится изменить ограничения на доступ к подмно жеству 
+процессоров, не сбрасывая при этом учетную информацию по процессорно му времени? 
+Для этого Вы должны ввести новое базовое ограничение флагом JOB_OB 
+JECT_LIMIT_AFFINITY и отказаться от флага JOB_OBJECT_LIMIT_JOB_TIME. Но тогда 
+получится, что Вы снимаете ограничения на процессорное время. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы хотели 
+другого: ограничить доступ к подмножеству процессоров, сохранив существующее 
+ограничение на процессорное время, и не вычитать время, израсхо дованное 
+завершенными процессами, из общего времени. Чтобы решить эту пробле му, 
+используйте специальный флаг JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME. Этот флaг и 
+JOB_OBJECT_LIMIT_JOB_TIME являются взаимоисключающими. Флаг JOB_OB 
+JECT_LIMIT_PRESERVE_JOB_TIME указывает системе изменить ограничения, не вычи тая 
+процессорное время, использованное уже завершенными процессами. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обсудим также 
+элемент <I>SchedulingCtoss </I>структуры JOBOBJECT_BASIC_LIMIT_INFOR MATION. 
+Представьте, что для двух заданий определен класс приоритета NORMAL_ 
+PRIORITY_CLASS, а Вы хотите, чтобы процессы одного задания получали больше про 
+цессорного времени, чем процессы другого. Так вот, элемент <I>SchedulingClass 
+</I>позволя ет изменять распределение процессорного времени между заданиями с 
+одинаковым </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>классом 
+приоритета. Вы можете присвоить ему любое значение в пределах 0-9 (по умолчанию 
+он равен 5). Увеличивая сго значение, Вы заставляете Windows 2000 вы делять 
+потокам в процессах конкретного задания более длительный квант времени, а снижая 
+— напротив, уменьшаете этот квант, </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, у 
+меня есть два задания с обычным (normal) классом приоритета: в каждом задании — 
+по одному процессу, а в каждом процессе — по одному потоку (тоже с обычным 
+приоритетом). В нормальной ситуации эти два потока обрабатыва лись бы 
+процессором по принципу каруссли и получали бы равные кванты процес сорного 
+времени. Но если я запишу в элемент <I>SchedulingClass </I>для первого задания 
+значение 3, система будет выделять его потокам более короткий квант процессорно 
+го времени, чсм потокам второго задания. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Используя 
+<I>SchedulingClass, </I>избегайте слишком больших его значений, иначе Вы 
+замедлите общую реакцию других заданий, процессов и потоков на ка-кие-либо со 
+бытия в системе. Кроме того, учтите, что все сказанное здесь относится только к 
+Windows 2000. В будущих версиях Windows планировщик потоков предполагается 
+существенно изменить, чтобы операционная система могла более гибко планировать 
+потоки в заданиях и процессах. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее 
+ограничение, которое заслуживает отдельного упоминания, связано с флагом 
+JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION. Он отключает для всех процессов в 
+задании вывод диалогового окна с сообщением о необработанном исключении. Система 
+реагирует на этот флаг вызовом <I>SetErrorMode с </I>флагом SEM_NOG 
+PFAULTERRORBOX для каждого из процессов в задании Процесс, в котором возник нет 
+необрабатываемое им исключение, немедленно завершается бсз уведомления 
+пользователя. Этот флаг полезен в сервисных и других пакетных заданиях. В его от 
+сутствие один из процессов в задании мог бы вызвать исключение и не завершиться, 
+впустую расходуя системные ресурсы. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Помимо 
+базовых ограничений, Вы можстс устанавливать расширенные, для чего применяется 
+структура JOBOBJECT_EXTENDED_LIMIT_INFORMATION: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _JOBOBJECT_EXTENDED_LIMIT_INFORMATION <BR>{ 
+  <BR>JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;<BR>IO_COUNTERS 
+  Iolnfo; <BR>SIZE_T Proces&amp;MemoryLimit;<BR>SIZE_T JobMemoryLimit; 
+  <BR>SIZE_T PeakProcessMemoryUsed; <BR>SIZE_T PeakJobMemoryUsed;<BR>} 
+  JOBOBJECT_EXTENDED_LIMIT_INFORHATION, *PJOBOBJECT_EXTENDED LIMIT_INFORMATION; 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+она включает структуру JOBOBJECT_BASIC_LIMIT_INFORMATION, яв ляясь фактически ее 
+надстройкой, Это несколько странная структура, потому что в ней есть элементы, 
+не имеющие никакого отношения к определению ограничений для задания. Во-первых, 
+элемент <I>IoInfo </I>зарезервирован, и Вы ни в коем случае не дол жны 
+обращаться к нему. О том, как узнать значение счетчика ввода-вывода, я расска жу 
+позже Кроме того, элементы <I>PeakProcessMemoryUsed </I>и <I>PeakJobMemoryUsed 
+</I>пред назначены только для чтения и сообщают о максимальном объеме памяти, 
+передан ной соответственно одному из процессов или всем процессам в задании. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Остальные два 
+элемента, <I>ProcessMemoryLimit </I>и <I>JobMemoryLimit, </I>ограничивают со 
+ответственно объем переданной памяти, который может быть использован одним из 
+процессов или всеми процессами в задании Чтобы задать любое из этих ограниче 
+ний, укажите в элементе <I>LimitFlags </I>флаг JOB_OBJECT_LIMIT_JOB_MEMORY или 
+JOB_OB JECT_LIMIT_PROCESS_MEMORY. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь 
+вернемся к прочим ограничениям, которые можно налагять на задания. Структура 
+JOBOBJECT_BASIC_UI_RESTRICTIONS выглядит так<SUB>:</SUB> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _JOBOBJECT_BASIC_UI_RESTRICTIONS <BR>{ <BR>DWORD UIRestrictionsClass; <BR>}<I> 
+  </I>JOBOBJECT_BASIC_UI_RESTRICTIONS, *PJOBOBJECT_BASIC_UI_RESTRICTIONS; 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этой 
+структуре всего один элемент, <I>UIRestrictionsClass, </I>который содержит набор 
+битовых флагов, кратко описанных н таблице 5-2. </FONT></P>
+<TABLE height=331 cellSpacing=0 cellPadding=0 rules=all width=692 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT_EXITWINDOWS </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает выдачу команд из процессов на выход из системы, 
+      завершение ее работы, </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>перезагрузку или выключение компьютера через функцию 
+      <I>ExitWindowsEx</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT_READCLIPBOARD </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает процессам чтение из буфера обмена </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT_WRITECLIPBOARD </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает процессам стирание буфера обмена </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает процессам изменение системных параметров через 
+      <I>SystemParametersInfo</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT DISPLAYSETTINGS </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает процессам изменение параметров экрана через 
+      <I>ChangeDisplaySettings</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT_GLOBALATOMS </FONT></P>
+      <P> </P></TD>
+    <TD vAlign=top align=left width=348 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Предоставляет заданию отдельную глобаль ную таблицу атомарного 
+      доступа (global atom table) и разрешает его процессам </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>пользоваться 
+      только этой таблицей </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIM1T_DESKTOP </FONT></P>
+      <P> </P></TD>
+    <TD vAlign=top align=left width=348 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает процессам создание новых рабо</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>чих столов или 
+      переключение между ними через функции <I>CreateDesktop </I>или 
+      <I>SwitchDesktop</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=315 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_UILIMIT HANDLES </FONT></P></TD>
+    <TD vAlign=top align=left width=348 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Запрещает процессам в задании использо вать USER-объекты (например, 
+      HWND), со</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>зданные внешними по отношению к этому </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>заданию 
+      процессами </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 5-2. Битовые флаги базовых ограничений по пользовательскому 
+интерфейсу дпя объекта-задания </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+флaг, JOB_OBJECT_UILIMIT_HANDLES, представляет особый интерес: он запрещает 
+процессам в задании обращаться к USER-объектам, созданным внешними по отношению 
+к этому заданию процессами. Так, запустив утилиту Microsoft Spy++ из задания, Вы 
+не обнаружите никаких окон, кроме тех, которые создаст сама Spy++. Ha рис. 5-2 
+показано окно Microsoft Spy++ с двумя открытыми дочерними MDI-окнами. Заметьте, 
+что в левой секции (Threads 1) содержится список потоков в системе. Ка жется, 
+что лишь у одного из них, 000006АС SPYXX, есть дочерние окна. А все дело в том, 
+что я запустил Microsoft Spy++ из задания и ограничил ему права па использова 
+ние описателей USER-объектов. В том же окне сообщается о потоках MSDEV и EXPLO 
+RER, но никаких упоминаний о созданных ими окнах нет. Уверяю Вас, эти потоки 
+наверняка создали какие-нибудь окна — просто Spy++ лишена возможности их ви 
+деть. В правой секции (Windows 3) утилита Spy++ должна показывать иерархию окон 
+на рабочем столе, но там нет ничего, кроме одного элемента — 00000000. (Это не 
+настоящий элемент, но Spy++ была обязана поместить сюда хоть что-нибудь.) 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что такие oграничения односторонни, т e. внешние процес сы все равно 
+видят USER-объекты, которые созданы процессами, включенными в за дание. 
+Например, если запустить Notepad в задании, a Spy++ — внс сго, последняя увидит 
+окно Notepad, даже если для задания указан флаг JOB_OBJECT_UILIMIT_HAND LES 
+Кроме того, Spy++, запущенная в отдельном задании, все равно увидинт<I> </I>окно 
+Notepad, если только для ее задания не установлен флаг JOB_OBJECT_UILIMIT_HAN 
+DLES. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=340 alt=h5-1.jpg src="images/h5-1.jpg" width=436> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 5-2. Microsoft Spy++ работает в задании, которому ограничен доступ к 
+описателям USER-объектов </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ограничение 
+доступа к описателям USER-объектов — вещь изумительная, если Вы хотите создать 
+по-настоящему безопасную песочницу, в которой будут «копаться" процессы Вашего 
+задания. Однако часто бывает нужно, чтобы процесс в задании взаимодействовал с 
+внешними процессами. Одно из самых простых решений здесь — использовать оконные 
+сообщения, но, ссли процессам в задании доступ к описате лям пользовательского 
+интерфейса запрещен, ни один из них не сможет послать со общение (синхронно или 
+асинхронно) окну, созданному внешним процессом К счастью,теперь есть функция, 
+которая поможет решить эту проблему: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  UserHandleGrantAccess( HANOIF hUserObj, HANDLE hjob, BOOL 
+fGrant);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hUserObj </I>идентифицирует конкретный USER-объект, доступ к которому Вы 
+хотите предоставить или запретить процессам в задании. Это почти всегда опи 
+сатель окна, но USER объектом может быть, например, рабочий стол, программная 
+ловушка, ярлык или меню Последние два параметра, <I>hjob </I>и<I> fGrant, 
+</I>указывают на зада ние и вид ограничения. Обратите внимание, что функция не 
+сработает, если ее выз вать из процесса в том задании, на которое указывает 
+<I>hjob, </I>— процесс нс имеет права сам себе предоставлять доступ к объекту. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последний 
+вид ограничений, устанавливаемых для задания, относится к защи те. (Введя в 
+действие такие ограничения, Вы не сможете их отменить) Структура 
+JOBOBJECT_SECURITY_LIMIT_INFORMATION выглядит так. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _JOBOBJECT_SECURITY_LIMIT_INFORMATION <BR>{ <BR>DWORD SecurityLimitFlags; 
+  <BR>HANDLE JobToken; <BR>PTOKEN GROUPS SidsToDisable; <BR>PTOKEN_PRIVILEGES 
+  PrivilegesToDelete; <BR>PTOKEN_GROUPS RestrictedSids; <BR>} JOBOBJECT_SECURITY 
+  LIMIT_INFORMATION, *PJOBOBJECT_SECURITY_LIMIT_INFORMATION; 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ее элементы 
+описаны в следующей таблице </FONT></P>
+<TABLE height=186 cellSpacing=0 cellPadding=0 rules=all width=584 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=533 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=46>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>SecurityLimitFlags</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=533 height=46>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Набор 
+      флагов, которые закрывают доступ администратору, запре щают маркер 
+      неограниченного доступа, принудительно назначают заданный маркер доступа, 
+      блокируют доступ по каким-либо иден тификаторам защиты (security ID, SID) 
+      и отменяют указанные при вилегии </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>JobToken</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=533 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маркер 
+      доступа, связываемый со всеми процессами в задании </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>SidsToDisable</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=533 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указывает, по каким SID не разрешается доступ </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>PrivilegesToDelete</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=533 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяет привилегии, которые снимаются с маркера доступа 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>RestrictedSids</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=533 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Задает 
+      набор SID, по которым запрещается доступ к любому защи щенному объекту 
+      (deny-only SIDs); этот набор добавляется к марке ру доступа 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Естественно, 
+если Вы налагаете ограничения, то потом Вам, наверное, понадобится информация о 
+них. Для этого вызовите: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>BOOL 
+  QueryInformationJobObject( HANDLE hJob, JOBOBJECTINFOCLASS 
+  JobObjectInformationClass. PVOID pvJobObjectInformation, DWORD 
+  cbJobObjectInformationLength, PDWORD pdwReturnLength);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В эту 
+функцию, как и в <I>SetInformationJobObject, </I>передается описатель задания, 
+пе ременная перечислимого типа JOBOJECTINFOCLASS. Она сообщает информацию об 
+ограничениях, адрес и размер структуры данных, инициализируемой функцией. Пос 
+ледний параметр, <I>pdwReturnLength, </I>заполняется самой функцией и указывает, 
+сколь ко байтов помещено в буфер Если эти сведения Вас не интересуют (что обычно 
+и бывает), передавайте в этом параметре NULL.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Процесс может получить информацию о своем 
+  задании, передав при вызове <I>QuerylnformationJobObject </I>вместо описателя 
+  задания значение NULL, Это позво лит ему выяснить установленные для него 
+  ограничения Однако аналогичный вызов <I>SetInformationJobOtject </I>даст 
+  ошибку, так как процесс не имеет права са мостоятельно изменять заданные для 
+  него ограничения </FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h5t2></A>Включение процесса в задание</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, с 
+ограничениями па этом закончим Вернемся к <I>StartRestrictedProcess. </I>Устано 
+вив ограничения для задания, я вызываю <I>CreateProcess </I>и создаю процесс, 
+который помещаю в это задание. Я использую здесь флаг CREATE_SUSPENDED, и он 
+приводит к тому, что процесс порождается, но код пока не выполняет. Поскольку 
+<I>StartRestricted Process </I>вызывается из процесса, внешнего по отношению к 
+заданию, его дочерний </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>процесс тоже 
+не входит в это задание. Если бы я разрешил дочернему процессу не медленно 
+начать выполнение кода, он проигнорировал бы мою песочницу со всеми ее 
+ограничениями. Поэгому сразу после создания дочернего процесса и перед нача лом 
+его работы я должен явно включить этот процесс в только что сформированное 
+задание, вызвав: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  AssignProcessToJobObject( HANDLE hJob, HANDLE hProcess);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+заставляет систему рассматривать процесс, идентифицируемый па раметром 
+<I>hProcess, </I>как часть существующего задания, на которое указывает <I>hJob. 
+</I>Об ратите внимание, что <I>AssignProcessToJobObject </I>позволяет включить в 
+задание только тот процесс, который еще не относится ни к одному заданию. Как 
+только процесс стал частью какого-нибудь задания, его нельзя переместить в 
+другое задание или отпус тить на волю. Кроме того, когда процесс, включенный в 
+задание, порождает новый процесс, последний автоматически помещается в то же 
+задание. Однако этот поря док можно изменить. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Включая в 
+  <I>LimitFlags </I>структуры JOBOBJECT_BASIC_LIMIT_INFORMATION флаг 
+  JOB_OBJECT_BREAKAWAY_OK, Вы сообщаете системе, что новый процесс мо жет 
+  выполняться вне задания. Потом Вы должны вызвать <I>CreateProcess </I>с<I> 
+  </I>новым флагом CREATE_BREAKAWAY_FROM_TOB. (Если Вы сделаете это без флага 
+  JOB_OBJECT_BREAKAWAY_OK в <I>LimitFlags, </I>функция <I>CreateProcess 
+  </I>завершится с ошибкой.) Такой механизм пригодится на случай, если новый 
+  процесс тоже управляет заданиями. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Включая в 
+  <I>LimitFlags </I>структуры JOBOBJECT_BASIC_LIMIT_INFORMATION флаг 
+  JOB_OBJECT_SILENT_BREAKAWAY_OK, Вы тоже сообщаете системе, что новый процесс 
+  не является частью задания, Но указывать в <I>CreateProcess </I>какие-либо 
+  флаги на этот раз не потребуется. Данный механизм полезен для процессов, 
+  которым ничего не известно об объектах-заданиях. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Что касается 
+<I>StartRestrictedProcess, </I>то после вызова <I>AssignProcessToJobObject 
+</I>новый процесс становится частью задания. Далее я вызываю <I>ResumeThread, 
+</I>чтобы поток нового процесса начал выполняться в рамках ограничений, 
+установлепных для зада ния. В этот момент я также закрываю описатель потока, 
+поскольку он мне больше не нужен. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h5t3></A>Завершение всех процессов в задании</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Уверен, 
+именно это Вы и будете делать чаще всего. В начале главы я упомянул о том, как 
+непросто остановить сборку в Developer Studio, потому что для этого ему должны 
+быть известны все процессы, которые успел создать его самый первый процесс. (Это 
+очень каверзная задача. Как Developer Studio справляется с ней, я объяснял в 
+своей колонке «Вопросы и ответы по Win32» в июньском выпуске Microsoft Systems 
+Journal за 1998 год.) Подозреваю, что следующие версии Developer Studio будут 
+использовать механизм заданий, и решать задачу, о которой мы с Вами говорили, 
+станет гораздо легче. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+уничтожить все процессы в задании, Вы просто вызываете </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  TerminateJobOb]ect( HANDLE hJob, UINT uExitCode); </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызов этой 
+функции похож на вызов <I>TerminateProcessw </I>для<I> </I>каждого процесса в за 
+дании и присвоение всем кодам завершения одного значения — <I>uExitCode.</I> 
+</FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h5t4></A>Получение статистической информации о задании</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Мы уже 
+обсудили, как с помощью <I>QueryInformationJobObject </I>получить информацию о 
+текущих ограничениях, установленных для задания. Этой функцией можно пользо 
+ваться и для получения статистической информации. Например, чтобы выяснить ба 
+зовые учетные сведения, вызовите ее, передав 
+<I>JobObjeсtBasicAccountingInformation </I>во втором параметре и адрес структуры 
+JOBOBJECT_BASIC_ACCOUNTING_INFORMATION: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _JOBOBJECT_BASIC_ACCOUNTING_INFORMATION <BR>{ <BR>LARGE_INTEGER TotalUserTime; 
+  <BR>LARGE_INTEGER TotalKernelTime; <BR>LARGE_INTEGER ThisPeriodTotalUserTime; 
+  <BR>LARGE_INTEGER ThisPeriodTotalKernelTime; <BR>DWORD TotalPageFaultCount; 
+  <BR>DWORD TotalProcesses; <BR>DWORD ActiveProcesses; <BR>DWORD 
+  TotalTerminatedProcesses; <BR>} JOBOBJECT_BASIC_ACCOUNTING_INFORMATION, 
+  *PJOBOBJECT_BASIC_ACCOUNTING_INFORMATION;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элементы этой 
+структуры кратко описаны в таблице 5-3 </FONT></P>
+<TABLE height=293 cellSpacing=0 cellPadding=0 rules=all width=606 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>TotalUserTtme</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Процессорное время, израсходованное процессами задания в 
+      пользовательском режиме </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>TotalKernelTime</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Процессорное время, израсходованное процессами задания в режиме 
+      ядра </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=52>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ThisPeriodTotalUserTime</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=52>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То же, 
+      что <I>TotalUserTime, </I>но обнуляется, когда базовые oгpa ничения 
+      изменяются вызовом <I>SetIniformationJobObject, </I>а флаг JOB 
+      OBJECT_LIMIT_PRESERVE_JOB_TIME не используется </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ThisPeriodTotalKernelTime</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То же, 
+      что <I>ThisPeriodTotalUserTime, </I>но относится к процессор ному времени, 
+      израсходованному в режиме ядра </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>TotalPageFaultCount</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Общее 
+      количество ошибок страниц, вызванных процессами задания </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>TotalProcesses</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Общее 
+      число процессов, когда-либо выполнявшихся в зтом задании </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ActiveProcesses</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Текущее 
+      количество процессов в задании </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=165 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>TotalTermtnatedProcesses</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Количество процессов, завершенных из-за превышения ими отведенного 
+      лимита процессорного времени </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 5-3. Элементы структуры JOBOBJECT_BASIC_ACCOUNTING_INFORMATION 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+извлечь те же сведения вместе с учетной информацией по вводу-выво ду, передав 
+<I>JobObjectBasicAndIoAccountingInformation </I>во втором параметре и адрес 
+структуры JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION <BR>{ 
+  <BR>JOBOBJECT_BASIC_ACCOUNTING_TNFORMATION Basiclnto; <BR>IO_COUNTERS 
+  IoInfo;<BR>} JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION; 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+она просто возвращает JOBOBJECT_BASIC_ACCOUNTlNG_INFORMA TION и IO_COUNTERS. 
+Последняя структура показана на следующей странице </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _IO_COUNTERS <BR>{ <BR>ULONGlONG ReadOperationCount; <BR>ULONGLONG 
+  WriteOperationCount; <BR>ULONGLONG OtherOperationCount; <BR>ULONGLONG 
+  ReadTransferCount; <BR>ULONGLONG WriteTransferCount; <BR>ULONGLONG 
+  OtheiTransferCount; <BR>} IO_COUNTERS;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она сообщает 
+о числе операций чтения, записи и перемещения (а также о коли честве байтов, 
+переданных при выполнении этих операций) Данные относятся ко всем процессам в 
+задании Кстати, новая функция <I>GetProcessIoCounters </I>позволяет по лучить ту 
+же информацию о процессах, не входящих ни в какие задания </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetProcessIoCounters( HANDLE hProcess, PIO_GOUNTERS 
+pToCounters);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>QueryInformationJobObject </I>такжe<I> </I>возвращает набор 
+идентификаторов текущих про цессов в задании Но перед этим Вы должны прикинуть, 
+сколько их там может быть, и выделить соответствующий блок памяти, где 
+поместятся массив идентификаторов и структура JOBOBJECT_BASIC_PROCESS_ID_LIST 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _JOBOBJECT_BASIC_PROCESS_ID_LIST <BR>{ <BR>DWORD NumberOfAssigncdProcessps; 
+  <BR>DWORD NurrberOfProcessIdsInList; <BR>DWORD ProcessIdList[1]; <BR>} 
+  JOBOBJECT_BASIC_PROCESS_ID_LIST, *PJOBOBJECT_BASIC_PROCESS_ID_LIST 
+;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В итоге, 
+чтобы получить набор идентификаторов текущих процессов в задании, нужно написать 
+примерно такой код </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  EnumProcessIdsInJob(HANDLE hjob) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// я исхожу из 
+  того, что количество процессов <BR>// в этом задании никогда не превысит 10 
+  <BR>#define MAX_PROCESS_TDS 10 </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// определяем 
+  размер блока памяти (в байтах) <BR>// для хранения идентификаторов и структуры 
+  <BR>DWORD cb = sizeof(JOBOBJECT_BASlC_PROCESS_ID LIST) + (MAX_PROCESS_IDS - 1) 
+  * sizeof(DWORD); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// выделяем 
+  этот блок памяти <BR>PJOBOBJECT_BASIC_PROCESS_ID_LIST pjobpil = _alloca(cb); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сообщаем 
+  функции, на какое максимальное число процессов <BR>// рассчитана выделенная 
+  нами память pjobpil-&gt;NumberOfAssignedProcesseb = 
+MAX_PROCESS_IDS;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// запрашиваем 
+  текущий список идентификаторов процессов <BR>QuerylnformationJobObject(hjob, 
+  JobObjectBasicProcessIdList pjobpil, cb &amp;cb); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// перечисляем 
+  идентификаторы процессов<SUB> </SUB><BR>for (int x =- 0; x &lt; 
+  pjobpil-&gt;NumberOfProcessIdsInList; x++) <BR>{ </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// используем 
+  <BR>pjobpil-&gt;ProcessIdList[x] <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// так как для 
+  выделения памяти мы вызывали _alloca, <BR>// освобождать память нам не 
+  потребуется <BR>} </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот и все, 
+что Вам удастся получить через эти функции, хотя на самом деле опе рационная 
+система знает о заданиях гораздо больше. Эту информацию, которая хра нится в 
+специальных счетчиках, можно извлечь с помощью функций из библиотеки Performance 
+Data Helper (PDH dIl) или через модуль Performance Monitor, подключае мый к 
+Microsoft Management Console (MMC) Рис 5-3 иллюстрирует некоторые из доступных в 
+системе счетчиков заданий (job object counters), а рис. 5-4 — счетчики, 
+относящиеся к отдельным параметрам заданий (job object details counters) 
+Заметьте, что в чадании Jeff содержится четыре процесса calc, cmd, notepad и 
+wordpad. </FONT></P>
+<P align=center><FONT face="Courier New, Courier, mono" color=#0000cc 
+size=2><IMG height=309 alt=h5-2.jpg src="images/h5-2.jpg" width=397> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 5-3. MMC Performance Monitor счетчики задания </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=310 alt=h5-3.jpg src="images/h5-3.jpg" width=400> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 5-4. MMC Performance Monitor счетчики, относящиеся к отдельным 
+параметрам задания </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Извлечь 
+сведения <I>из </I>этих счетчиков Вы сможете только для тех заданий, которым 
+были присвоены имена при вызове <I>CreateJobObject. </I>По этой причине, 
+наверное, луч ше всегда именовать задания, даже если Вы и не собираетесь 
+ссылаться на них по именам из других процессов.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h5t5></A>Уведомления заданий</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, базовые 
+сведения об объектах-заданиях я изложил. Единственное, что осталось рассмотреть, 
+— уведомления Допустим, Вам нужно знать, когда завершаются все про цессы в 
+задании или заканчивается все отпущенное им процессорное время. Либо выяснить, 
+когда в задании порождается или уничтожается очередной процесс Если такие 
+уведомления Вас не интересуют (а во многих приложениях они и не нужны), работать 
+с заданиями будет очень легко — не сложнее, чем я уже рассказывал. Но если они 
+все же понадобятся, Вам придется копнуть чуть поглубже </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Информацию о 
+том, все ли выделенное процессорное время исчерпано, получить нетрудно. 
+Объекты-задания не переходят в свободное состояние до тех пор, пока их процессы 
+нс израсходуют отведенное процессорное время Как только оно заканчи вается, 
+система уничтожает всс процессы в задании и переводит его объект в свобод ное 
+состояние (signaled scate). Это событие легко перехватить с помощью <I>WaitFor 
+SingleObject </I>(или похожей функции). Кстати, потом Вы можете вернуть 
+объект-зада ние в состояние «занято" (nonsignaled state), вызвав 
+<I>SetInformationJobObject </I>и выделив емудополншельное процессорное время. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда я 
+только начинал разбираться с заданиями, мне казалось, что объект-зада ние должен 
+переходить в свободное состояние после завершения всех его процес сов. В конце 
+концов, прекращая свою работу, объекты процессов и потоков освобож даются, то же 
+самое вроде бы должно происходить и с заданиями. Нo Microsoft пред почла сделать 
+по-другому объект-задание переходит в свободное состояние после того, как 
+исчерпает выделенное ему время Поскольку большинство заданий начина ет свою 
+работу с одним процессом, который существует, пока не завершатся все eго 
+дочерние процессы, Вам нужно просто следить за описателем родительского процес 
+са — он освободится, как только завершится все задание. Моя функция 
+<I>StartRestricted Зrocess </I>как раз и демонстрирует данный прием </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но это были 
+лишь простейшие уведомления — более «продвинутые", например о создании или 
+разрушении процесса, получать гораздо сложнее. В частности, Вам придется создать 
+объект ядра «порт завершения ввода-вывода" и связать с ним объект или объекты 
+«задание". После этого нужно будет перевести один или больше пото ков в режим 
+ожидания порта завершения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав порт 
+завершения ввода-вывода. Вы сопоставляете с ним задание, вызывая 
+<I>SetInformationJobObject </I>следующим образом: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>JOBOBJECT_ASSOCIATE_COMPLETION_PORT joacp; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>joacp.CompletionKey = 1; <BR>// любое значение, уникально 
+  идентифицирующее это задание </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>joacp.CompletionPort = hIOCP; <BR>// описатель порта завершения, 
+  принимающего уведомления </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetInformationJobObject(hJob, 
+  JobObjectAssociateCompletionPortInforrration, &amp;jоаср, sizeof(joacp)) 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+выполнения этого кода система начнет отслеживать задание и при возник новении 
+событий передавать их порту завершения. (Кстати, Вы можете вызывать 
+<I>QueryInformationJobQbjectw </I>получать ключ завершения и описатель порта, по 
+врядли </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>это Вам 
+когда-нибудь понадобится ) Потоки следят за портом завершения ввода-вы вода, 
+вызывая <I>GetQueuedCompletionStatus.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetQueuedCompletionStatus( HANDLE hIOCP, PDWORD pNumBytesTransferred, 
+  PULONG_PTR pCorripletionKey, POVERLAPPED *pOverlapped, DWORD dwMilliseconds); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда эта 
+функция возвращает уведомление о событии задания, <I>*pCompletionKey 
+</I>содержит значение ключа завершения, заданное при вызове 
+<I>SetInformationJobObjett </I>для связывания задания с портом завершения По 
+нему Вы узнаете, в каком из заданий возникло событие Значение в 
+<I>*pNumBytesTransferred </I>указывет<I> </I>какое именно собы тие произошло 
+(таблица 5-4). В зависимости от конкретного события в <I>*pOverlapped </I>может 
+возвращаться идентификатор процесса. </FONT></P>
+<TABLE height=268 cellSpacing=0 cellPadding=0 rules=all width=714 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Событие 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>В 
+      задании нет работающих процессов </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_END_OF_PROCESS_TIME </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Процессорное время, выделенное процессу, исчерпано, процесс 
+      завершается, и сообщается его идентификатор </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_ MSG_ACTIVE_ROCESS_LIMIT </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Была 
+      попытка превысить ограничение на число активных процессов в задании 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Была 
+      попытки превысить ограничение на объем памяти, которая может быть передана 
+      процессу, сообщается идентификатор процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_JOB_ MEMORY_LIMIT </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Была 
+      попытка превысить ограничение на объем памяти, которая может быть передана 
+      заданию; сообщается </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>идентификатор процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_NEW_ PROCESS </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>В 
+      задание добавлен процесс; сообщается идентификатор процесса 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_EXIT_ PROCESS </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Процесс 
+      завершен, сообщается идентификатор процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_ABNOKMAL._EXIT_PROCESS </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Процесс 
+      завершен из за необработанного им исключения; </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>сообщается 
+      идентификатор процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=231 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>JOB_OBJECT_MSG_END_ OFJOR_TIME </FONT></P></TD>
+    <TD vAlign=top align=left width=449 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Процессорное время, выделенное заданию, исчерпано, процессы не 
+      завершаются, и Вы можете либо возобновить их работу, задав новый лимит по 
+      времени, либо самостоя тельно завершить процессы, вызвав 
+      <I>TerminateJobObject</I> </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 5-4. Уведомления о событиях задания, посылаемые системой 
+связанному с этим заданием порту завершения </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее 
+замечание: по умолчанию объект-задание настраивается системой на автоматическое 
+завершение всех его процессов по истечении выделенного ему про цессорного 
+времени, а уведомление JOB_OBJECT_MSG_END_OF_JOB_TIME не посы лается. Если Вы 
+хотите, чтобы объект-задание не уничтожал свои процессы, а просто сообщал о 
+превышении лимита на процессорное время, Вам придется написать при мерно такой 
+код: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  структуру JOBOBJECT_END_OF_JOB_TIME_JNFORMATION <BR>// и инициализируем ее 
+  единственный элемент </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>JOBOBJECT_END_OF_JOB_TIME_INFORMATION 
+  joeojti;<BR>joeojti.EndOfJobTimeAction = 
+  J0B_OBJECT_POST_AT_END_OF_JOB;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сообщаем 
+  заданию, что ену нужно делать по истечении его времени 
+  <BR>SetInformationJobObject(hJob, JobObjectEndOfJobTimeInformation, 
+  &amp;joeojti, sizeof(joeojti));</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+указать и другое значение, JOB__OBJECT_TERMINATE_AT_END_OF_JOB, но оно задается 
+по умолчанию, еще при создании задания </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h5t6></A>Программа-пример JobLab</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этапрограмма, 
+"05КJobLab.ехе»(см листингнарис 5-6),позволяет легко эксперимен тировать с 
+заданиями Ее файлы исходного кода и ресурсов находятся в каталоге 05-JobLab на 
+компакт-диске, прилагаемом к книге После запуска JobLab открывается окно, 
+показанное на рис 5-5 </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=379 alt=h5-4.jpg src="images/h5-4.jpg" width=406> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 5-5. Программа-пример JobLab </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда процесс 
+инициализируется, он создает объект «задание» Я присваиваю ему имя JobLab, чтобы 
+Вы могли наблюдать за ним с помощью MMC Performance Monitor Моя программа также 
+создает порт завершения ввода-вывода и связывает с ним объ ект-задание Это 
+позволяет отслеживать уведомления от задания и отображать их в списке в нижней 
+части окна </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Изначально в 
+задании нет процессов, и никаких ограничений для него не уста новлено. Поля в 
+верхней части окна позволяют задавать базовые и расширенные ог раничения Все, 
+что от Вас требуется, — ввести в них допустимые значения и щелк нуть кнопкуАрр1у 
+Limits Если Вы оставляете поле пустым, соответствующие ограни чения не вводятся 
+Кроме базовых и расширенных, Вы можете задавать ограничения по пользовательскому 
+интерфейсу Обратите внимание помечая флажок PreserveJob Time When Applymg 
+Limits, Вы не устанавливаете ограничение, а просто получаете возможность 
+изменять ограничения, не сбрасывая значения элементов <I>ThisPeriod-</I> 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>TotalUserTime </I>и <I>ThisPeriodTotalKemelTime </I>при запросе 
+базовой учетной информации. Этот флажок становится недоступен при наложении 
+ограничений на процессорное время для отдельных заданий. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Остальные 
+кнопки позволяют управлять заданием по-другому. Кнопка Terminate Processes 
+уничтожает все процессы в задании. Кнопка Spawn CMD In Job запускает командный 
+процессор, сопоставляемый с заданием Из этого процесса можно запус кать дочерние 
+процессы и наблюдать, как они ведут себя, став частью задания И пос ледняя 
+кнопка, Put PID In Job, позволяет связать существующий свободный процесс с 
+заданием (т. e. включить его в задание). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Список в 
+нижней части окна отображает обновляемую каждые 10 секунд инфор мацию о статусе 
+задания, базовые и расширенные сведения, статистику ввода-выво да, а также 
+пиковые объемы памяти, занимаемые процессом и заданием. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме этой 
+информации, в списке показываются уведомления, поступающие от задания в порт 
+завершения ввода-вывода. (Кстати, вся информация обновляется и при приеме 
+уведомления.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И еще одно: 
+если Вы измените исходный код и будете создавать безымянный объект ядра 
+«задание», то сможете запускать несколько копий этой программы, со здавая тем 
+самым два и более объектов-заданий на одной машине. Это расширит Ваши 
+возможности в экспериментах с заданиями. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Что касается 
+исходного кода, то специально обсуждать его нет смысла — в нем и так достаточно 
+комментариев. Замечу лишь, что в файле Job.h я определил С++-класс CJob, 
+инкапсулирующий объект "задание» операционной системы. Эти избавило меня от 
+необходимости передавать туда-сюда описатель задания и позволило уменьшить число 
+операций приведения типов, которые обычно приходится выполнять при вы зове 
+функций <I>QuerylnformationJobObject </I>и <I>SetInformationJobObject.</I> 
+</FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/05-JobLab.zip"> 
+  <IMG height=16 src="images/CLSDFOLD.gif" width=16>  JobLab</A></FONT></P>
+<HR>
+
+<P>
+<A href="head04.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head06.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

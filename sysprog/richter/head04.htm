@@ -1,0 +1,2564 @@
+<HTML><HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<META content="MSHTML 6.00.3790.1039" name=GENERATOR></HEAD>
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><FONT face=Arial size=3><B><FONT color=#990000>ЧАСТЬ II</FONT></B></FONT> 
+<FONT color=#990000><B><FONT face=Arial size=3>НАЧИНАЕМ 
+РАБОТАТЬ</FONT></B></FONT> </P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h1></A>ГЛАВА 4</FONT> <FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>Процессы </FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта глава о 
+том, как система управляет выполняемыми приложениями. Сначала я определю понятие 
+"процесс" и объясню, как система создает объект ядра "процесс" Затем я покажу, 
+как управлять процессом, используя сопоставленный с ним объект ядра Далее мы 
+обсудим атрибуты (или свойства) процесса и поюворим о несколь ких функциях, 
+позволяющих обращаться к этим свойствам и изменять их. Я расскажу также о 
+функциях, которые создают (порождают) в системе дополнительные процес сы Ну и, 
+конечно, описание процессов было бы неполным, если бы я не рассмотрел механизм 
+их завершения. О'кэй, приступим </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Процесс 
+обычно определяют как экземпляр выполняемой программы, и он состо ит из двух 
+компонентов </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>объекта 
+  ядра, через который операционная система управляет процессом Там же хранится 
+  статистическая информация о процессе, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>адресного 
+  пространства, в котором содержится код и данные всех EXE- и DLL модулей Именно 
+  в нем находятся области памяти, динамически распределяе мой для стеков потоков 
+  и других нужд. </FONT></LI></UL>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=324 alt=h4-1.jpg src="images/h4-1.jpg" width=378> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 4-1. Операционная система выделяет потокам кванты времени по 
+принципу карусели </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Процессы 
+инертны Чтобы процесс что-нибудь выполнил, в нем нужно создать поток Именно 
+потоки отвечаю за<I> </I>исполнение кодя, содержащегося в адресном про странстве 
+процесса В принципе, один процесс может владеть несколькими потока ми, и тогда 
+они "одновременно" исполняют код в адресном пространстве процесса. 
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для этого 
+каждый поток должен располагать собственным набором регистров про цессора и 
+собственным стеком В каждом процессе есть минимум один поток. Если бы у процесса 
+не было ни одного потока, ему нечего было бы делать на этом свете, и система 
+автоматически уничтожила бы его вместе с выделенным ему адресным про странством. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы всс эти 
+потоки работали, операционная система отводит каждому из них определенное 
+процессорное время. Выделяя потокам отрезки времени (называемые 
+<I>квантами</I>)<I> </I>по принципу карусели, она создает тем самым иллюзию 
+одновременного выполненияпотоков Рис 4-1 иллюстрирует распределение 
+процессорноговремени между потоками па машине с одним процессором. Если в машине 
+установлено более одного процессора, алгоритм работы операционной системы 
+значительно усложняет ся (в этом случае система стремится сбалансировать 
+нагрузку между процессорами). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При создании 
+процесса первый (точнее, первичный) поток создается системой автоматически. 
+Далее этот поток может породить другие потоки, те в свою очередь — новые и т. д. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 2000 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Windows 2000 в полной мере использует возможности машин с 
+  несколькими процессорами. Например, эту книгу я писал, сидя за машиной с двумя 
+  процес сорами. Windows 2000 способна закрепить каждый поток за отдельным про 
+  цессором, и тогда два потока исполняются действительно одновременно. Ядро 
+  Windows 2000 полностью поддерживает распределение процессорного време ни между 
+  потоками и управление ими на таких системах. Вам не придется делать ничего 
+  особенного в своем коде, чтобы задействовать преимущества многопроцессорной 
+  машины.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Windows 98 работает только с одним процессором. Даже если у 
+  компьютера несколько процессоров, под управлением Windows 98 действует лишь 
+  один из них — остальные простаивают.</FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t1></A>Ваше первое Windows-приложение </B></FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 
+поддерживает два типа приложений: основанные на графическом интерфей се 
+(graphical user interface, GUI) и консольные (console user interface, CUI) V 
+приложе ний первого типа внешний интерфейс чисто графический GUI-приложения 
+создают окна, имеют меню, взаимодействуют с пользователем через диалоговые окна 
+и вооб ще пользуются всей стандартной "Windows'oвской" начинкой. Почти все 
+стандартные программы Windows — Notepad, Calculator, Wordpad и др — являются 
+GUI-приложе ниями. Приложения консольного типа работают в текстовом режиме: они 
+не форми руют окна, не обрабатывают сообщения и не требуют GUI. И хотя 
+консольные при ложения на экране тоже размещаются в окне, в нем содержится 
+только текст. Коман дные процессоры вроде Cmd.exe (в Windows 2000) или 
+Command.com (в Windows 98) — типичные образцы подобных приложений. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вместе с тем 
+граница между двумя типами приложений весьма условна. Можно, например, создать 
+консольное приложение, способное отображать диалоговые окна. Скажем, в командном 
+процессоре вполне может быть специальная команда, открыва ющая графическое 
+диалоговое окно со списком команд, вроде мелочь — а избавляет от запоминания 
+лишней информации В то же время можно создать и GUI-приложе ние, выводящее 
+текстовые строки в консольное окно. Я сам часто писал такие пpo 
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>граммы: 
+создав консольное окно, я пересылал в него отладочную информацию, свя занную с 
+исполняемым приложением. Но, конечно, графический интерфейс предпоч тительнее, 
+чем старомодный текстовый Как показывает опыт, приложения на основе GUI 
+"дружественнее" к пользователю, а значит и более популярны </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вы 
+создаете проект приложения, Microsoft Visual C++ устанавливает такие ключи для 
+компоновщика, чтобы в исполняемом файле был указан соответствующий тип 
+подсистемы Для CUI-программ используется ключ /SUBSYSTEM:CONSOLE, а для 
+GUI-приложений — /SUBSYSTEM:WINDOWS Когда пользователь запускает приложе ние, 
+загрузчик операционной системы проверяет помер подсистемы, хранящийся в 
+заголовке образа исполняемого файла, и определяет, что это за программа — GUI 
+или СUI Если номер указывает на приложение последнего типа, загрузчик 
+автоматичес ки создает текстовое консольное окно, а если номер свидетельствует о 
+противопо ложном — просто загружает программу в память После того как приложение 
+начи нает работать, операционная система больше не интересуется, к какому типу 
+оно относится. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во всех 
+Windows-приложениях должна быть входная функция за реализацию которой отвечаете 
+Вы Существует четыре такие функции: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain( HINSTANCE hinstExe, HINSTANCE, PSTR pszCmdLine, int 
+  nCmdShow);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPT 
+  wWinMain( HINSTANCE hinstExe, HINSTANCE, PWSTR pszCmdLine, int 
+  nCmdShow);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int __cdecl 
+  main( int argc, char *argv[], char *envp[]);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int _cdecl 
+  wmain( int argc, wchar_t *argv[], wchar_t *envp[]);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На самом делс 
+входная функция операционной системой не вызывается Вместо этого происходит 
+обращение к старювой функции из библиотеки С/С++ Она ини циализирует библиотеку 
+С/С++, чтобы можно было вызывать такие функции, как <I>malloc </I>и<I> free, 
+</I>а также обеспечивает корректное создание любых объявленных Вами глобальных и 
+статических С++-объектов до того, как начнется выполнение Вашего кода В 
+следующей таблице показано, в каких случаях реализуются те или иные вход ные 
+функции. </FONT></P>
+<TABLE height=199 cellSpacing=0 cellPadding=0 rules=all width=535 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=235 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тип 
+      приложения </FONT></P></TD>
+    <TD vAlign=top align=left width=98 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Входная 
+      функция </FONT></P></TD>
+    <TD vAlign=top align=left width=194 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Стартовая функция, встраиваемая в Ваш исполняемый файл 
+    </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=235 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>GUI-приложение, работающее с ANSI-символами и строками 
+    </FONT></P></TD>
+    <TD vAlign=top align=left width=98 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>WinMain</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=194 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>WinMainCRTStartup</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=235 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>GUI-приложение, работающее с Unicode-символами и строками 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=98 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wWinMain</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=194 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wWinMainCRTStartup</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=235 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>GUI-приложение, работающее </FONT></P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>с 
+      ANSI-символами и строками </FONT></P></TD>
+    <TD vAlign=top align=left width=98 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>main</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=194 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>mainCRTStartup</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=235 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>GUI-приложение, работающее с Unicode-символами и строками 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=98 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wmain</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=194 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wmainCRTStartup</I> </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Нужную 
+стартовую функцию в библиотеке С/С++ выбирает компоновщик при сборке 
+исполняемого файла. Если указан ключ /SUBSYSTEM:WINDOWS, компоновщик ищет в 
+Вашем коде функцию <I>WinMain </I>или <I>wWinMain, </I>Если ни одной из них нет, 
+он сообщает об ошибке "unresolved external symbol" ("неразрешенный внешний 
+символ"); в ином случае — выбирает <I>WtnMainCRTStartup </I>или 
+<I>wWinMainCRTStartup </I>соответственно. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Аналогичным 
+образом, если ладан ключ /SUBSYSTEM:CONSOLE, компоновщик ищет в коде функцию 
+<I>main </I>или <I>wmain </I>и выбирает соответственно <I>mainCRTStartup </I>или 
+<I>wmainCRTStartup; </I>если в коде нет ни <I>main, </I>ни <I>wmain, 
+</I>сообщается о той же ошибке — "unresolved external symbol" </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но не многие 
+знают, что в проекте можно вообще не указывать ключ /SUBSYSTEM компоновщика. 
+Если Вы так и сделаете, компоновщик будет сам определять подсис темудля Вашего 
+приложения. При компоновке он проверит, какая из четырех функ ций <I>(WinMain, 
+wWinMain, main </I>или <I>wmain) </I>присутствует в Вашем коде, и на основа нии 
+этого выберет подсистему и стартовую функцию из библиотеки С/С++. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Одна из 
+частых ошибок, допускаемых теми, кто лишь начинает работать с Vi sual С++, — 
+выбор неверного типа проекта. Например, разработчик хочет создать проект Win32 
+Application, а сам включает в код функцию <I>main </I>При его сборке он получает 
+сообщение об ошибке, так как для проекта Win32 Application в командной строке 
+компоновщика автоматически указывается ключ /SUBSYSTEM:WlNDOWS, ко торый требует 
+присутствия в коде функции <I>WinMain </I>или <I>wWinMatn </I>В этот момент раз 
+работчик может выбрать один из четырех вариантов дальнейших действий: 
+</FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>заменить 
+  <I>main </I>на <I>WinMain </I>Как правило, это не лучший вариант, поскольку 
+  разработчик скорее всего и хотел создать консольное приложение, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>открыть 
+  новый проект, на этот раз — Win32 Console Application, и перенести в него все 
+  модули кода. Этот вариант весьма утомителен, и возникает ощущение, будто 
+  начинаешь все заново, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>открыть 
+  вкладку Link в диалоговом окне Project Settings и заменить ключ 
+  /SUBSYSTEM:WINDOWS на /SUBSYSTEM:CONSOLK. Некоторые думают, что это 
+  единственный вариант, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>открыть 
+  вкладку Link в диалоговом окне Project Settings и вообще убрать ключ 
+  /SUBSYSTEM:WINDOWS. Я предпочитаю именно этот способ, потому что он самый 
+  гибкий. Компоновщик сам сделает все, что надо, в зависимости от вход ной 
+  функции, которую Вы реализуете в своем коде, Никак не пойму, почему это не 
+  предлагается по умолчанию при создании нового проекта Win32 Appli cation или 
+  Win32 Console Application. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все стартовые 
+функции из библиотеки С/С++ делают практически одно и то же. Разница лишь в том, 
+какие строки они обрабатывают (в ANSI или Unicode) и какую входную функцию 
+вызывают после инициализации библиотеки. Кстати, с Visual C++ поставляется 
+исходный код этой библиотеки, и стартовые функции находятся в фай ле CRt0.c. А 
+теперь рассмотрим, какие операции они выполняют: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>считывают 
+  указатель на полную командную строку нового процесса; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>считывают 
+  указатель на переменные окружения нового процесса; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>инициализируют глобальные переменные из библиотеки С/С++, доступ к ко 
+  торым из Вашего кода обеспечивается включением файла StdLib.h. Список этих 
+  переменных приведен в таблице 4-1; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>инициализируют кучу (динамически распределяемую область памяти), исполь 
+  зуемую С-функциями выделения памяти (т. с. <I>malloc </I>и <I>calloc} </I>и 
+  другими про цедурами низкоуровневого ввода-вывода; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>вызывают 
+  конструкторы всех глобальных и статических объектов С++-классов. 
+</FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив эти 
+операции, стартовая функция обращается к входной функции в Вашей программе. Если 
+Вы написали ее в виде <I>wWinMain, </I>то она вызывается так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>GetStartupInfo(&amp;StartupInfo);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  nMainRetVal = wWinMain(GetMjduleHandle(NULL), NULL, pszCommandLineUnicode, 
+  (StartupInfo.dwFlags &amp; STARTF_USESHOWWINDOW) ? StartupInfo.wShowWindow , 
+  SW_SHOWDEFAULT); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А если Вы 
+предпочли <I>WinMain, </I>то: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>GetStartupInfo(&amp;StartupInfo); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  nMainReLVal = WinMain(GetModuleHandle(NULL), NULL, pszCommandLineANSI, 
+  (StartupInfo.dwFlags &amp; STARTF_USESHOWWINDOW) ? Startupinfo.wShowWindow , 
+  SW_SHOWDEFAULT); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, 
+то же самое для функций <I>wmain </I>и <I>main.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  nMainRetVal = wmain(__argc, __wargv, _wenviron}; int nMainRetVal = main(_argc, 
+  __argv, _environ);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Ваша 
+входняя функция возвращает управление, стартовая обращается к функции <I>exit 
+</I>библиотеки С/С++ и передает ей значение <I>nMainRetVal. </I>Функция <I>exit 
+</I>выполняет следующие операции: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>вызывает 
+  всс функции, зарегистрированные вызовами функции <I>_onexit;</I> </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>вызывает 
+  деструкторы всех глобальных и статических объектов С++-классов; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>вызывает 
+  Windows-функцию <I>ExifProcess, </I>передавая ей значение <I>nMainRetVal. 
+  </I>Это заставляет операционную систему уничтожить Ваш процесс и установить 
+  код его завершения. </FONT></LI></UL>
+<TABLE height=121 cellSpacing=0 cellPadding=0 rules=all width=526 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Имя 
+      переменной </FONT></P></TD>
+    <TD vAlign=top align=left width=115 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тип 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=367 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>_osver</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=115 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>unsigned int</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=367 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Версия 
+      сборки операционной системы. Например, у Windows 2000 Beta 3 этот номер 
+      был 2031,<I><SUB> </SUB></I>соответственно <I>_osver </I>равна 2031. 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=44>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>_winmajor</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=115 height=44>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>unsigned int</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=367 height=44>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Основной номер версии Windows в шестнадцатерич ной форме. Для 
+      Windows 2000 это значение равно 5. </FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 4-1. Глобальные переменные из библиотеки С/С++, доступные Вашим 
+программам </FONT></P>
+<TABLE height=198 cellSpacing=0 cellPadding=0 rules=all width=659 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Имя 
+      переменной </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тип 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=31>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>_winminor</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>unsigned int</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Дополнительный номер версии Windows в шестнадца теричной форме Для 
+      Windows 2000 это значение равно 0 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>_winver</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>unsigned int</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Вычисляется как ( <I>winmajor &lt;&lt; </I>8) + _<I>winminor.</I> 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>__argc</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>unsigned int</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Количество аргументов, переданных в командной строке 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>__argv </I>_ _<I>wargv</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2><I>char 
+      </I>** <I>wchar_t **</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Массив 
+      размером __<I>argc </I>с указателями на ANSI- или Unicode-строки. Каждый 
+      элемент массива указывает на один из аргументов командной строки. 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>_environ _wenviron</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2><I>char 
+      ** wchar_t </I>** </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Массив 
+      указателей на ANSI- или Unicode-строки. Каждый элемент массива указывает 
+      на строку — переменную окружения. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>_pgmptr _wpgmptr</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=118 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2><I>char 
+      ** wchar_t*</I>* </FONT></P></TD>
+    <TD vAlign=top align=left width=435 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Полный 
+      путь и имя (в ANSI или Unicode) запускаемой программы. 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p1></A>Описатель экземпляра процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Любому EXE- 
+или DLL-модулю, загружаемому в адресное пространство процесса, при сваивается 
+уникальный описатель экземпляра. Описатель экземпляра Вашего EXE файла 
+передается как первый параметр функции <I>(w)WinMain - hinstExe. </I>Это значе 
+ние обычно требуется при вызовах функций, загружающих те или иные ресурсы. На 
+пример, чтобы загрузить из образа ЕХЕ-файла такой ресурс, как значок, надо 
+вызвать: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HICON 
+  LoadIcon( HINSTANCE hinst, PCTSTR pszIcori); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+параметр в <I>LoadIcon </I>указывает, в каком файле (EXE или DLL) содержится 
+интересующий Вас ресурс. Многие приложения сохраняют параметр <I>hinstExe 
+</I>функ ции <I>(w)WinMain </I>в глобальной переменной, благодаря чему он 
+доступен из любой части кода ЕХЕ-файла. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+документации Platform SDK утверждается, что некоторые Windows-функции требуют 
+параметр типа HMODULE. Пример — функция <I>GetModuleFileName</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetModuleFileName( HMODULE hinstModule, PTSTR pszPath, DWORD cchPath); 
+  </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE: 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>Как 
+  оказалось, HMODULE и HINSTANCE — это идно и то же. Встретив в доку ментации 
+  указание передать какой-то функции HMODULE, смело передавайте HINSTANCE, и 
+  наоборот. Они существуют в таком виде лишь потому, что в l6 разрядпой Windows 
+  идентифицировали совершенно разные вещи.</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Истинное 
+значение параметра <I>hinstExe </I>функции <I>(w)WinMain — </I>базовый адрес в 
+памяти, определяющий ту область в адресном пространстве процесса, куда был заг 
+ружен образ данного ЕХЕ-файла, Например, если система открывает исполняемый файл 
+и загружает его содержимое по адресу 0x00400000, то <I>hinstExe </I>функции 
+<I>(w)Win Main </I>получает значение 0x00400000. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Базовый 
+адрес, но которому загружается приложение, определяется компоновщи ком. Разные 
+компоновщики выбирают и разные (no умолчанию) базовые адреса. Ком поновщик 
+Visual С++ использует по умолчанию базовый адрес 0x00400000 — самый нижний в 
+Windows 98, начиная с которого в ней допускается загрузка образа испол няемого 
+файла. Указав параметр /BASE: <I>адрес </I>(в случае компоновщика от Microsoft), 
+можно изменить базовый адрес, по которому будет загружаться приложение. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При попытке 
+загрузить исполняемый файл в Windows 98 по базовому адресу ниже 0x00400000 
+загрузчик переместит его на другой адрес. Это увеличит время загрузки 
+приложения, но оно по крайней мере будет выполнено. Если Вы разрабатываете про 
+граммы и для Windows 98, и для Windows 2000, сделайте так, чтобы приложение заг 
+ружалось по базовому адресу не ниже 0x00400000. Функция <I>GetModuleHandle.</I> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HMODULE 
+  GetModuleHandle( PCTSTR pszModule); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>возвращает 
+описатель/базовый адрес, указывающий, куда именно (в адресном про странстве 
+процесса) загружается EXE- или DLL-файл. При вызове этой функции имя нужного 
+EXE- или DLL-файла передается как строка с нулевым символом в конце. Если 
+система находит указанный файл, <I>GetModuleHandle </I>возвращает базовый адрес, 
+по которому располагается образ данного файла. Если же файл системой не найден, 
+функция возвращает NULL. Кроме того, можно вызвать эту функцию, передав ей NULL 
+вместо параметра <I>pszModule, — </I>тогда Вы узнаете базовый адрес EXE-файла. 
+Именно это и делает стартовый код из библиотеки С/С++ при вызове <I>(w)WinMain 
+</I>из Вашей программы. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть еще две 
+важные вещи, касающиеся <I>GetModuleHandle. </I>Во-первых, она прове ряет 
+адресное пространство только того процесса, который ее вызвал. Если этот про 
+цесс не использует никаких функций, связанных со стандартными диалоговыми ок 
+нами, то, вызвав <I>GetModuleHandle </I>и передав ей аргумент "ComDlg32", Вы 
+получите NULL - пусть даже модуль ComDlg32.dll и загружен в адресное 
+пространство какого нибудь другого процесса. Во-вторых, вызов этой функции и 
+передача ей NULL дает в результате базовый адрес ЕХЕ-фяйла в адресном 
+пространстве процесса. Так что, вы зывая функцию в виде <I>GetModuleHandle(NULL 
+— </I>даже из кода в DLL, — Вы получаете базовый адрес EXE-, а не DLL-файла. 
+</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p2></A>Описатель предыдущего экземпляра процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я уже 
+говорил, что стартовый код из библиотеки С/С++ всегда передает в функцию 
+<I>(w)WinMain </I>параметр <I>binstExePrev </I>как NULL. Этот параметр 
+предусмотрен исключи тельно для совместимости с 16-разрядными версиями Windows и 
+не имеет никакого смысла для Windows-приложений. Поэтому я всегда пишу заголовок 
+<I>(w)WinMain </I>так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain( <BR>HINSTANCE hinstExe, <BR>HINSTANCE, PSTR pszCmdLine, int 
+  nCmdShow); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку у 
+второго параметра нет имени, компилятор не выдает предупрежде ние "parameter not 
+referenced" ("нет ссылки на параметр"), </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p3></A>Командная строка процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При создании 
+новому процессу передается командная строка, которая почти никог да не бывает 
+пустой — как минимум, она содержит имя исполняемого файла, исполь зованного при 
+создании этого процесса. Однако, как Вы увидите ниже (при обсужде нии функции 
+<I>CreateProcess), </I>возможны случаи, когда процесс получает командную строку, 
+состоящую из единственного символа — нуля, завершающего строку. В момент запуска 
+приложения стартовый код из библиотеки С/С++ считывает командную строку 
+процесса, пропускает имя исполняемого файла и заносит в параметр <I>pszCmdLine 
+</I>функции <I>(w)WinMain </I>указатель на оставшуюся часть командной строки. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>pszCmdLine </I>всегда указывает на ANSI-строку. Но, заменив <I>WinMain </I>на 
+<I>wWinMain, </I>Вы получите доступ к Unicode-версии командной строки для своего 
+про цесса </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Программа 
+может анализировать и интерпретировать командную строку как угод но. Поскольку 
+<I>pszCrndLine </I>относится к типу PSTR, а не PCSTR, не стесняйтесь и запи 
+сывайте строку прямо в буфер, на который указывает этот параметр, но ни при 
+каких условиях не переступайте границу буфера. Лично я всегда рассматриваю этот 
+буфер как "только для чтений". Если в командную строку нужно внести изменения, я 
+снача ла копирую буфер, содержащий командную строку, в локальный буфер (в своей 
+про грамме), который затем и модифицирую. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Указатель на 
+полную командную строку процесса можно.получить и вызовом функции 
+<I>GetCommandLine.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PTSTR 
+  GetCommandLine(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+возвращает указатель на буфер, содержащий полную командную строку, вклю чая 
+полное имя (вместе с путем) исполняемого файла. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во многих 
+приложениях безусловно удобнее использовать командную строку, предварительно 
+разбитую на отдельные компоненты, доступ к которым приложение может получить 
+через глобальные переменные _<I>argc </I>и _<I>argv </I>(или _<I>wargu). 
+</I>Функ ция <I>CommandLineToArgvW </I>расщепляет<I> </I>Unicode-строку на 
+отдельные компоненты: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PWSTR 
+  CommandLineToArgvW( PWSTR pszCmdLine, int pNumArgs); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Буква W в 
+конце имени этой функции намекает на "широкие" (wide) символы и подсказывает, 
+что функция существует только в Unicode-версии. Параметр <I>pszCmdLine 
+</I>указывает на командную строку Его обычно получают предварительным вызовом 
+<I>GetCommandLineW </I>Параметр <I>pNumArgs </I>— это адрес целочисленной 
+переменной, в которой задается количество аргументов в командной строке. Функция 
+<I>Command LineToArgvW </I>возвращает<I> </I>адрес массива указателей на 
+Unicode-строки </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>CommandLineToArgvW </I>выделает<I> </I>нужную память автоматически. 
+Большинство при ложений не освобождает эту память, полагаясь на операционную 
+систему, которая проводит очистку ресурсов по завершении процесса И такой подход 
+вполне прием лем. Нo если Вы хотите сами освободить эту память, сделайте так: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int pNumArgs; 
+  <BR>PWSTR *ppArgv = CommandLineToArgvW(GetCommandLineW(), &amp;pNumArgs); 
+  </FONT></P></BLOCKQUOTE>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// используйте 
+  эти аргументы if (*ppArgv[1] == L x ) { <BR>// освободите блок памяти 
+  HeapFree(GetProcessHeap() 0 ppArgv);</FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p4></A>Переменные окружения </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С любым 
+процессом связан блок переменных окружения — область памяти, выделен ная в 
+адресном пространстве процесса Каждый блок содержит группу строк такого вида 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>VarName1-VarValue1\0 VarName2-VarValue2\0 VarName3=VarValue3\0 <BR>... 
+  <BR>VarNameX=VarValueX\0 </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>\0 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первая часть 
+каждой строки — имя переменной окружения. Зa ним следует знак равенства и 
+значение, присваиваемое переменной Строки в блоке переменных ок ружения должны 
+бьпь отсортированы в алфавитном порядке по именам переменных </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Знак 
+равенства разделяет имя переменной и ее значение, так что его нельзя ис 
+пользовать как символ в имени переменной Важную роль играют и пробелы Например, 
+объявив две переменные </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>XYZ= Windows 
+  (обратите внимание на пробел за знаком равенства) ABC=Windows 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>и сравнив 
+значения переменных ХУZ и АВС, Вы увидите, что система их различает, — она 
+учитывает любой пробел, поставленный перед знаком равенства или после <B>него 
+</B>Вот что будет, если записать, скажем, так </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>XYZ =Home 
+  (обратите внимание на пробел перед знаком равенства) XYZ=Work 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы получите 
+первую переменную с именем "XYZ", содержащую строку "Home", и вторую переменную 
+"XYZ", содержащую строку "Work" </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конец блока 
+переменных окружения помечается дополнительным нулевым сим волом </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Чтобы создать исходный набор переменных окружения для Windows 98, 
+  надо модифицировать файл Autoexec bat, поместив в него группу строк SET в виде 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>SET 
+    VarName=VarValue </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>При 
+  перезагрузке система учтет новое содержимое файла Autoexecbat, и тогда любые 
+  заданные Вами переменные окружения станут доступны всем процессам, 
+  инициируемым в сеансе работы с Windows 98 </FONT></P></BLOCKQUOTE>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 2000 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>При 
+  регистрации пользователя на входе в Windows 2000 система создает npo 
+  цесс-оболочку, связывая с ним группу строк — переменных окружения. Систе ма 
+  получает начальные значения этих строк, анализируя два раздела в рссст pe. В 
+  первом: </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ 
+  SessionManager\Environment </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>содержится 
+  список переменных окружения, относящихся к системе, а во втором: </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2>HKEY_CURRENT_USER\Environment </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>находится 
+  список переменных окружения, относящихся к пользователю, ко торый в настоящее 
+  время зарегистрирован в системе. </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Пользователь 
+  может добавлять, удалять или изменять любые переменные через апплет System из 
+  Control Panel B этом апплете надо открыть вкладку Advanced и щелкнуть кнопку 
+  Environment Variables — тогда на экране появит ся следующее диалоговое окно. 
+  </FONT></P></BLOCKQUOTE>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=315 alt=h4-2.jpg src="images/h4-2.jpg" width=290> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2>Модифицировать переменные из списка System Variables разрешается толь 
+  ко пользователю с правами администратора. </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Кроме того, 
+  для модификации записей в реестре Ваша программа может обращаться к 
+  Windows-функциям, позволяющим манипулировать с реестром. Однако, чтобы 
+  изменения вступили в силу, пользователь должен выйти из си стемы и вновь войти 
+  в нее. Некоторые приложения типа Explorer, Task Manager или Control Pancl 
+  могут обновлять свои блоки переменных окружения на базе новых значений в 
+  реестре, когда их главные окна получают сообщение WM_SET TINGCHANGE, Например, 
+  если Вы, изменив реестр, хотите, чтобы какие-то приложения соответственно 
+  обновили свои блоки переменных окружения, вызовите </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2>SendMessage(HWND_BROADCAST, WM_SETTINGCHANGE 0, (LPARAM) 
+  TEXT("Envnuntnent"))</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно 
+дочерний процесс наследует набор переменных окружения от родитель ского Однако 
+последний способен управлячь чем, какие переменные окружения на следуются 
+дочерним процессом, а какие — нет. Но об этом я расскажу, когда мы зай 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>мемся 
+функцией <I>CreateProcess. </I>Под наследованием я имею в виду, что дочерний про 
+цесс получает свою копию блока переменных окружения от родительского, а не то, 
+что дочерний и родительский процессы совместно используют один и тот же блок, 
+Так что дочерний процесс может добавлять, удалять или модифицировать перемен ные 
+в своем блоке, и эти изменения не затронут блок, принадлежащий родительско му 
+процессу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Переменные 
+окружения обычно применяются для тонкой настройки приложения. Пользователь 
+создает и инициализирует переменную окружения, затем запускает приложение, и 
+оно, обнаружив эту переменную, проверяет ее значение и соответству ющим образом 
+настраивается. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Увы, многим 
+пользователям не под силу разобраться в переменных окружения, а значит, трудно 
+указать правильные значения. Ведь для этого надо не только хорошо знать 
+синтаксис переменных, но и, конечно, понимать, что стоит за теми или иными их 
+значениями. С другой стороны, почти все (а может, и все) приложения, основан ные 
+на GUI, дают возможность тонкой настройки через диалоговые окна. Такой под ход, 
+естественно, нагляднее и проще. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь, 
+если у Вас еще не пропало жсланис манипулировать переменными ок ружения, 
+поговорим о предназначенных для этой цели функциях. <I>GetEnvironment Variable 
+</I>позволяет выявлять присутствие той или иной переменной окружения и 
+определять ее значение:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetEnvironmentVariable( PCTSTR pszName, PTSTR pszValue, DWORD cchValue); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+<I>GetEnvironmentVariable </I>параметр <I>pszName </I>должен указывать на имя 
+интересующей Вас переменной, <I>pszValue</I> — на буфер, в который будет 
+помещено зна чение переменной, а в <I>cchValue </I>следует сообщить размер 
+буфера в символах. Функ ция возвращает либо количество символов, скопированных в 
+буфер, либо 0, если ей не удалось обнаружить переменную окружения с таким 
+именем. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, в 
+реестре многие строки содержат подставляемые части, например.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>%USERPROFILE%\My Documents </FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Часть, 
+заключенная в знаки процента, является подставляемой. В данном случае в строку 
+должно быть подставлено значение неременной окружения USERPROFILE На моей машине 
+эта переменная выглядит так:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>C:\Documents 
+  and Settings\Administrator </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+подстановки переменной в строку реестра получим</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#999900 size=2>C:\Documents 
+  and Settings\Admimstrator\My Documents </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+такие подстановки делаются очень часто, в Windows есть функция 
+<I>ExpandEnvironmentStrings.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  ExpandEnvironmentStrings( PCTSTR pszSrc, PTSTR pszDst, DWORD nSize); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>pszSrc </I>принимает адрес строки, содержащей подставляемые части, а пареметр 
+<I>pszDsf — </I>адрес буфера, в который записывается развернутая строка Пара 
+метр <I>nSize </I>определяет максимальный размер буфера в символах. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наконец, 
+функция <I>SetEnvironmentVariable </I>позволяет добавлять, удалять и модифи 
+цировать значение переменной</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  SetEnvironmentVariable( <BR>PCTSTR pszName, <BR>PCTSTR pszValue);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+устанавливает ту переменную, на чье имя указывает параметр <I>pszName, </I>и 
+присваивает ей значение, заданное параметром <I>pszValue. </I>Если такая 
+переменная уже существует, функция модифицирует ее значение. Если же 
+<I>spszValue </I>содержится NULL, переменная удаляется из блока </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+манипуляций с блоком переменных окружения всегда используйте именно эти функции. 
+Как я уже говорил, строки в блоке переменных нужно отсортировать в ал фавитном 
+порядке по именам псрсмснных (тогда <I>GetEnvironmentVariable </I>быстрее 
+находит нужные переменные), a <I>SetEnvironmentVariable </I>как раз и следит за 
+порядком расположения переменных.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p5></A>Привязка к процессорам </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно потоки 
+внутри процесса могут выполняться на любом процессоре компью тера. Однако их 
+можно закрепить за определенным подмножеством процессоров из числа имеющихся на 
+компьютере Это свойство называется <I>привязкой к процессорам </I>(processor 
+affinity) и подробно обсуждается в главе 7. Дочерние процессы наследуют привязку 
+к процессорам от родительских.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p6></A>Режим обработки ошибок </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С каждым 
+процессом связан набор флагов, сообщающих системе, каким образом про цесс должен 
+реагировать на серьезные ошибки: повреждения дисковых носителей, 
+необрабатываемые исключения, ошибки операций поиска файлов и неверное вырав 
+нивание данных. Процесс может указать системе, как обрабатывать каждую из этих 
+ошибок, через функцию <I>SetErrorMode\</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>UINT 
+  SetErrorMode(UINT fuErrorMode) ;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>fuErrorMode — </I>это набор флагов, комбинируемых побитовой операцией OR 
+</FONT></P>
+<TABLE height=261 cellSpacing=0 cellPadding=0 rules=all width=575 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=252 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=317 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=252 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>SEM 
+      FAILCRITICALERRORS </FONT></P></TD>
+    <TD vAlign=top align=left width=317 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Система 
+      не выводит окно с сообщением от обра ботчика критических ошибок и 
+      возвращает ошибку в вызывающий процесс </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=252 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>SEM_NOGPFAULTERRORBOX </FONT></P></TD>
+    <TD vAlign=top align=left width=317 height=89>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Система 
+      не выводит окно с сообщением о наруше нии общей защиты; этим флагом 
+      манипулируют только отладчики, самостоятельно обрабатывающие нарушения 
+      общей защиты с помощью обработчика исключений </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=252 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>SEM_NOOPENFILEERRORBOX </FONT></P></TD>
+    <TD vAlign=top align=left width=317 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Система 
+      не выводит окно с сообщением об отсут ствии искомого файла 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=252 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>SEM_NOALIGNMENTFAULTEXCEPT </FONT></P></TD>
+    <TD vAlign=top align=left width=317 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Система 
+      автоматически исправляет нарушения в вы равнивании данных, и они 
+      становятся невидимы при ложению: этот флаг не действует на процессорах x8б 
+      </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По умолчанию 
+дочерний процесс наследует от родительского флаги, указываю щие на режим 
+обработки ошибок. Иначе говоря, если у процесса в данный момент установлен флаг 
+SEM_NOGPFAULTERRORBOX и он порождает другой процесс, этот </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>флаг будет 
+установлен и у дочернего процесса. Однако "наследник" об этом не уве домляется, 
+и он вообще может быть нс рассчитан на обработку ошибок такого типа <I>(к 
+</I>данном случае — нарушений общей защиты). В результате, если в одном из пото 
+ков дочернего процесса все-таки произойдет подобная ошибка, этот процесс может 
+завершиться, ничего не сообщив пользователю. Но родительский процесс способен 
+предотвратить наследование дочерним процессом своего режима обработки ошибок, 
+указав при вызове функции <I>CreateProcess </I>флаг CREATE_DEFAULT_ERROR_MODE (о 
+<I>CreateProcess </I>чуть позже).</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p7></A>Текущие диск и каталог для процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Текущий 
+каталог текущего диска — то место, где Windows-функции ищут файлы и подкаталоги, 
+если полные пути в соответствующих параметрах не указаны. Например, если поток в 
+процессе вызывает функцию <I>CreateFile, </I>чтобы открыть какой-нибудь файл, а 
+полный путь не задан, система просматривает список файлов в текущем ката логе 
+текущего диска. Этот каталог отслеживается самой системой, и, поскольку такая 
+информация относится ко всему процессу, смена текущего диска или каталога одним 
+из потоков распространяется и на остальные потоки в данном процессе. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток может 
+получать и устанавливать текущие каталог и диск для процесса с помощью двух 
+функций<B>:</B></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetCurrentDirectory( DWORD cchCurDir, PTSTR pszCurDir); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetCurrentDirectory(PCTSTR pszCurDir);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Текущие 
+каталоги для процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+отслеживает текущие диск и каталог для процесса, но не текущие каталоги на 
+каждом диске. Однако в операционной системе предусмотрен кое-какой сервис для 
+манипуляций с текущими каталогами на разных дисках. Он реализуется через пере 
+менные окружения конкретного процесса. Например: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>=C:=C-\Utility\Bin =D:=D:\Program Files </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти 
+переменные указывают, что текущим каталогом на диске С является \Utllity\ Bin, а 
+на диске D — Program Files. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+вызываете функцию, передавая ей путь с именем <B>диска, </B>отличного от 
+текущего, система сначала просматривает блок переменных окружения и пытается 
+найти переменную, связанную с именем указанного диска. Если таковая есть, 
+система выбирает текущий каталог на заданном диске в соответствии с ее 
+значением, нет — текущим каталогом считается корневой. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Скажем, если 
+текущий каталог для процесса — C:\Uiiltty\Bin и Вы вызываете фун кцию 
+<I>CreateFile, </I>чтобы открыть файл D:\ReadMe.txt, система ищет переменную 
+=D:. Поскольку переменная =D: существует, система пытается открыть файл ReadMe 
+txt в каталоге D:\Program Files. А если бы таковой переменной не было, система 
+искала бы файл ReadMe.txt в корневом каталоге диска D. Кстати, файловые 
+Windows-функции никогда не добявляют и не изменяют переменные окружения, 
+связанные с именами дисков, а лишь считывают их значения. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE: 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>Для 
+  смены текущего каталога вместо Windows-функции SetCurrentDirectory можно 
+  использовать функцию _chdir из библиотеки С Внутренне она тоже обращается к 
+  SetCurrentDirettory, но, кроме того, способна добавлять или мо дифицировать 
+  переменные окружения, что позволяет запоминать в програм ме текущие каталоги 
+  на различных дисках. </FONT></P><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+родительский процесс создает блок переменных окружения и хочст пере дать его 
+дочернему процессу, тот не наследует текущие каталоги родительского про цесса 
+автоматически. Вместо этого у дочернего процесса текущими на всех дисках 
+становятся корневые каталоги. Чтобы дочерний процесс унаследовал текущие ката 
+логи родительского, последний должен создать соответствующие переменные окру 
+жения (и сделать это до порождения другого процесса). Родительский процесс мо 
+жет узнать, какие каталоги являются текущими, вызвав 
+<I>GetFullPathName:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetFullPathName( PCTSTR pszFile, DWORD cchPath, PTSTR pszPath, PTSTR 
+  *ppszFilePart); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Например, 
+чтобы получить текущий каталог на диске С, функцию вызывают так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR 
+  szCurDir[MAX_PATH];</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetFullPathName(TEXT("C."), MAX_PATH, szCurDir, NULL); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Не забывайте, 
+что переменные окружения процесса должны всегда храниться в алфавитном порядке 
+Позтому переменные, связанные с дисками, обычно приходит ся размещать в самом 
+начале блока.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t1p8></A>Определение версии системы </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Весьма часто 
+приложению требуется определять, в какой версии Windows оно выпол няется. Причин 
+тому несколько Например, программа может использовать функции защиты, заложенные 
+в Windows API, но в полной мерс эти функции реализованы лишь в Windows 2000. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Насколько я 
+помню, функция <I>GetVersion </I>есть в API всех версий Windows: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetVersion(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С этой 
+простой функцией связана целая история. Сначала ее разработали для 16 разрядной 
+Windows, и она должна была я старшем слове возвращать номер версии MS-DOS, а в 
+младшем — номер версии Windows. Соответственно в каждом слове старший байт 
+сообщал основной номер версии, младший — дополнительный но мер версии 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Увы, 
+программист, писавший ее код, слегка ошибся, и получилось так, что номера версии 
+Windows поменялись местами: в старший байт попадал дополнительный но мер, а в 
+младший - основной. Поскольку многие программисты уже начали пользо ваться этой 
+функцией, Microsoft пришлось оставить все, как есть, и изменить доку ментацию с 
+учетом ошибки. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Из-за всей 
+этой неразберихи вокруг <I>GetVersion </I>в Windows API включили новую функцию — 
+<I>GetVersionEx:</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetVersionEx(POSVERSIONINFO pVersionInformation); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перед 
+обращением к <I>GetVersionEx </I>профамма должна создать структуру OSVER 
+SIONINFOEX, показанную ниже, и передать ее адрес этой функции </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  { <BR>DWORD dwOSVersionInfoSize;<BR>DWORD dwMajorVersion;<BR>DWORD 
+  dwMinorVersion;<BR>DWORD dwBuildNumber;<BR>DWORD dwPlatformId;<BR>TCHAR 
+  szCSDVersion[128];<BR>WORD wServicePackMajor;<BR>WORD 
+  wServicePackMinor;<BR>WORD wSuiteMask;<BR>BYTE wProductType; <BR>BYTE 
+  wReserved;<BR>} OSVERSIONINFOEX, *POSVERSIONINFOEX;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта структура 
+— новинка Windows 2000 В остальных версиях Windows использу ется структура 
+OSVERSIONINFO, в которой нет последних пяти элементов, присутству ющих в 
+структуре OSVERSIONINFOEX </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что каждому компоненту номера версии операционной сис темы 
+соответствует свой элемент структуры это сделано специально — чтобы про 
+граммисты не возились с выборкой данных ш всяких там старших-младших байтов слов 
+(и не путались в них), тeпepь программе гораздо проще сравнивать ожидаемый номер 
+версии операционной системы с действительным Назначение каждою элемен та 
+структуры OSVERSIONTNFOFX описано в таблице 4-2 </FONT></P>
+<TABLE height=194 cellSpacing=0 cellPadding=0 rules=all width=646 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwOSVersionInfoSjze</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Размер 
+      структуры, перед обращением к функции <I>GetVertsionEx </I>дол жен быть 
+      заполнен вызовом <I>sizeof(OSVERSIONINFO) </I>или 
+      <I>Sizeof(OSVERSIONINFOEX)</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwMajorVersion</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Основной номер версии операционной системы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwMinorVersion</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Дополнительный номер версии операционной системы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwBuildNumber</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Версия 
+      сборки данной системы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=61>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwPlatformId</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=61>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентификатор платформы, поддерживаемой данной системой, его 
+      возможные шачепия VFR_PLATFORM_WIN32s (Win32s), VER_PLATFORM_WIN32_WINDOWS 
+      (Windows 95/98), VER_PLATFORM_WIN32_NT (Windows NT или Windows 2000), 
+      VER_PLATFORM_WIN32_CEHH (Windows CE) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>szCSDVersion</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Этот 
+      элемент содержит текст — дополнительную информацию об установленной 
+      операционной системе </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wServicePackMajor</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Основной номер версии последнего установленного пакета исправ лений 
+      (service pack) </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wServicePackMinor</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=523 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Дополнительный номер версии последнего установленного пакета 
+      исправлений </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><B>Таблица 
+4-2. <I>Элементы структуры OSVERSIONINFOEX</I></B> </FONT></P>
+<TABLE height=320 cellSpacing=0 cellPadding=0 rules=all width=530 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=105 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=547 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=105 height=208>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wSuiteMask</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=547 height=208>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает, какие программные пакеты (suites) доступны в системе; 
+      <BR></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>его возможные значения</FONT></P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_SMALLBUSINESS, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_ENTERPRISE, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_BACKOFFICE, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_COMMUNICATIONS, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_TERMINAL, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_SMALLBUSINESS_RESTRICTED, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_EMBEDDEDNT, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_SUITE_DATACENTER </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=105 height=88>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wProductType</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=547 height=88>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает, какой именно вариант операционной системы 
+      установ</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>лен; его возможные значения: </FONT></P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_NT_WORKSTATION, </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>VER_NT_SERVER, 
+      </FONT><BR><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>VER_NT_DOMAIN_CONTROLLER </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=105 height=26>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wReserved</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=547 height=26>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован на будущее </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+2000 появилась новая функция, <I>VerifyVersionInfo, </I>которая сравнивает 
+версию установленной операционной системы с тем, что требует Ваше 
+приложение:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  VerifyVersionInfo( <BR>POSVERSIONINFOEX pVersionInformation;<BR>DWORD 
+  dwTypeMask;<BR>DWORDLONG dwlConditionMask);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+использовать эту функцию, соэдайте структуру OSVERSIONINFOEX, запи шите в се 
+элемент <I>dwOSVersionInfoSize </I>размер структуры, а потом инициализируйте 
+любые другие элементы, важные для Вашей программы, При вызове 
+<I>VerifyVersionInfo </I>параметр <I>dwTypeMask </I>указывает, какие элементы 
+структуры Вы инициализировали. Этот параметр принимает любые комбинации 
+следующих флагов: VER_MINORVER SION, VER_MAJORVERSION, VER_BUILDNUMBER, 
+VER_PLATFORMID, VER_SERVICEPACK MINOR, VER_SERVICEPACKMAJOR, VER_SUITENAME и 
+VER_PRODUCT_TYPE, Последний параметр, <I>dwlConditionMask, </I>является 
+64-разрядным значением, которое управляет тем, как именно функция сравнивает 
+информацию о версии системы с нужными Вам дан ными. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>dwlConditionMask </I>устанавливает правила сравнения через сложный на бор 
+битовых комбинаций. Для создания требуемой комбинации используйте макрос 
+VER_SET_CONDITION: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>VER_SET_CONDITION( <BR>DWORDLONG dwlConditionMask, ULONG dwTy0eBiLMask, 
+  ULONG dwConditionMask);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+параметр, <I>dwlConditionMask, </I>идентифицирует переменную, битами кото рой Вы 
+манипулируете. Вы не передаете адрес этой переменной, потому что VER_SET_ 
+CONDITION — макрос, а не функция. Параметр <I>dwTypeBitMask </I>указывает один 
+элемент в структуре OSVERSIONINFOEX, который Вы хотите сравнить со своими 
+данными. (Для сравнения нескольких элементов придется обращаться к 
+VER_SETCONDITION не сколько раз подряд.) Флаги, передаваемые в этом параметре, 
+идентичны передавае мым в параметре <I>dwTypeMask </I>функции 
+<I>VerifyVersionInfo.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+параметр макроса VER_SET_CONDITION, <I>dwConditionMask, </I>сообщает, как Вы 
+хотите проводить сравнение. Он принимает одно из следующих значений. VER_EQUAL, 
+VER_GREATER, VER_GREATER_EQUAL, VER_LESS или VER_LESS_EQUAL, Вы можете 
+использовать эти значения в сравнениях по VER_PRODUCT_TYPE. Например, значение 
+VER_NT_WORKSTATION меньше, чем VER_NT_SERVER. Но в сравнениях по VER_SUITENAME 
+вместо этих значений применяется VER_AND (должны быть установ лены все 
+программные пакеты) или VER_OR (должен быть установлен хотя бы один из 
+программных пакетов). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подготовив 
+набор условий, Вы вызываете <I>VerifyVersionlnfo </I>и получаете ненулевое 
+значение, если система отвечает требованиям Вашего приложения, или 0, если она 
+не удовлетворяет этим требованиям или если Вы неправильно вызвали функцию Чтобы 
+определить, почему <I>VenfyVersionlnfo </I>вернула 0, вызовше <I>GetLastError. 
+</I>Если та вернет ERROR_OLD_WIN_VERSION, значит, Вы правильно вызвали функцию 
+<I>Venfy VersionInfo, </I>но система не соответствует предъявленным требованиям. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот как 
+проверить, установлена ли Windows 2000;</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// готовим 
+  структуру OSVERSIONINFOEX, сообщая, что нам нужна Windows 2000 
+  <BR>OSVERSIONINFOEX osver = { 0 }; <BR>osver.dwOSVersionInfoSize = 
+  sizeof(osver); <BR>osver.dwMdjorVersion = 5; <BR>osver.dwMinorVersion = 0; 
+  <BR>osver.dwPlatformId = VER_PLATFORM_WIN32_NT;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// формируем 
+  маску условии </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORDLONG 
+  dwlConditionMask = 0; <BR>// всегда инициализируйте это элемент так 
+  <BR>VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, 
+  VER_EQUAL);<BR>VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, 
+  VER_EQUAL); VER_SET_CONDITION(dwlConditionMask, VER_PLATFORMID, 
+  VER_EQUAL);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// проверяем 
+  версию <BR>if (VenfyVersionInfo(&amp;osver, VER_MAJORVERSION | 
+  VER_MINORVERSION | VER_PLATFORMID, <BR>dwlConditionMask)) { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  хост-система точно соответствует Windows 2000 </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} else { 
+  <BR>// хост-система не является Windows 2000 } </FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t2></A>Функция <I>CreateProcess</I></B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><B>Процесс 
+создается при вызове Вашим приложением функции <I>CreateProcess</I></B> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  CreateProcess( <BR>PCTSTR pszApplicationName, <BR>PTSTR pszCommandLine, 
+  <BR>PSFCURITY_ATTRIBUTES psaProcess, <BR>PSECURITY_ATTRIBUTES psaThiead, 
+  <BR>BOOL bInheritHandles, <BR>DWORD fdwCreate, <BR>PVOID 
+  pvEnvironment,<BR>PCTSTR pszCurDir, <BR>PSTARTUPINFO psiStartInfo, 
+  <BR>PPROCESS_INFORMATION ppiProcInfo);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда поток в 
+приложении вызывает <I>CreateProcess, </I>система создает объект ядра "процесс" 
+с начальным значением счстчика числа его пользователей, равным 1. Этот объект — 
+не сам процесс, а компактная структура данных, через которую операци онная 
+система управляет процессом. (Объект ядра "процесс" следует рассматривать как 
+структуру данных со статистической информацией о процессе.) Затем система 
+создает для нового процесса виртуальное адресное пространство и загружает в него 
+код и данные как для исполняемого файла, тaк и для любых DLL (если таковые требу 
+ются). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее система 
+формирует объект ядра "поток" (со счетчиком, равным 1) для пер вичного потоки 
+нового процесса. Как и в первом случае, объект ядра "поток" — это компактная 
+структура данных, через которую система управляет потоком. Первичный поток 
+начинает с исполнения стартового кода из библиотеки С/С++, который в ко нечном 
+счете вызывает функцию <I>WinMain, wWinMain, main </I>или <I>wmain </I>в Вашей 
+про грамме. Если системе удастся создать новый процесс и его первичный поток, 
+<I>Create Process </I>вернет TRUE</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE: 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>CreateProcess возвращает TRUE до окончательной инициализации 
+  процесса. Это означает, что на данном этапе загрузчик операционной системы еще 
+  нс искал все необходимые DLL. Если он не сможет найти хотя бы одну из DLL или 
+  корректно провести инициализацию, процесс завершится. Но, поскольку Create 
+  Process уже вернула TRUE, родительский процесс ничего не узнает об этих про 
+  блемах.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На этом мы 
+закончим общее описание и перейдем к подробному рассмотрению параметров функции 
+<I>CreateProcess</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p1></A>Параметры pszApplicationName и pszCommandLine </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти параметры 
+определяют имя исполняемого файла, которым будет пользоваться новый процесс, и 
+командную строку, передаваемую этому процессу. Начнем <I>cpszCom 
+mandLine.</I></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Обратите внимание на тип параметра pszCommandLine: PTSTR. Он 
+  означает, что CreateProcess ожидает передачи адреса строки, которая не 
+  является констан той Дело в том, что CreateProcess в процессе своего 
+  выполнения модифици рует переданную командную строку, но перед возвратом 
+  управления восста навливает ее. </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это очень 
+важно, если командная строка содержится в той части образа Вашего файла, которая 
+предназначена только для чтения, возникнет ошибка доступа. Например, следующий 
+код приведет к такой ошибке, потому что Visual С++ 6.0 поместит строку "NOTEPAD" 
+в память только для чтения: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>STARTUPINFO si 
+  = { sizeof(si) };<BR>PROCESS_INFORMATION pi; <BR>CreateProcess(NULL, 
+  TEXT("NOTEPAD"), NULL, NULL, FALSE, 0, NULL. NULL, &amp;si, 
+  &amp;pi);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+<I>CreateProcess </I>попытается модифицировать строку, произойдет ошиб ка 
+доступа. (В прежних версиях Visual C++ эта строка была бы размещена в памяти для 
+чтения и записи, и вызовы <I>CreateProcess </I>не приводили бы к ошиб кам 
+доступа.)</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Лучший способ 
+решения этой проблемы — перед вызовом <I>CreateProcess </I>ко пировать 
+константную строку во временный буфер: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>STARTUPINFO si 
+  = { sizeof(si) }; <BR>PROCESS_INFORMATION pi; <BR>TCHAR szComrnandLine[] = 
+  TEXT("NOTEPAD"); <BR>CreateProcess(NULL, szCommandLine, NULL, NULL, FALSE, 0, 
+  NULI, NULL, &amp;si, &amp;pi);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Возможно, Вас 
+заинтересуют ключи /Gf и /GF компилятора Visual C++, ко торые исключают 
+дублирование строк и запрещают их размещение в области только для чтения. (Также 
+обратите внимание на ключ /ZI, который позволяет задействовать отладочную 
+функцию Edit &amp; Continue, поддерживаемую Visual Studio, и подразумевает 
+активизацию ключа /GF.) В общем, лучшее, что може те сделать Вы, — использовать 
+ключ /GF или создать временный буфер. А еще лучше, если Microsoft исправит 
+функцию <I>CreateProcess, </I>чтобы та не морочила нам голову. Надеюсь, в 
+следующей версии Windows так и будет. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, при 
+вызове ANSI-версии <I>CreateProcess </I>в Windows 2000 таких про блем нет, 
+поскольку в этой версии функции командная строка копируется во временный буфер 
+(см. главу 2)</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>pszCommandLme </I>позволяет указать полную командную строку, исполь зуемую 
+функцией <I>CreateProcess </I>при создании нового процесса. Разбирая эту строку, 
+функция полагает, что первый компонент в ней представляет собой имя исполняе 
+мого файла, который Вы хотите запустить. Если в имени этого файла не указано рас 
+ширение, она считает его EXE. Далее функция приступает к поиску заданного файла 
+и делает это в следующем порядке: </FONT></P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каталог, 
+  содержащий ЕХЕ-файл вызывающего процесса. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Текущий 
+  каталог вызывающего процесса. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Системный 
+  каталог Windows. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Основной 
+  каталог Windows. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каталоги, 
+  перечисленные в переменной окружения PATH. </FONT></LI></OL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, если 
+в имени файла указан полный путь доступа, система сразу обраща ется туда и не 
+просматривает эти каталоги. Найдя нужный исполняемый файл, она создает новый 
+процесс и проецирует код и данные исполняемого файла на адресное пространство 
+этого процесса Затем обращается к процедурам стартового кода из библиотеки 
+С/С++. Тот в свою очередь, как уже говорилось, анализирует командную строку 
+процесса и передает <I>(w)WinMain </I>адрес первого (за именем исполняемого фай 
+ла) аргумента как <I>pszCmdLine.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все, о чем я 
+сказал, произойдет, только если параметр <I>pszApplicationName </I>равен NULL 
+(что и бывает в <I>99% </I>случаев). Вместо NULL можио передать адрес строки с 
+име нем исполняемого файла, который надо запустить. Однако тогда придется 
+указать не только его имя, но и расширение, поскольку в этом случае имя не 
+дополняется рас ширением EXE автоматически. <I>CreateProcess </I>предполагает, 
+что файл находится в те кущем каталоге (если полный путь не задан). Если в 
+текущем каталоге файла нет, функция не станет искать его в других каталогах, и 
+на этом все закончится </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но даже при 
+указанном в <I>pszApplicationName </I>имени файла <I>CreateProcess </I>все равно 
+передает новому процессу содержимое параметра <I>pszCommandLine </I>как 
+командную строку. Допустим, Вы вызвали <I>CreateProcess </I>так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// размещаем 
+  строку пути в области памяти для чтения и записи <BR>TCHAR szPath[] = 
+  TEXT("WORDPAD README.TXT"); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// порождаем 
+  новый процесс <BR>CreateProcess(TEXT("C:\\WINNr\\SYSrEM32\\NOTEPAD EXE"), 
+  szPath );</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+запускает Notepad, а в его командной строке мы видим "WORDPAD README.TXT". 
+Странно, да? Но так уж она работает, эта функция <I>CreateProcess. </I>Упо 
+мянутая возможность, которую обеспечивает пареметр <I>pszApplicationName, </I>на 
+самом деле введена в <I>CreateProcess </I>для поддержки подсистемы POSIX в 
+Windows 2000.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p2></A>Параметры psaProcess, psaThread и blnheritHandles 
+</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы создать 
+новый процесс, система должна сначала создать объекты ядра "про цесс" и "поток" 
+(для первичного потока процесса). Поскольку это объекты ядра, ро дительский 
+процесс получает возможность связать с ними атрибуты защиты. Пара метры 
+<I>psaProcess </I>и <I>psaThread </I>позволяют определить нужные атрибуты защиты 
+для объектов "процесс" и "поток" соответственно. В эти параметры можно занести 
+NULL, и система закрепит за данными объектами дескрипторы защиты по умолчанию. В 
+качестве альтернативы можно объявить и инициализировать две структуры SECU 
+RITY_ATTRIBlITES; тем самым Вы создадите и присвоите объектам "процесс" и "по 
+ток" свои атрибуты защиты. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Структуры 
+SECURITY_ATTRIBUTES для параметров <I>psaProcess wpsaTbread </I>исполь зуются и 
+для того, чтобы какой-либо из этих двух объектов получил статус наследуе мого 
+любым дочерним процессом. (О теории, на которой построено наследование 
+описателей объектов ядра, я рассказывал в главе 3.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Короткая 
+программа на рис. 4-2 демонстрирует, как наследуются описатели объек тов ядра. 
+Будем считать, что процесс А порождает процесс В и заносит в параметр 
+<I>psaProcess </I>адрес структуры SECURITY_ATTRIBUTES, в которой элемент 
+<I>blnheritHandle </I>установлен как TRUE. Одновременно параметр <I>psaThread 
+</I>указывает на другую струк туру SECURITY_ATTRIBUTES, в которой значение 
+элемента <I>bInheritHandle — </I>FALSE. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создавая 
+процесс В, система формирует объекты ядра "процесс" и "поток", а за тем — в 
+структуре, на которую указывает <I>параметрppiProcInfo </I>(о нем поговорим поз 
+же), — возвращает их описатели процессу А, и с этого момента тот может манипули 
+ровать только что созданными объектами "процесс" и "поток". </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+предположим, что процесс А собирается вторично вызвать функцию <I>Create 
+Process, </I>чтобы породить процесс С. Сначала ему нужно определить, стоит ли 
+предос тавлять процессу С доступ к своим объектам ядра. Для этого используется 
+параметр <I>blnberitHandles, </I>Если он приравнен TRUE, система передаст 
+процессу С все наследуе мые описатели В этом случае наследуется и описатель 
+объекта ядра "процесс" про цесса В. А вот описатель объекта "первичный поток" 
+процесса В не наследуется ни при каком значении <I>bInberitHandles. </I>Кроме 
+того, если процесс А вызывает <I>Create Process, </I>передавая через параметр 
+<I>blnberitHandles </I>значение FALSE, процесс С не насле дует никаких 
+описателей, используемых в данный момент процессом А. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p3></A>Параметр fdwCreate </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>fdwCreate </I>определяет флаги, влияющие на то, как именно создается новый 
+процесс Флаги комбинируются булевым оператором OR. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  DEBUG_PROCESS даст возможность родительскому процессу проводить отладку 
+  дочернего, а также всех процессов, которые последним могут быть порождены Если 
+  этот флаг установлен, система уведомляет родительский про цесс (он теперь 
+  получает статус отладчика) о возникновении определенных событий в любом из 
+  дочерних процессов (а они получают статус отлаживае мых). </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  DEBUG_ONLY_THIS_PROCESS аналогичен флагу DEBUG_PROCESS с тем исключением, что 
+  заставляет систему уведомлять родительский процесс о воз никновении 
+  специфических событий только в одном дочернем процессе — его прямом потомке. 
+  Тогда, если дочерний процесс создаст ряд дополнительных, отладчик уже нс 
+  уведомляется о событиях, "происходящих" в них. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_SUSPENDED позволяет создать процесс и в то же время приоста новить его 
+  первичный поток Это позволяет родительскому процессу модифи цировать 
+  содержимое памяти в адресном пространстве дочернего, изменять приоритет его 
+  первичного потока или включать этот процесс в задание (job) до того, как он 
+  получит шанс на выполнение. Внеся нужные изменения в до черний процесс, 
+  родительский разрешает выполнение его кода вызовом фун кции <I>ResumeThread 
+  </I>(см. главу 7). </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  DFTACHED_PROCESS блокирует доступ процессу, инициированному кон сольной 
+  программой, к сопданному родительским процессом консольному окну и сообщает 
+  системе, что вывод следует перенаправить в новое окно CUI процесс, создаваемый 
+  другим CUI-процессом, по умолчанию использует кон сольное окно родительского 
+  процесса (Вы, очевидно, заметили, что при за пуске компилятора С из командного 
+  процессора новое консольное окно не создается, весь его вывод "подписывается" 
+  в нижнюю часть существующего консольного окна ) Таким образом, этот флаг 
+  заставляет новый процесс пере направлять свой вывод в новое консольное окно 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_NEW_CONSOLE приводит к созданию нового консольного окна для нового 
+  процесса. Имейте в виду, что одновременная установка флагов CREATE_NEW_CONSOLE 
+  и DETACHED_PROCESS недопустима. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_NO_WINDOW не дает создавать никаких консольных окон для данного 
+  приложения и тем самым позволяет исполнять его без пользователь ского 
+  интерфейса. </FONT></LI></UL>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_NEW_PROCESS_GROUP служит для модификации списка процес сов, 
+  уведомляемых о нажатии клавиш Ctrl+C и Ctrl+Break Если в системе од новременно 
+  исполняется несколько CUI-процессов, то при нажагии одной из упомянутых 
+  комбинаций клавиш система уведомляет об этом только процес сы, включенные в 
+  группу. Указав этот флаг при создании нового СUI-процес ca, Вы создаете и 
+  новую группу </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_DEFAULT_ERROR_MODE сообщает системе, чтo новый процесс не должен 
+  наследовать режимы обработки ошибок, установленные в родитель ском (см. 
+  раздел, где я рассказывал о функции <I>SetErrorMode</I>)<I>.</I> </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_SEPARATE_WOW VDM полезен только при запуске 16-разрядно го 
+  Wmdows-приложения в Windows 2000. Если он установлен, система созда ет 
+  отдельную виртуальную DOS-машину (Virtual DOS-machine, VDM) и запус кает 
+  16-разрядное Windows-приложение именно в ней (По умолчанию все 16 разрядные 
+  Windows-приложения выполняются в одной, общей VDM.) Выпол нение приложения в 
+  отдельной VDM дает большое преимущество, "рухнув", приложение уничтожит лишь 
+  эту VDM, а программы, выполняемые в других VDM, продолжат нормальную работу. 
+  Кроме того, 16-разрядные Windows-при ложения, выполняемые в раздельных VDM, 
+  имеют и раздельные очереди вво да. Эго значит, что, если одно приложение вдруг 
+  "зависнет", приложения в других VDM продолжат прием ввода. Единственный 
+  недостаток работы с нес колькими VDM в том, что каждая из них требуеч 
+  значительных объемов физи ческой памяти. Windows 98 выполняет все 16-разрядные 
+  Windows-приложения только в одной VDM, и изменить тут ничего нельзя. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_SHARED_WOW_VDM полезен только при запуске 16-разрядного 
+  Windows-приложения в Windows 2000. По умолчанию все 16-разрядные 
+  Windows-приложения выполняются в одной VDM, ссли только не указан флаг 
+  CREATE_SEPARATEWOW_VDM. Однако стандартное пoвeдeниeWindows 2000 можно 
+  изменить, присвоив значение "yes" параметру DefaultSeparateVDM в paздeлe 
+  HKEY_LOCAL_MACHINE\System\CurгentControlSet\Contгol\WOW.(Пoc ле модификации 
+  этого параметра систему надо перезагрузить.) Установив зна чение "yes", но 
+  указав флаг CREATE_SHARED_WOW_VDM, Вы вновь заставите Windows 2000 выполнять 
+  все 16-разрядные Windows-приложения в одной VDM. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_UNICODE_ENVIRONMENT сообщает системе, что блок перемен ных окружения 
+  дочернего процесса должен содержать Unicode-символы. По умолчанию блок 
+  формируется на основе ANSI-символов </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_FORCEDOS заставляет систему выполнять программу MS-DOS, встроенную в 
+  16-разрядное приложение OS/2 </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+  CREATE_BREAKAWAY_FROM_JOB позволяет процессу, включенному в за дание, создать 
+  новый процесс, отделенный от этого задания (см. главу 5). </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>fdwCreate </I>разрешает задать и класс приоритета процесса Однако это 
+необязательно и даже, как правило, нс рекомендуется, система присваивает новому 
+процессу класс приоритета по умолчанию. Возможные классы приоритета перечис лены 
+в следующей таблице. </FONT></P>
+<TABLE height=156 cellSpacing=0 cellPadding=0 rules=all width=416 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Флаговый идентификатор </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      (простаивающий) </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>IDLE_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal (ниже обычного) </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>BELOW_NORMAL_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      (обычный) </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>NORMAL 
+      PRIORITY CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal (выше обычного) </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ABOVE_NORMAL_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>High 
+      (высокий) </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>HIGH_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=181 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Realtime (реального времени) </FONT></P></TD>
+    <TD vAlign=top align=left width=229 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>REALTIME_PRIORITY_CLASS </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Классы 
+приоритета влияют на распределение процессорного времени междупро цессами и их 
+потоками. (Подробнее на эту тему см. главу 7.)</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Классы приоритета BELOW_NORMAL_PRIORITY_CLASS и ABOVE_NORMAL_ 
+  PRIORITY_CLASS введены лишь в Windows 2000; они не поддерживаются в Win dows 
+  NT 4.0, Windows 95 или Windows 98. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p4></A>Параметр pvEnvironment </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>pvEnvironment </I>указывает на блок памяти, хранящий строки переменных 
+окружения, которыми будет пользоваться новый процесс. Обычно вместо этого па 
+раметра передается NULL, в результате чего дочерний процесс наследует строки пе 
+рсмснных окружения от родительского процесса. В качестве альтернативы можно 
+вызвать функцию <I>GetEnvironmentStrings</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  GetEnvironmentStrings(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она позволяет 
+узнать адрес блока памяти со строками переменных окружения, используемых 
+вызывающим процессом. Полученный адрес можно занести в параметр <I>pvEnvironment 
+</I>функции <I>CreateProcess. </I>(Именно это и делает <I>CreateProcess, 
+</I>если Вы передаете ей NULL вместо <I>pvEnvironment</I>.)<I> </I>Если этот 
+блок памяти Вам больше не ну жен, освободите его, вызнав функцию 
+<I>FreeEnvironmentStrings:</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  FreeEnvironmentStrings(PTSTR pszEnvLronmenLBlock); </FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p5></A>Параметр pszCurDir </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Он позволяет 
+родительскому процессу установить текущие диск и каталог для дочер него 
+процесса. Если его значение — NULL, рабочий каталог нового процесса будет тем 
+же, что и у приложения, его породившего. А если он отличен от NULL, то должен 
+ука зывать на строку (с нулевым символом в конце), содержащую нужный диск и 
+каталог. Заметьте, что в путь надо включать и букву диска. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p7></A>Параметр psiStartlnfo </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот параметр 
+указывает на структуру STARTUPINFO: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _STARTUPINFO { <BR>DWORD cb; <BR>PSTH lpReserved; <BR>PSTR lpDesktop; <BR>PSTR 
+  lpTitle; <BR>DWORD dwX; <BR>DWORD dwY; </FONT></P></BLOCKQUOTE>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dwXSize; 
+  <BR>DWORD dwYSize; <BR>DWORD dwXCountChars; <BR>DWORD dwYCountChars; <BR>DWORD 
+  dwFillAttribute; <BR>DWORD dwFlags; <BR>WORD wShowWindOw; <BR>WORD 
+  cbReserved2; <BR>PBYTE lpReserved2; <BR>HANDLE hStdInput; <BR>HANDLE 
+  hStdOutput; <BR>HANDLE hStdError; <BR>} STARTUPINFO, *LPSTARTUPINFO; 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элементы 
+структуры STARTUPINFO используются Windows-функциями при созда нии нового 
+процесса. Надо сказать, что большинство приложений порождает процес сы с 
+атрибутами по умолчанию Но и в этом случае Вы должны инициализировать все 
+элементы структуры STARTUPINFO хотя бы нулевыми значениями, а в элемент <I>сb — 
+</I>заносить размер этой структуры: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>STARTUPINFO si 
+  = { sizeof(si) }; CreateProcess(.. , &amp;si, ...}; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К сожалению, 
+разработчики приложений часто забывают о необходимости ини циализации этой 
+структуры. Если Вы не обнулите ее элементы, в них будет содержать ся мусор, 
+оставшийся в стеке вызывающего потока. Функция <I>CreateProcess, </I>получив 
+такую структуру данных, либо создаст новый процесс, либо нет — все зависит от 
+того, что именно окажется в этом мусоре. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вам 
+понадобится изменить какие-то элементы структуры, делайте это пе ред вызовом 
+<I>CreateProcess. </I>Все элементы зтой структуры подробно рассматриваются в 
+таблице 4-3- Но заметьте, что некоторые элементы имеют смысл, только если до 
+чернее приложение создает перекрываемое (overlapped) окно, а другие — если это 
+приложение осуществляет ввод-вывод на консоль </FONT></P>
+<TABLE height=269 cellSpacing=0 cellPadding=0 rules=all width=634 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=96 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=103 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Окно 
+      или консоль </FONT></P></TD>
+    <TD vAlign=top align=left width=482 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=96 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>cb</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=103 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      другое</FONT></P></TD>
+    <TD vAlign=top align=left width=482 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержит количество байтов, занимаемых структу рой STARTUPINFO. 
+      Служит для контроля версий — на тот случай, если Microsoft расширит эту 
+      структуру в будущем Программа должна инициализировать <I>cb </I>как 
+      <I>sizeof(STARTUPINFO)</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=96 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>lpReserved</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=103 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      другое </FONT></P></TD>
+    <TD vAlign=top align=left width=482 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован Инициализируйте как NULL. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=96 height=86>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>IpDesktop</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=103 height=86>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      другое </FONT></P></TD>
+    <TD vAlign=top align=left width=482 height=86>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует имя рабочего стола, на котором за пускается 
+      приложение Если указанный рабочий стол существует, новый процесс сразу же 
+      связывается с ним. В ином случае система сначала создает рабочий стол с 
+      атрибутами по умолчанию, присваивает ему имя, указанное в данном элементе 
+      структуры, и свя зываем его с новым процессом. Если <I>IpDesktop </I>равен 
+      NULL (что чаще всего и бывает), процесс связывается с текущим рабочим 
+      столом. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=96 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>IpTitle</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=103 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Консоль 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=482 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяет заголовок консольного окна. Если <I>IpTitle — </I>NULL, 
+      в заголовок выводится имя исполняе мого файла. 
+</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 4-3. Элементы структуры STARTUPINFO </FONT></P>
+<TABLE height=410 cellSpacing=0 cellPadding=0 rules=all width=704 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Окно 
+      или консоль </FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwX</I> </FONT></P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwY</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      другое </FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указывают <I>х- </I>и j'-координаты (в пикселах) окна приложения 
+      Эти координаты используются, только если дочерний процесс создаст свое 
+      первое перекры </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ваемое окно с идентификатором CW_USEDEFAULT в 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>параметре <I>х </I>функции <I>CreateWindow. </I>В приложениях, 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>создающих консольные окна, данные элементы опре </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>деляют верхний 
+      левый угол консольною окна. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwXSize</I> </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>dwYSize</I> 
+      </FONT></P></TD>
+    <TD vAlign=top align=left height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      другое </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2></FONT></P></TD>
+    <TD vAlign=top align=left height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяют ширину и высоту (в пикселах) окна приложения. Эти 
+      значения используются, только если дочерний процесс создает свое первое 
+      перекрывае мое окно с идентификатором CW_USEUEFAULT в параметре <I>nWtdth 
+      </I>функции <I>CreateWindow </I>В приложениях, создающих консольные окна, 
+      данные элементы определяют ширину и высоту консольного окна 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwXCountChars</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwYCountChars</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Консоль</FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяют ширину и высоту (в символах) </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>консольных окон 
+      дочернего процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwFillAttnbute</I></FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Консоль</FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Задает 
+      цвет текста и фона в консольных окнах </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>дочернего 
+      процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwFlags</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      другое </FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>См ниже 
+      и следующую таблицу </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wSbowWtndow</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2></FONT></P></TD>
+    <TD vAlign=top align=left height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Окно</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2> </FONT></P></TD>
+    <TD vAlign=top align=left height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяет, как именно должно выглядеть первое пе</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>рекрываемое окно 
+      дочернего процесса, если прило</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>жение при первом 
+      вызове функции <I>ShowWindow </I>пе</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>редает в 
+      параметре <I>nCmdSbow </I>идентификаюр </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>SW_SHOWDEFAULT. 
+      В этот элеменn можно записать </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>любой из 
+      идентификаторов типа SW_*, обычно ис</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>пользуемых при 
+      вызове <I>SbowWindoiv.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>cbReserved2</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      друюс </FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован Инициализируйте как 0. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=128 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>lpReserved2</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=137 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То и 
+      друюс </FONT></P></TD>
+    <TD vAlign=top align=left width=414 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован. Инициализируйте как NULL. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>hStdlnput</I> </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>hStdOutlput</I> </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>bStdError</I> 
+      </FONT></P></TD>
+    <TD vAlign=top align=left height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Консоль</FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2> </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2></FONT></P></TD>
+    <TD vAlign=top align=left height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяют описатели буферов для консольного </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>ввода-вывода. По 
+      умолчанию <I>bStdlnpitt </I>идентифи</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>цирует буфер 
+      клавиатуры, a <I>bStdOutput </I>и <I>bStdError —</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>буфер 
+      консольного окна </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь, как я 
+и обещал, обсудим элемент <I>dwFlags. </I>Оп содержит набор флагов, по зволяющих 
+управлять созданием дочернего процесса. Большая часть флагов просто сообщает 
+функции <I>CreateProcess, </I>содержат ли прочие элементы структуры START UPINFO 
+полезную информацию или некоторые из них можно игнорировать. Список допустимых 
+флагов приведен в следующей таблице. </FONT></P>
+<TABLE height=191 cellSpacing=0 cellPadding=0 rules=all width=515 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_USESIZE </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Заставляет использовать элементы <I>divSize </I>и <I>dwYSize</I> 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_USESHOWWINDOW </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Заставляет использовать элемент w<I>ShowWindow</I> 
+</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_USEPOSITION </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Заставляет использовать элементы <I>dwX </I>и<I> dwY</I> 
+    </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_USECOTUNTCHARS </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Заставляет использовать элементы <I>dwXCountChars </I>и 
+      <I>dwYCountCbars</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_USEFILLATTRIBUTE </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Заставляет использовать элемент <I>dwFillAttnbute</I> 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=182 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_USESTDHANDLES </FONT></P></TD>
+    <TD vAlign=top align=left width=327 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Заставляет использовать элементы <I>hStdlnput, hStdOutput </I>и 
+      <I>bStdError</I> </FONT></P></TD></TR></TBODY></TABLE>
+<TABLE height=82 cellSpacing=0 cellPadding=0 rules=all width=495 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаг 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=463 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STARTF_RUN_FULLSCREEN </FONT></P></TD>
+    <TD vAlign=top align=left width=463 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Приводит к тому, что консольное приложение на компью тере с 
+      процессором типа <I>х86 </I>запускается в полноэкран ном режиме 
+    </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Два 
+дополнительных флага — STARTF_FORCEONFEEDBACK и STARTF_FORCEOFF FEEDBACK — 
+позволяют контролировать форму курсора мыши в момент запуска но вого процесса. 
+Поскольку Windows поддерживает истинную вытесняющую многоза дачность, можно 
+запустить одно приложение и, пока оно инициализируется, пора ботать с другой 
+программой. Для визуальной обратной связи с пользователем функ ция 
+<I>CreateProcess </I>временно изменяет форму системного курсора мыши: 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Курсор такой 
+формы подсказывает: можно либо подождать чего-нибудь, что вот вот случится, либо 
+продолжить работу в системе. Если же Вы укажете флаг STARTF_ FORCEOFFFEEDBACK, 
+<I>CreateProcess </I>не станет добавлять "песочные часы" к стандарт ной стрелке. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+START_FFORCEONFEEDBACK заставляет <I>CreateProcess </I>отслеживать инициали 
+зацию нового процесса и в зависимости от результата проверки изменять форму кур 
+сора. Когда функция <I>CreateProcess </I>вызывается с этим флагом, курсор 
+преобразуется в "песочные часы" Если спустя две секунды от нового процесса не 
+поступает GUI-вы зов, она восстанавливает исходную форму курсора </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если же в 
+течение двух секунд процесс все же делает GUI-вызов, <I>CreateProcess </I>ждет, 
+когда приложение откроет свое окно. Это должно произойти в течение пяти секунд 
+после GUI-вызова Если окно не появилось, <I>CreateProcess </I>восстанавливает 
+курсор, а появилось — сохраняет его в виде "песочных часов" еще на пять секунд 
+Как только приложение вызовет функцию <I>GetMessage, </I>сообщая тeм самым, что 
+оно закончило инициализацию, <I>CreateProcess </I>немедленно сменит курсор на 
+стандартный и прекра тит мониторинг нового процесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В заключение 
+раздела — несколько слов об элементе <I>wShowWindow </I>структуры STARTUPINFO. 
+Этот элемент инициализируется значением, которое Вы передаете в <I>(w)WinMain 
+</I>через ее последний параметр, <I>nCmdShoiv. </I>Он позволяет указать, в каком 
+виде должно появиться главное окно Вашею приложения В качестве значения ис 
+пользуется один из идентификаторов, обычно передаваемых в <I>ShowWindow 
+</I>(чаще всего SW_SHOWNORMAL или SW_SHOWMINNOACTIVE, но иногда и SW_SHOW 
+DEFAULT). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После запуска 
+программы из Explorer ее функция <I>(w)WinMain </I>вызывается с SW_SHOWNORMAL в 
+параметре <I>nCmdShow </I>Если же Вы создаете для нее ярлык, то можете указать в 
+его свойствах, в каком виде должно появляться ее главное окно. На рис. 4-3 
+показано окно свойств для ярлыка Notepad. Обратите внимание на список Run, в 
+котором выбирается начальное состояние окна Notepad. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вы 
+активизируете этот ярлык из Explorer, последний создает и инициали зирует 
+структуру STARTUPINFO, a затем вызывает <I>CreateProcess. </I>Это приводит к 
+запус ку Notepad, а его функция <I>(w)WtnMam </I>получаст SW_SIHOWMINNOACTIVE в 
+параметре <I>nCmdSbow,</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таким 
+образом, пользователь может легко выбирать, в каком окне запускать про грамму — 
+нормальном, свернутом или развернутом. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=337 alt=h4-3.jpg src="images/h4-3.jpg" width=277> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 4-3. Окно свойств для ярлыка Notepad </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наконец, 
+чтобы получить копию структуры STARTUPINFO, инициализированной родительским 
+процессом, приложение может вызвать: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  GetStartupInfo(PSTARTUPINFO pStartupInfo);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Анализируя 
+эту структуру, дочерний процесс может изменять свое поведение в зависимости oi 
+значений ее элементов</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>NOTE</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2> <BR>Хотя в документации на Windows об этом четко не сказано, перед 
+  вызовом GetStartupInfo нужно инициализировать элемент cb структуры 
+  STARTUPINFO: </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>STARTUPINFO si 
+  = { sizeof(si) }, GetStartupInfo(&amp;si) </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t2p8></A>Параметр ppiProclnfo </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>ppiProcInfo </I>указывает на структуру PROCESS_INFORMATION, которую Вы должны 
+предварительно создать; ее элементы инициализируются самой функцией 
+<I>CreateProcess. </I>Структура представляет собой следующее </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _PROCESS_INFORMATION { <BR>HANDLE hProcess;<BR>HANDLE hThread; <BR>DWORD 
+  dwProcessId; <BR>DWORD dwThreadId;<BR>} PROCESS_TNFORMATION; 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил, создание нового процесса влечет за собой создание объектов ядра 
+"процесс" и "поток" В момент создания система присваивает счетчику каждого 
+объекта начальное значение — единицу, Далее функция <I>CreateProcess </I>(перед 
+самым возвратом управлении) открывает объекты "процесс" и "поток" и заносит их 
+описа тели, специфичные для данного процесса, в элементы <I>hProcess </I>и 
+<I>hTbread </I>структуры PROCESS_INFORMATION Когда <I>CreateProcebb 
+</I>очкрывает эти объекты, счстчики каждого из них увеличиваются до 2 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это означает, 
+что, перед тем как система сможет высвободить из памяти объект "процесс", 
+процесс должен быть завершен (счетчик уменьшен до 1), а родительский процесс 
+обязан вызвать функцию <I>CloseHandle </I>(и тем самым обнулить счстчик) То же 
+самое относится и к объекту "поток" поток должен быть завершен, а родительский 
+процесс должен закрыть описатель объекта "поток". Подробнее об освобождении 
+объектов "поток" см, раздел "Дочерние процессы" в этой главе. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>NOTE</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2> <BR>Не забывайте закрывать описатели дочернего процесса и его 
+  первичного по тока, иначе, пока Вы не закроете свое приложение, будет 
+  происходить утечка ресурсов. Конечно, система высвободит все эти ресурсы после 
+  завершения Вашего процесса, по хорошо написанная программа должна сама 
+  закрывать описатели дочернего процесса и его первичного потока, как только 
+  необхо димость в них отпадает Пропуск этой операции — одна из самых частых 
+  ошибок. </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Почему-то 
+  многие разработчики считают, будто закрытие описателя про цесса или потока 
+  заставляет систему уничтожить этот процесс или поток Это абсолютно неправильно 
+  Закрывая описатель, Вы просто сообщаете системе, что статистические данные для 
+  этого процесса или потока Вас больше не ин тересуют, но процесс или поток 
+  продолжает исполняться системой до тех пор, пока он сам не завершит себя 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Созданному 
+объекту ядра "процесс" присваивается уникальный идентификатор; ни у каких других 
+объектов этого типа в системе нс может быть одинаковых иденти фикаторов. Это же 
+касается и объектов ядра "поток". Причем идентификаторы про цесса и потока тоже 
+разные, и их значения никогда не бывают нулевыми. Завершая свою работу, 
+<I>CreateProcess </I>заносит значения идентификаторов в элементы <I>divProcessId 
+</I>и <I>dwThreadld </I>структуры PROCESS_INFORMATION Эти идентификаторы просто 
+облег чают определение процессов и потоков в системе; их используют, как 
+правило, лишь специализированные утилиты вроде Task Manager. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подчеркну ещс 
+один чрезвычайно важный момент система способна повторно использовать 
+идентификаторы процессов и потоков. Например, при создании про цесса система 
+формирует объект "процесс", присваивая ему идентификатор со зна чением, 
+допустим, 122 Создавая новый объект "процесс", система уже не присвоит ему 
+данный идентификатор. Но после выгрузки из памяти первого объекта следу ющему 
+создаваемому объекту "процесс" может быть присвоен тот же идентификатор — 122. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эту 
+особенность нужно учитывать при написании кода, избегая ссылок на невер ный 
+объект "процесс" (или "поток"). Действительно, затребовать и сохранить иден 
+тификатор процесса несложно, но задумайтесь, что получится, ссли в следующий 
+момент этот процесс будет завершен, а новый получит тот же идентификатор: сохра 
+ненный ранее идентификатор уже связан совсем с другим процессом. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иногда 
+программе приходится определять свой родительский процесс Однако родственные 
+связи между процессами существуют лишь на стадии создания дочер него процесса 
+Непосредственно перед началом исполнения кода вдочернем процес се Windows 
+перестает учитывать его родственные связи. В предыдущих версиях Win dows не было 
+функций, которые позволяли бы программе обращаться с запросом к ее родительскому 
+процессу. Но ToolHelp-функции, появившиеся в современных вер сиях Windows, 
+сделали это возможным. С этой целью Вы должны использовать струк туру 
+PROCESSENTRY32: ее элемент <I>th32ParentProcessID </I>возвращает идентификатор 
+"родителя" данного процесса. Тем не менее, если Вашей программе нужно взаимодей 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ствовать с 
+родительским процессом, от идентификаторов лучше отказаться. Почему — я уже 
+говорил. Для определения родительского процесса существуют более надежные 
+механизмы: объекты ядра, описатели окон и т. д. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Единственный 
+способ добиться того, чтобы идентификатор процесса или потока не использовался 
+повторно, — не допускать разрушения объекта ядра "процесс" или "поток". Если Вы 
+только что создали новый процесс или поток, то можете просто не закрывать 
+описатели на зти объекты — вот и все. А по окончании операций с иден 
+тификатором, вызовите функцию <I>CloseHandle </I>и освободите соответствующие 
+объек ты ядра. Однако для дочернего процесса этот способ не годится, если только 
+он не унаследовал описатели объектов ядра от родительского процесса.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t3></A>Завершение процесса</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Процесс можно 
+завершить четырьмя способами: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>входная 
+  функция первичного потока возвращает управление (рекомендуемый способ), 
+</FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>один из 
+  потоков процесса вызывает функцию <I>ExitProcess </I>(нежелательный спо соб); 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>поток 
+  другого процесса вызывает функцию <I>TerminateProcess </I>(тоже нежелательно); 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>все потоки 
+  процесса умирают по своей воле (большая редкость), </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом 
+разделе мы обсудим только что перечисленные способы завершения про цесса, а 
+также рассмотрим, что на самом делс происходит в момент его 
+окончания.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t3p1></A>Возврат управления входной функцией первичного потока 
+</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Приложение 
+следует проектировать так, чтобы его процесс завершался только после возврата 
+управления входной функцией первичного потока. Это единственный спо соб, 
+гарантирующий корректную очистку всех ресурсов, принадлежавших первично му 
+потоку. При зтом: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>любые 
+  С++-объекты, созданные данным потоком, уничтожаются соответству ющими 
+  деструкторами; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>система 
+  освобождает память, которую занимал стек потока-, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>система 
+  устанавливает код завершения процесса (поддерживаемый объектом ядра "процесс") 
+  — его и возвращает Ваша входная функция; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>счетчик 
+  пользователей данного объекта ядра "процесс" уменьшается на 1. </FONT></LI></UL>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t3p2></A>Функция ExitProcess </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Процесс 
+завершается, когда один из его потоков вызывает <I>ExitProcess:</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  ExilProcess(UINT fuExitCode); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+завершает процесс и заносит в параметр <I>fuExitCode</I> код завершения 
+процесса. Возвращаемого значения у <I>ExitProcess </I>нет, так как результат ее 
+действия — завершение процесса. Если за вызовом этой функции в программе 
+присутствует ка кой-нибудь код, он никогда не исполняется. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда входная 
+функция <I>(WinMain, wWinMain, main </I>или <I>wmairi) </I>в Вашей програм ме 
+возвращает управление, оно передастся стартовому коду из библиотеки С/C++, и тот 
+проводит очистку всех ресурсов, выделенных им процессу, а затем обращается к 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>ExitProcess, </I>передавая ей значение, возвращенное входной функцией 
+Вот почему воз врат управления входной функцией первичного потока приводит к 
+завершению все го процесса. Обратите внимание, что при завершении процесса 
+прекращается выпол нение и всех других его потоков. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, в 
+документации из Platform SDK утверждается, что процесс не завершает ся до тех 
+пор, пока не завершится выполнение всех его потоков. Это, конечно, верно, но тут 
+есть одна тонкость. Стартовый код ил библиотеки С/С++ обеспечивает завер шение 
+процесса, вызывая <I>ExitProcess </I>после того, как первичный поток Вашего 
+прило жения возвращается из входной функции. Однако, вызвав из нее функцию 
+<I>ExitThread </I>(вместо того чтобы вызвать <I>ExitProcess </I>или просто 
+вернуть управление), Вы заверши те первичный поток, но не сам процесс — если в 
+нем еще выполняется какой-то дру гой поток (или потоки). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+такой вызов <I>ExitProcess </I>или <I>ExitTbread </I>приводит к уничтожению 
+процесса или потока, ко1да выполнение функции еще не завершилось. Что касается 
+операционной системы, то здесь все в порядке: она корректно очистит все ресурсы, 
+выделенные процессу или потоку Но в приложении, написанном на С/С++, следует 
+избегать вызова этих функций, так как библиотеке С/С++ скорее всего нс удастся 
+провести<B> </B>должную очистку. Взгляните на этот код: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#include 
+  &lt;windows n&gt; <BR>#include &lt;stdio h&gt; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>class CSomeObj 
+  { <BR>public: <BR>CSomeOtrK) { printf("Constructor\r\n"), } <BR>~CSomeObj() { 
+  printf("Destructor\r\n"); } <BR>};</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>CSomeObj 
+  g_GlobalObj; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void main () { 
+  <BR>CSomeObj LocalObj; <BR>ExitProcess(0); // этого здесь не должно быть 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// в конце 
+  этой функции компилятор автоматически вставил код // дли вызова деструктора 
+  LocalObj, но ExitProcess не дает его выполнить } </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При его 
+выполнении Вы увидите: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>Constructor 
+  <BR>Constructor </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Код 
+конструирует два объекта: глобальный и локальный Но Вы никогда не увиди те 
+строку <I>Destructor </I>С++-объекты не разрушаются должным образом из-за того, 
+что <I>ExitProcess </I>форсирует уничтожение процесса и библиотека С/С++ не 
+получает шанса на очистку. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил, никогда не вызывайте <I>ExitProcess </I>в явном виде. Если я уберу из 
+предыдущего примера вызов <I>ExttProcess, </I>программа выведет такие строки: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>Constructor 
+  <BR>Constructor </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>Destructor 
+  <BR>Destructor</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Простой 
+возврат управления от входной функции первичного потока позволил библиотеке 
+С/С++ провести нужную очистку и корректно разрушить С++-объекты. Кстати, все, о 
+чем я рассказал, относится не только к объектам, но и ко многим дру гим вещам, 
+которые библиотека С/С++ делает для Вашего процесса.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Явные вызовы ExitProcess и ExitTbread — распространенная ошибка, 
+  которая мешает правильной очистке ресурсов. В случае ExitTbread процесс 
+  продолжа ет работать, но при этом весьма вероятна утечка памяти или других 
+  ресурсов. </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t3p3></A>Функция TerminateProcess </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызов функции 
+<I>TerminateProcess </I>тоже завершает процесс: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  TerminateProcess( HANDLE hProcoss, UINT fuExitCode); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Главное 
+отличие этой функции от <I>ExitProcess </I>в том, что ее может вызвать любой 
+поток и завершить любой процесс. Параметр <I>bProcess </I>идентифицирует 
+описатель завершаемого процесса, а в параметре <I>fuExitCode</I> возвращается 
+код завершения про цесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пользуйтесь 
+<I>TerminateProcess </I>лишь в том случае, когда иным способом завершить процесс 
+не удается. Процесс не получает абсолютно никаких уведомлений о том, что он 
+завершается, и приложение не может ни выполнить очистку, ни предотвратить свое 
+неожиданное завершение (если оно, конечно, не использует механизмы защиты). При 
+этом теряются все данные, которые процесс не успел переписать из памяти на диск. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Процесс 
+действительно не имеет ни малейшего шанса самому провести очистку, но 
+операционная система высвобождает всс принадлежавшие ему ресурсы: возвраща ет 
+себе выделенную им память, закрывает любые открытые файлы, уменьшает счет чики 
+соответствующих объектов ядра и разрушает все его User- и GDI-объекты. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По завершении 
+процесса (не важно каким способом) система гарантирует: после него ничего не 
+останется — даже намеков на то, что он когда-то выполнялся. <I>Завер шенный 
+процесс не оставляет за собой никаких следов. </I>Надеюсь, я сказал 
+ясно.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE</FONT> <BR><I>TerminateProcess — </I>функция асинхронная, 
+  т. e. она сообщает системе, что Вы хотите завершить процесс, но к тому 
+  времени, когда она вернет управление, процесс может быть еще не уничтожен. Так 
+  что, если Вам нужно точно знать момент завершения процесса, используйте 
+  <I>WaitForSingleObject </I>(см. главу 9) или аналогичную функцию, передав ей 
+  описатель этого процесса. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t3p4></A>Когда все потоки процесса уходят </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В такой 
+ситуации (а она может возникнуть, если все потоки вызвали <I>ExitTbread </I>или 
+их закрыли вызовом <I>TermirmteTbread</I>)<I> </I>операционная система больше не 
+считает нуж ным "содержать" адресное пространство данного процесса. Обнаружив, 
+что в процес се не исполняется ни один поток, она немедленно завершает его. При 
+этом код за вершения процесса приравнивается коду завершения последнего потока. 
+</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t3p5></A>Что происходит при завершении процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А происходит 
+вот что. </FONT></P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выполнение 
+  всех потоков в процессе прекращается </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все User- 
+  и GDI-объекты, созданные процессом, уничтожаются, а объеюы ядра закрываются 
+  (если их не используетдругой процесс). </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Код 
+  завершения процесса меняется со значения STILL_ACTIVE на код, передан ный в 
+  <I>ExitProcess </I>или <I>TerminateProcess.</I> </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объект 
+  ядра "процесс" переходит в свободное, или незанятое (signaled), состо яние 
+  (Подробнее на эту тему см главу 9 ) Прочие потоки в системе могут при 
+  остановить свое выполнение вплоть до завершения данного процесса. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Счетчик 
+  объекта ядра "процесс" уменьшается на 1 </FONT></LI></OL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Связанный с 
+завершаемым процессом объект ядра не высвобождается, пока не будут закрыты 
+ссылки на него и из других процессов. В момент завершения процесса система 
+автоматически уменьшает счетчик пользователей этого объекта на 1, и объект 
+разрушается, как только его счетчик обнуляется. Кроме того, закрытие процесса не 
+приводит к автоматическому завершению порожденных им процессов </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По завершении 
+процесса его код и выделенные ему ресурсы удаляются из памяти. Однако область 
+памяти, выделенная системой для объекта ядра "процесс", не осво бождается, пока 
+счетчик числа его пользователей не достигнет нуля А это произой дет, когда все 
+прочие процессы, создавшие или открывшие описатели для ныне-по койного процесса, 
+уведомят систему (вызовом <I>CloseHandle</I>)<I> </I>о том, что ссылки па этот 
+процесс им больше не нужны. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Описатели 
+завершенного процессса уже мяло на что пригодны. Разве что роди тельский 
+процесс, вызвав функцию <I>GetExitCodeProcess, </I>может проверигь, завершен ли 
+процесс, идентифицируемый параметром <I>hProcess, </I>и, если да, определить код 
+завер шения: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetExitCodeProcess( HANDLE hProcess, PDWORD 
+pdwExitCode);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Код 
+завершения возвращается как значение типа DWORD, на которое указывает 
+<I>pdwExitCode. </I>Если па момент вызова <I>GetExitCodeProcess </I>процесс еще 
+не завершился, в DWORD заносится идентификатор STILL_ACTIVE (определенный как 
+0x103) А если он уничтожен, функция возвращает реальный код его завершения. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вероятно, Вы 
+подумали, что можно написать код, который, периодически вызы вая функцию 
+<I>GetExitCodeProcess </I>и проверяя возвращаемое ею значение, определял бы 
+момент завершения процесса. В принципе такой код мог бы сработать во многих 
+ситуациях, но оп был бы неэффективен. Как правильно решить эту задачу, я 
+расскажу в следующем разделе. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t4></A>Дочерние процессы</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+разработке приложения часто бывает нужно, чтобы какую-то операцию выпол нял 
+другой блок кода. Поэтому — хочешь, не хочешь <I>— </I>приходится постоянно вызы 
+вать функции или подпрограммы. Но вызов функции приводит к приостановке вы 
+полнения основного кода Вашей программы до возврата из вызванной функции Аль 
+тернативный способ — передать выполнение какой-то операции другому потоку в 
+пределах данного процесса (поток, разумеется, нужно сначала создать). Это позво 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>лит основному 
+коду программы продолжить работу в то время, как дополнительный поток будет 
+выполнять другую операцию. Прием весьма удобный, но, когда основно му потоку 
+потребуется узнать результаты работы другого потока, Вам не избежать проблем, 
+связанных с синхронизацией. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть еще один 
+прием: Ваш процесс порождает дочерний и возлагает на него вы полнение части 
+операций. Будем считать, что эти операции очень сложны.Допустим, для их 
+реализации Вы просто создаете новый поток внутри того же процесса. Вы пишете тот 
+или иной код, тестируете его и получаете некорректный результат — может, 
+ошиблись в алгоритме или запутались в ссылках и случайно перезаписали 
+какие-нибудь важные данные в адресном пространстве своего процесса. Так вот, 
+один из способов защитить адресное пространство основного процесса от подобных 
+оши бок как раз и состоит в том, чтобы передать часть работы отдельному 
+процессу. Далее можно или подождать, пока он завершится, или продолжить работу 
+параллельно с ним. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К сожалению, 
+дочернему процессу, по-видимому, придется оперировать с данны ми, содержащимися 
+в адресном пространстве родительского процесса. Было бы не плохо, чтобы он 
+работал исключительно в своем адресном пространстве, а в "Ва шем" — просто 
+считывал нужные ему данные, тогда он не сможет что-то испортить в адресном 
+пространстве родительского процесса. В Windows предусмотрено несколько способов 
+обмена данными между процессами: DUE (Dynamic Data Exchange), OLE, каналы 
+(pipes), почтовые ящики (mailslots) и т. д, А один из самых удобных способов, 
+обеспечивающих совместный доступ к данным, — использование файлов, проециру емых 
+в память (memory-mapped files) (Подробнее на эту тему см. главу 17.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотите создать новый процесс, заставить его выполнить какис-либо опе рации и 
+дождаться их результатов, напишите примерно такой код </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PROCESS_INFORMATION pi; <BR>DWORD dwExitCode; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// порождаем 
+  дочерний процесс<BR>BOOL fSuccess = CreateProcess(..., &amp;pi}; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (fSuccess) 
+  { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// закрывайте 
+  описатель потока, как только необходимость в нем отпадает! <BR>CloseHandle(pi 
+  hThread);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2><BR>// 
+  приостанавливаем выполнение родительского процесса, <BR>// пока не завершится 
+  дочерний процесс <BR>WaitForSingleObject(pi hProcess, INFINlTI);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// дочерний 
+  процесс завершился; получаем код его завершения 
+  <BR>GetExitCodeProcess(pi.hProcess, &amp;dwExitCode); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// закрывайте 
+  описатель процесса, как только необходимость в нем отпадает! 
+  <BR>CloseHandle(pi.hProcess);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом 
+фрагменте кода мы создали новый процесс и, если это прошло успешно, вызвали 
+функцию <I>WaitForSingleQbject</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  WaitForSingleObject(HANDLE hObject, DWORD dwTimeOut);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подробное 
+рассмотрение данной функции мы отложим до главы 0, а сейчас ог раничимся одним 
+соображением Функция задерживает выполнение кода до тех пор, </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>пока объект, 
+определяемый параметром <I>bObject, </I>не перейдет в свободное (незанятое) 
+состояние. Объект "процесс" переходит в такое состояние при его завершении По 
+этому вызов <I>WaitForSingleObject </I>приостанавливает выполнение потока 
+родительского процесса до завершения порожденного им процесса. Когда 
+<I>WaitForSingleObject </I>вернет управление, Вы узнаете код завершения 
+дочернего процесса через функцию <I>Get ExitCodeProcess.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обращение к 
+<I>CloseHandle </I>в приведенном выше фрагменте кода заставляет систе му 
+уменьшить значения счетчиков объектов "поток" и "процесс" до нуля и тем самым 
+освободить память, занимаемую этими объектами. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы, наверное, 
+заметили, что в этом фрагменте я закрыл описатель объекта ядра "первичный поток" 
+(принадлежащий дочернему процессу) сразу после возврата из <I>CreateProcess. 
+</I>Это не приводит к завершению первичного потока дочернего процес са — просто 
+уменьшает счетчик, связанный с упомянутым объектом. А вот почему это делается — 
+и, кстати, даже рекомендуется делать — именно так, станет ясно из про стого 
+примера. Допустим, первичный поток дочернего процесса порождает еще один поток, 
+а сам после этого завершается. В этот момент система может высвободить объект 
+"первичный поток" дочернего процесса из памяти, если у родительского про цесса 
+нет описателя данного объекта. Но если родительский процесс располагает таким 
+описателем, система не сможет удалить этот объект из памяти до тех пор, пока и 
+родительский процесс не закроет его описатель. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t4p1></A>Запуск обособленных дочерних процессов </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Что ни 
+говори, но чаще<B> </B>приложение все-таки создает другие процессы как <I>обособ 
+ленные </I>(detached processes) Это значит, что после создания и запуска нового 
+процесса родительскому процессу нет нужды с ним взаимодействовать или ждать, 
+пока тот закончит работу Именно так и действует Explorer: запускает для 
+пользователя новые процессы, а дальше его уже не волнует, что там с ними 
+происходит. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+обрубить все пуповины, связывающие Explorer c дочерним процессом, ему нужно 
+(вызовом <I>CloseHandle) </I>закрыть свои описатели, связанные с новым процессом 
+и его первичным потоком Приведенный ниже фрагмент кода демонстрирует, как, 
+создав процесс, сделать его обособленным </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PROCESS_INFORMATION pi; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL<B> 
+  </B>fSuccess = CreateProcess( , &amp;pi); <BR>if (fSuccess) { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// разрешаем 
+  системе уничтожить обьекты ядра "процесс" и "поток" <BR>// сразу после 
+  завершения дочернего процесса <BR>CloseHandle(pi.hTnread); <BR>CloseHandle(pi 
+  hProcess); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t5></A>Перечисление процессов, выполняемых в системе</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Многие 
+разработчики программного обеспечения пытаются создавать инструмен тальные 
+средства или утилиты для Windows, требующие перечисления процессов, выполняемых 
+в системе Изначально в Windows API не было функций, которые по зволяли бы это 
+делать. Однако в Windows NT ведется постоянно обновляемая база данных 
+Performance Data. В ней содержится чуть ли не тонна информации, доступ ной через 
+функции рссстра вроде <I>RegQueryValueEx, </I>для которой надо указать корне 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>вой раздел 
+HKEY_PERFORMANCE_DATA. Мало кто из программистов знает об этой базе данных, и 
+причины тому кроются, на мой взгляд, в следующем. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для нее не 
+  предусмотрено никаких специфических функций, нужно исполь зовать обычные 
+  функции реестра. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ее нет в 
+  Windows 95 и Windows 98. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Структура 
+  информации в этой базе данных очень сложна; многие просто из бегают ею 
+  пользоваться (и другим не советуют). </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+упростить работу с этой базой данных, Microsoft создала набор функций под общим 
+названием Performance Data Helper (содержащийся в PDH.dll). Если Вас интересует 
+более подробная информация о библиотеке PDH.dll, ищите раздел по функциям 
+Performance Data Helper в документации Platform SDK </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+упоминал, в Windows 95 и Windows 98 такой базы данных нет. Вместо них 
+предусмотрен набор функций, позволяющих перечислять процессы. Они вклю чены в 
+ToolHelp API За информацией о них я вновь отсылаю Вас к документации Platform 
+SDK — ищите разделы по функциям <I>Process32First </I>и <I>Process32Next,</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но самое 
+смешное, что разработчики Windows NT, которым ToolHelp-функции явно не нравятся, 
+не включили их в Windows NT. Для перечисления процессов они создали свой набор 
+функций под общим названием Process Status (содержащийся в PSAPI.dll). Так что 
+ищите в документации Platform SDK раздел по функции <I>Enum Processes.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft, 
+которая до сих пор, похоже, старалась усложнить жизнь разработчи кам 
+инструментальных средств и утилит, все же включила ToolHelp-функции в Win dows 
+2000. Наконец-то и эти разработчики смогут унифицировать свой код хотя бы для 
+Windows 95, Windows 98 и Windows 2000! </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h1t5p1></A>Программа-пример Processlnfo </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, "04 ProcessInfo.exe" (см листинг на рис. 4-6), демонстрирует, как со 
+здать очень полезную утилиту на основе ToolHelp-функций. Файлы исходного кода и 
+ресурсов программы находятся в каталоге 04-ProcessInfo на компакт-диске, прилага 
+емом к книге. После запуска Processlnfo открывается окно, показанное на рис. 
+4-4. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ProcessInfo 
+сначала перечисляет все процессы, выполняемые в системе, а затем выводит в 
+верхний раскрывающийся список имена и идентификаторы каждого про цесса. Далее 
+выбирается первый процесс и информация о нем показывается в боль шом текстовом 
+поле, доступном только для чтения. Как видите, для текущего процес са сообщается 
+его идентификатор (вместе с идентификатором родительского процес са), класс 
+приоритета и количество потоков, выполняемых в настоящий момент в контексте 
+процесса. Объяснение большей части этой информации выходит за рамки данной 
+главы, но будет рассматриваться в последующих главах. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При просмотре 
+списка процессов становится доступен элемент меню VMMap. (Он отключается, когда 
+Вы переключаетесь на просмотр информации о модулях.) Выб рав элемент меню VMMap, 
+Вы запускаете программу-пример VMMap (см. главу 14). Эта программа "проходит" по 
+адресному пространству выбранного процесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В информацию 
+о модулях входит список всех модулей (EXE- и DLL-файлов), спро~ ецированных на 
+адресное пространство текущего процесса. Фиксированным моду лем (fixed module) 
+считается тот, который был неявно загружен при инициализации процесса. Для явпо 
+загруженных DLL показываются счетчики числа пользователей этих DLL. Во втором 
+столбце выводится базовый адрес памяти, на который спроеци </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>рован модуль. 
+Если модуль размещен не по заданному для нсго базовому адресу, в скобках 
+появляется и этот адрес. В третьем столбце сообщается размер модуля в бай тах, а 
+в последнем — полное (вместе с путем) имя файла этого модуля. И, наконец, внизу 
+показывается информация о потоках, выполняемых в данный момент в контек сте 
+текущего процесса. При этом отображается идентификатор потока (thread ID, TID) и 
+его приоритет. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=419 alt=h4-4.jpg src="images/h4-4.jpg" width=503> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 4-4. ProcessInfo в действии </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В дополнение 
+к информации о процессах Вы можете выбрать элемент меню Modu les. Это заставит 
+ProcessInfo перечислить все модули, загруженные в системе, и поме стить их имена 
+в верхний раскрывающийся список Далее ProcessInfo выбирает пер вый модуль и 
+выводит информацию о нем (рис. 4-5). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом режиме 
+утилита ProcessInfo позволяет легко определить, в каких процес сах задействован 
+данный модуль. Как видите, полное имя модуля появляется в верх ней части 
+текстового поля, а в разделе Process Information перечисляются все процес сы, 
+содержащие этот модуль. Там же показываются идентификаторы и имена процес сов, в 
+которые загружен модуль, и его базовые адреса в этих процессах. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Всю эту 
+информацию утилита ProcessInfo получает в основном от различных 
+ToolHelp-функций. Чтобы чуточку упростить работу с ToolHelp-функциями, я создал 
+С++-класс CToolhelp (содержащийся в файле Toolhelp.h). Он инкапсулирует все, что 
+связано с получением "моментального снимка" состояния системы, и немного облег 
+чает вызов других TooIHelp-функций. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Особый 
+интерес представляет функция <I>GetModulePreferredBaseAddr </I>в файле Pro 
+cessInfo.cpp: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  GetModulePreferredBaseAddr( DWORD dwProcessId, PVOID pvModuleRemote); 
+  </FONT></P></BLOCKQUOTE>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=423 alt=h4-5.jpg src="images/h4-5.jpg" width=497> 
+</FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 4-5. Processlnfo перечисляет все процессы, в адресные пространства 
+которых загружен модуль User32.dll </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Принимая 
+идентификатор процесса и адрес модуля в этом процессе, она просмат ривает его 
+адресное пространство, находит модуль и считывает информацию из заго ловка 
+модуля, чтобы определить, какой базовый адрес для него предпочтителен. Мо дуль 
+должен всегда загружаться именно по этому адресу, а иначе приложения, исполь 
+зующие данный модуль, потребуют больше памяти и будут инициализироваться мед 
+леннее. Поскольку такая ситуация крайне нежелательна, моя утилита сообщает о слу 
+чаях, когда модуль загружен не по предпочтительному базовому адресу. Впрочем, на 
+эти темы мы поговорим в главе 20 (в разделе "Модификация базовых адресов 
+модулей"). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><A 
+href="examp/04-ProcessInfo.zip"><IMG 
+height=16 src="images/" width=16> Processlnfo</A> </FONT></P>
+<HR>
+
+<P>
+<A href="head02.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head05.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

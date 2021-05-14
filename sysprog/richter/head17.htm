@@ -1,0 +1,2315 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h17></A>ГЛАВА 17</FONT> <FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>Проецируемые в память файлы </FONT></B></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Операции с 
+файлами — это то, что рапо или поздно приходится делать практичес ки во всех 
+программах, и всегда это вызывает массу проблем. Должно ли приложение просто 
+открыть файл, считать и закрыть его, или открыть, считать фрагмент в буфер и 
+перезаписать его в другую часть файла? В Windows многие из этих проблем реша 
+ются очень изящно — с помощью проецируемых в память файлов (memory-mapped files) 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как и 
+виртуальная память, проецируемые файлы позволяют резервировать реги он адресного 
+пространства и передавать ему физическую память. Различие между этими 
+механизмами состоит в том, что в последнем случае физическая память не 
+выделяется из страничного файла, а берется из файла, уже находящегося на диске. 
+Как только файл спроецирован в память, к нему можно обращаться так, будто он 
+цели ком в нее загружен. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проецируемые 
+файлы применяются для: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>загрузки и 
+  выполнения EXE- и DLL-файлов Это позволяет существенно эконо мить как на 
+  размере страничного файла, так и на времени, необходимом для подготовки 
+  приложения к выполнению, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>доступа к 
+  файлу данных, размещенному на диске Это позволяет обойтись без операций 
+  файлового ввода-вывода и буферизации его содержимого, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>разделения 
+  данных между несколькими процессами, выполняемыми па одной машине (В Windows 
+  есть и другие методы для совместного доступа разных процессов к одним данным — 
+  но все они так или иначе реализованы на осно ве проецируемых в память файлов.) 
+  </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти области 
+применения проецируемых файлов мы и рассмотрим в данной главе. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t1></A>Проецирование в память EXE- и DLL-файлов</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове из 
+потока функции <I>CreateProcess </I>система действует так: </FONT></P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Отыскивает 
+  ЕХЕ-файл, указанный при вызове <I>CreateProcess. </I>Если файл не най ден, 
+  новый процесс не создастся, а функция возвращает FALSE. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создает 
+  новый объект ядра «процесс» </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создает 
+  адресное пространство нового процесса </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Резервирует регион адресного пространства — такой, чтобы в него 
+  поместил ся данный ЕХЕ-файл Желательное расположение этого региона указывается 
+  внут ри самого ЕХЕ-файла По умолчанию базовый адрес ЕХЕ-файла — 0x00400000 (в 
+  64-разрядном приложении под управлением 64-разрядпой Windows 2000 этот адрес 
+  может быть другим). При создании исполняемого файла приложе ния базовый адрес 
+  может быть изменен через параметр компоновщика /BASE. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Отмечает, 
+  что физическая память, связанная с зарезервированным регионом, — ЕХЕ-файл на 
+  диске, а нс страничный файл. </FONT></LI></OL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Спроецировав 
+ЕХЕ-файл на адресное пространство процесса, система обращает ся к разделу 
+ЕХЕ-файла со списком DLL, содержащих необходимые программе функ ции. После этого 
+система, вызывая <I>LoadLibrary, </I>поочередно загружает указанные (а при 
+необходимости и дополнительные) DLL-модули. Всякий раз, когда для загрузки DLL 
+вызывается <I>LoadLibrary, </I>система выполняет действия, аналогичные описанным 
+выще в пп. 4 и 5: </FONT></P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Резервирует регион адресного пространства - такой, чтобы в него мог 
+  поме ститься заданный DLL-файл Желательное расположение этого региона указы 
+  вается внутри самого DLL-файла. По умолчанию Microsoft Visual C++ присваи вает 
+  DLL-модулям базовый адрес 0x10000000 (в 64-разрядной DLL под управ лением 
+  64-разрядной Windows 2000 этот адрес может быть другим). При ком поновке DLL 
+  это значение можно изменить с помощью параметра /BASE. У всех стандартных 
+  системных DLL, поставляемых с Windows, разные базовые здре ca, чтобы не 
+  допустить их перекрытия при загрузке в одно адресное простран ство </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+  зарезервировать регион по желательному для DLL базовому адресу не удается 
+  (из-за того, что он слишком мал либо занят каким-то еще EXE- или DLL файлом), 
+  система пытается найти другой регион. Но по двум причинам такая ситуация 
+  весьма неприятна. Во-первых, если в DLL нет информации о возмож ной 
+  переадресации (relocation information), загрузка может вообще не полу читься. 
+  (Такую информацию можно удалить из DLL при компоновке с парамет ром /FIXED. 
+  Это уменьшит размер DLL-файла, но тогда модуль <I>должен </I>грузить ся только 
+  по указанному базовому адресу) Во-вторых, системе приходится выполнять 
+  модификацию адресов (relocations) внутри DLL. В Windowы 98 эта операция 
+  осуществляется по мере подкачки сграниц в оперативную память. Но в Windows 
+  2000 на это уходит дополнительная физическая память, выделяе мая из 
+  страничного файла, да и загрузка такой DLL займет больше времени. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Отмечает, 
+  что физическая память, связанная с зарезервированным регионом, — DLL-файл на 
+  диске, а не страничный файл. Если Windows 2000 пришлось вы полнять модификацию 
+  адресов из-за того, что DLL не удалось загрузить по желательному базовому 
+  адресу, она запоминает, что часть физической памяти для DLL связана со 
+  страничным файлом. </FONT></LI></OL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если система 
+почему-либо не свяжет ЕХЕ-файл с необходимыми сму DLL, на эк ране появится 
+соответствующее сообщение, а адресное пространство процесса и объект «процесс" 
+будут освобождены При этом <I>CreateProcess </I>вернет FALSE; прояснить причину 
+сбоя поможет функция <I>GetLastError.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После увязки 
+EXE- и DLL-файлов с адресным пространством процесса начинает исполняться 
+стартовый код EXE-файла. Подкачку страниц, буферизацию и кэширо вание система 
+берет на себя. Например, если код в ЕХЕ-файле переходит к команде, не 
+загруженной в память, возникает ошибка. Обнаружив ее, система перекачивает 
+нужную страницу кода из образа файла на страницу оперативной памяти. Затем ото 
+бражает страницу оперативной памяти на должный участок адресного пространства 
+процесса, тем самым позволяя потоку продолжить выполнение кода Все эти опера ции 
+скрыты от приложения и периодически повторяются при каждой попытке про цесса 
+обратиться к коду или данным, отсутствующим в оперативной памяти. </FONT></P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t1p1></A>Статические данные не разделяются несколькими экземплярами EXE 
+или DLL </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вы 
+создаете новый процесс для уже выполняемого приложения, система про сти 
+открывает другое проецируемое в память представление (view) объекта "проек ция 
+файла" (file-mapping object), идентифицирующего образ исполняемого файла, и 
+создает новые объекты "процесс" и «поток» (для первичного потока) Этим объектам 
+присваиваются идентификаторы процесса и потока. С помощью проецируемых в память 
+файлов несколько одновременно выполняемых экземпляров приложения мо жет 
+совместно использовать один и тот же код, загруженный в оперативную память. 
+Здесь возникает небольшая проблема. Процессы используют линейное (flat) ад 
+ресное пространство. При компиляции и компоновке программы весь ее код и дан ные 
+объединяются в нечто, так сказать, большое и цельное Данные, конечно, отделе ны 
+от кода, но только в том смысле, что они расположены вслед за кодом в ЕХЕ-фай 
+ле&lt;snoska На самом деле содержимое файла разбито на отдельные разделы 
+(sections). Код находится в одном разделе, а глобальные переменные — в другом 
+Разделы выравниваются по грани цам страниц Приложение определяет размер страницы 
+через функцию <I>GetSystemInfo. </I>В EXE- или DLL-флйле раздел кода обычно 
+предшествует разделу данных. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>&gt;. Вот 
+упрощенная иллюстрация того, как код и данные приложения загружаются в 
+виртуальную память, а затем отображаются на адресное пространство процесса: 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=198 alt=rihter17-1.jpg src="images/rihter17-1.jpg" 
+width=566> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+допустим, что запущен второй экземпляр программы. Система просто-на просто 
+проецирует страницы виртуальной памяти, содержащие код и данные файла, на 
+адресное пространство второго экземпляра приложения: </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=201 alt=rihter17-2.jpg src="images/rihter17-2.jpg" 
+width=575> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если один 
+экземпляр приложения модифицирует какие-либо глобальные перемен ные, размещенные 
+на странице данных, содержимое памяти изменяется для всех эк земпляров этого 
+приложения. Такое изменение могло бы привести к катастрофичес ким последствиям и 
+поэтому недопустимо.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+предотвращает подобные ситуации, применяя механизм копирования при записи. 
+Всякий раз, когда программа пытается записывать что-то в файл, спрое цированный 
+в память, система перехватывает эту попытку, выделяет новый блок па мяти, 
+копирует в него нужную программе страницу и после этого разрешает запись в новый 
+блок памяти. Благодаря этому работа остальных экземпляров программы пе 
+нарушается. Вот что получится, когда первый экземпляр программы попытается из 
+менить какую-нибудь глобальную переменную на второй странице данных: </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=230 alt=rihter17-3.jpg src="images/rihter17-3.jpg" 
+width=584> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+выделяет новую страницу и копирует на нее содержимое страницы дан ных 2. 
+Адресное пространство первого экземпляра изменяется так, чтобы отобразить новую 
+страницу данных на тот же участок, что и исходную. Теперь процесс может изменить 
+глобальную переменную, не затрагивая данные другого экземпляра . </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Аналогичная 
+цепочка событий происходит и при отладке приложения. Например, запустив 
+несколько экземпляров программы, Вы хотите отладить только один из них. Вызвав 
+отладчик, Вы ставите в строке исходного кода точку прерывания. Отладчик 
+модифицирует Ваш код, заменяя одну из команд на языке ассемблера другой — зас 
+тавляющей активизировать сам отладчик. И здесь Вы сталкиваетесь с той же пробле 
+мой. После модификации кода все экземпляры программы, доходя до исполнения 
+измененной команды, приводили бы к его активизации. Чтобы этого избежать, сис 
+тема вновь использует копирование при записи. Обнаружив попытку отладчика из 
+менить код, она выделяет новый блок памяти, копирует туда нужную страницу и по 
+зволяет отладчику модифицировать код на этой копии. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>При загрузке процесса система 
+  просматривает все страницы образа файла. Физическая память из страничного 
+  файла передается сразу только тем стра ницам, которые должны быть защищены 
+  атрибутом копирования при записи. При обращении к такому участку образа файла 
+  в память загружается соответ ствующая страница. Если cc модификации не 
+  происходит, она может быть выгружена из памяти и при необходимости загружена 
+  вновь. Если же страни ца файла модифицируется, система перекачивает ее на одну 
+  из ранее передан ных страниц в страничном файле. </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Поведение 
+  Windows 2000 и Windows 98 в подобных случаях одинаково, кроме ситуации, когда 
+  в память загружено два экземпляра одного модуля и никаких данных не изменено. 
+  Тогда процессы под управлением Windows 2000 могут совместно использовать 
+  данные, а в Windows 98 каждый процесс полу чает свою копию этих данных. Но 
+  если в память загружен лишь один экземп ляр модуля или же данные были 
+  модифицированы (что чаще всего и бывает), Windows 2000 и Windows 98 ведут себя 
+  одинаково. </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t1p2></A>Статические данные разделяются несколькими экземплярами EXE или 
+DLL </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По умолчанию 
+для большей безопасности глобальные и статические данные нс разделя ются 
+несколькими проекциями одного и того же EXE или DLL. Но иногда удобнее, чтобы 
+несколько проекций EXE разделяли единственный экземпляр переменной. Например, в 
+Windows не так-то просто определить, запущено ли несколько экземп ляров 
+приложения. Если бы у Вас была переменная, доступная всем экземплярам при 
+ложения, она могла бы отражать число этих экземпляров Тогда при запуске нового 
+экземпляра приложения его поток просто проверил бы значение глобальной пере 
+менной (обновленное другим экземпляром приложения) и, будь оно больше 1, сооб 
+щил бы пользователю, что запустить можно лишь один экземпляр; после чего эта 
+копия приложения была бы завершена. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом 
+разделе мы рассмотрим метод, обеспечивающий совместное использова ние переменных 
+всеми экземплярами EXE или DLL. Но сначала Вам понадобятся кое какие базовые 
+сведения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Любой образ 
+EXE- или DLL-файла состоит из группы разделов. По соглашению имя каждого 
+стандартного раздела начинается с точки Например, при компиляции про граммы весь 
+код помещается в раздел <I>.text, </I>неинициализированные данные - в раз дел 
+<I>.bss, </I>а инициализированные — в раздел <I>.data.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С каждым 
+разделом связана одна из комбинаций атрибутов, перечисленных в сле дующей 
+таблице. </FONT></P>
+<TABLE height=126 cellSpacing=0 cellPadding=0 rules=all width=351 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=72 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Атрибут 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=72 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>READ 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Разрешает чтение из раздела </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=72 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>WRITE 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Разрешает запись в раздел </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=72 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>EXECUTЕ 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержимое раздела можно исполнять </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=72 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>SHARED 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=273 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Раздел 
+      доступен нескольким экземплярам приложения (этот атрибут отклю чает 
+      механизм копирования при записи) </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Запустив 
+утилиту DumpBin из Microsoft Visual Studio (c ключом /Headers), Вы уви дите 
+список разделов в файле образа EXE или DLL Пример такого списка, показан ный 
+ниже, относится к ЕХЕ-файлу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SECTION 
+HEADER #1 text name 11A70 virtual size 1000 virtual address 12000 size of raw 
+data 1000 file pointer to raw data </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 file 
+pointer to relocation table 0 file pointer to line numbers 0 number of 
+relocations 0 number of line numbers 60000020 flags Code Execute Read 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SECTION 
+HEADER #2 rdata name </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1F6 virtual 
+size </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>13000 virtual 
+address 1000 size of raw data 13000 file pointer to raw data </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 file 
+poinLer lo relocation tabie 0 file pointer to line numbers 0 number ot 
+relocations 0 number of line numbers 40000040 flags </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Initialized 
+Data Read Only </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SECTION 
+HEADER #3 .data name </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>560 virtual 
+size 14000 virtual address 1000 size of raw data 14000 file pointer to raw data 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 filc 
+pointer to relocation table 0 file pointer to line numbers 0 number of 
+relocations 0 number of line numbers C0000040 flags </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Initialized 
+Data Read Write </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SECTION 
+HtADER #4 .idata name </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>58D virtual 
+size 15000 virtual address 1000 size of raw data 15000 file pointer to raw data 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 file 
+pointer to relocation table 0 file pointer to line numbers 0 number of 
+relocations 0 number of line numbers C0000040 flags </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Initialized 
+Data Read Write </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SECTION 
+HEADER #5 .didat name </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>7A2 vi rtual 
+size 16000 virtual address 1000 size of raw data 16000 file pointer to raw data 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 file 
+pointer to relocation table 0 file pointer to line numbers 0 number of 
+relocations 0 number of line numbers C0000040 flags </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Initialized 
+Data Read Write </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SECTION 
+HEADER #6 .reloc name </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>26D virtual 
+size 17000 virtual address 1000 size of raw data 17000 file pointer to raw data 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 file 
+pointer to relocation table 0 file pointer to line numbers 0 number of 
+relocations 0 number of line numbers 42000040 flags </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Initialized 
+Data Discardable Read Only </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Summary 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1000 data 
+1000 didat 1000 idata 1000 rdata 1000 .reloc 12000 text </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Некоторые из 
+часто встречающихся разделов перечислены в таблице ниже </FONT></P>
+<TABLE height=304 cellSpacing=0 cellPadding=0 rules=all width=490 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Имя 
+      раздела </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>bss 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Неинициализированные данные </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>CRT 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Неизменяемые данные библиотеки С </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>data 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Инициализированные данные </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.debug 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Отладочная информация </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.didat 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Таблица 
+      имен для отложенного импорта (delay imported names table) 
+</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>edata 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Таблица 
+      экспортируемых имен </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>idata 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Таблица 
+      импортируемых имен </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.rdata 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Неизменяемые данные периода выполнения </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.reloc 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Настроечная информация — таблица переадресации (relocation table) 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.rsrc 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Ресурсы 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.text 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код ЕХЕ 
+      или DLL </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.tls 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Локальная память потока </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=89 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>.xdata 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=395 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Таблица 
+      для обработки исключений </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме 
+стандартных разделов, генерируемых компилятором и компоновщиком, можно создавать 
+свои разделы в EXE- или DLL-файле, используя директиву компи лятора:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#pragma 
+  data_seg("имя_раздела") </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Например, 
+можно создать раздел Shared, в котором содержится единственная пе ременная типа 
+LONG:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#pragma 
+  data_seg("Shared") LONG g_lInstanceCount = 0;<BR>#pragma data_seg() 
+</FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обрабатывая 
+этот код, компилятор создаст раздел Shared и поместит в него все 
+<I>инициализированные </I>переменные, встретившиеся после директивы #<I>pragma. 
+</I>В нашем примере в этом разделе находится переменная <I>g_lInstanceCount. 
+</I>Директива #<I>pragma data_seg() </I>сообщает компилятору, чти следующие за 
+ней переменные нужно вновь помещать в стандартный раздел данных, а нс в Shared. 
+Важно помнить, что компиля тор помещает в новый раздел только инициализированные 
+переменные. Если из пре дыдущего фрагмента кода исключить инициализацию 
+переменной, она будет вклю чена в другой раздел:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#pragma 
+  data_seg("Shared") LONG g_lInslanceCount; <BR>#pragma data_seg()</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Однако в 
+компиляторе Microsoft Visual C++ 6.0 предусмотрен спецификатор <I>allo cate, 
+</I>который позволяет помещать неинициализированные данные в любой раздел. 
+Взгляните на этот код:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  раздел Shared и заставляем компилятор <BR>// поместить в него 
+  инициализированные данные <BR>#pragma data_seg("Shared") </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  инициализированная переменная, по умолчанию помещается в раздел Shared <BR>int 
+  а = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  неинициализированная переменная, по умолчанию помещается в другой раздел 
+  <BR>int b; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сообщаем 
+  компилятору прекратить включение инициализированных данных <BR>// в раздел 
+  Shared <BR>#pragma data_seg() </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  инициализированная переменная, принудительно помещается в раздел Shared 
+  <BR>__declspec(allocate("Shared")) int с = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  неинициализированная переменная, принудительно помещается в раздел Shared 
+  <BR>__declspec(allocate("Shared")) int d; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  инициализированная переменная, по умолчанию помещается в другой раздел <BR>int 
+  e = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  неинициализированная переменная, по умолчанию помещается в другой раздел 
+  <BR>int f; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+спецификатор <I>allocate </I>работал корректно, сначала должен быть создан 
+соответствующий раздел. Так что, убрав из предыдущего фрагмента кода первую стро 
+ку <I>#pragma data_seg, </I>Вы нс смогли бы его скомпилировать. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чаще всего 
+переменные помещают в собственные разделы, намереваясь сделать их разделяемыми 
+между несколькими проекциями EXE или DLL. По умолчанию каж дая проекция получает 
+свой набор переменных. Но можно сгруппировать в отдель ном разделе переменные, 
+которые должны быть доступны всем проекциям EXE или DLL; тогда система не станет 
+создавать новые экземпляры этих переменных для каж дой проекции EXE или DLL. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+переменные стали разделяемыми, одного указания компилятору выделить их в 
+какой-то раздел мало. Надо также сообщить компоновщику, что переменные в 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>этом разделе 
+должны быть общими Для этого предназначен ключ /SECTION компоновщика</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>/SECTION:имя,атрибуты </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>За двоеточием 
+укажите имя раздела, атрибуты которого Вы хотите изменить В нашем примере нужно 
+изменить атрибуты раздела Shared, поэтому ключ должен выг лядеть так</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>/SECTION:Shared,RWS </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После запятой 
+мы задаем требуемые атрибуты При этом используются такие со кращения <I>R 
+</I>(READ), <I>W </I>(WRITE), <I>E </I>(EXECUTE) и S(SHARED) В данном случае мы 
+ука чали, что раздел Shared должен быть «читаемым», «записываемым" и 
+"разделяемым» Если Вы хотите изменить атрибуты более чем у одного раздела, 
+указывайте ключ /SECTION для каждого такого раздела </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Соответствующие директивы для компоновщика можно вставлять прямо в 
+исходный код</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#pragma 
+  comment(linker, /SECTION Shared,RWS ) </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта строка 
+заставляет компилятор включить строку "/SECTION Shared,RWS" в осо бый раздел 
+<I>drectve </I>Компоновщик, собирая OBJ-модули, проверяет этот раздел в каж дом 
+OBJ-модуле и действует так, словно все эти строки переданы ему как аргументы в 
+командной строке Я всегда применяю этот оченъ удобный метод перемещая файл 
+исходного кода в новый проект, не надо изменять никаких параметров в диалоговом 
+окне Project Settings в Visual C++ </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя 
+создавать общие разделы можно, Microsoft нс рекомендует это делать Во первых, 
+разделение памяти таким способом может нарушить защиту Во вторых, на личие общих 
+переменных означает, что ошибка в одном приложении повлияет на другое, так как 
+этот блок данных нс удастся защитить от случайной записи </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Представьте, 
+Вы написали два приложения, каждое из которых требует от пользо вателя вводить 
+пароль При этом Вы решили чуть-чуть облегчить жизнь пользовате лю если одна из 
+программ уже выполняется на момент запуска другой, то вторая счи тывает пароль 
+из общей памяти Так что пользователю не пужно повторно вводить пароль, если одно 
+из приложений уже запущено </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все выглядит 
+вполне невинно В конце концов только Ваши приложения загружа ют данную DLL, и 
+только они знают, где искать пароль, содержащийся в общем разде ле памяти Но 
+хакеры не дремлют, и если им захочется узнать Ваш пароль, то макси мум, что им 
+понадобится, — написать небольшую программу, загружающую Вашу DLL, и понаблюдать 
+за общим блоком памяти Когда пользователь введет пароль, хакере кая программа 
+тут же ею узнает </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Трудолюбивая 
+хакерская программа может также предпринять серию попыток угадать пароль, 
+записывая его варианты в общую память А угадав, сможет посылать любые команды 
+этим двум приложениям Данную проблему можно было бы решить, если бы существовал 
+какой-нибудь способ разрешать загрузку ULL только определен ным программам Но 
+пока эю невозможно — любая протрамма, вызвав <I>IoadLibrary, </I>способна явно 
+загрузить любую DLL </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t1p3></A>Программа-пример Applnst </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, "17 AppInst.exe" (см листинг на рис 17-1), демонстрирует, как выяс 
+нить, сколько экземпляров приложения уже выполняется в системе Файлы исходно го 
+кода и ресурсов этои программы находятся в каталоге 17-AppInst на компакт-дис 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ке, 
+прилагаемом к книге. Погле запуска AppInst на экране появляется диалоговое окно, 
+в котором сообщается, что сейчас выполняется только один cc экземпляр. 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=58 alt=rihter17-4.jpg src="images/rihter17-4.jpg" 
+width=215> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+запустите второй экземпляр, оба диалоговых окна сообщат, что теперь выполняется 
+два экземпляра. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=59 alt=rihter17-5.jpg src="images/rihter17-5.jpg" 
+width=463> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+запускать и закрывать сколько угодно экземпляров этой программы — окно любого из 
+них всегда будет отражать точное количество выполняемых экземп ляров. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Где-то в 
+начале файла AppInst.cpp Вы заметите следующие строки: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// указываем 
+  компилятору поместить эту инициализированную переменную <BR>// в раздел 
+  Shared, чтобы она стала диступной всем окземплярам программы </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#pragma 
+  data_seg("Shared") <BR>volatile LONG g_lApplicationInstances = 0; <BR>#pragma 
+  data_seg() </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// указываем 
+  компоновщику, что раздел Shared должен быть <BR>// читаемым, записываемым и 
+  разделяемым <BR>#pragma comment(linker, "/Section.Shared,RWS")</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этих 
+строках кода создается раздел Shared c атрибутами защиты, которые раз решают его 
+чтение, запись и разделение. Внутри него находится одна переменная, 
+<I>g_lApplicationInstances, </I>доступная всем экземплярам программы. Заметьте, 
+что для этой переменной указан спецификатор <I>vokitile, </I>чтобы оптимизатор 
+не слишком с ней ум ничал. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+выполнении функции <I>_tWinMain </I>каждого экземпляра значение переменной 
+<I>g_lApplicattonInstances </I>увеличивается на 1, а перед выходом ич 
+<I>_tWinMain — </I>уменьша ется на 1. Я изменяю ее знячение с помощью функции 
+<I>InterlockedExchangeAdd, </I>так как эта переменная является общим ресурсом 
+для нескольких потоков. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда на 
+экране появляется диалоговое окпо каждого экземпляра программы, вызывается 
+функция <I>Dlg__OnJnitDialog. </I>Она рассылает всем окнам верхнего уровня 
+зарегиорированное оконное сообщение (идентификатор которого содержится в 
+переменной <I>g_aMsgAppInstCоuntUpdate).</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PostMessage(HWND_BROADCAST, g_aMsgAppInstCountUpdate, 0, 0); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это сообщение 
+игнорируется всеми окнами в системе, кроме окон AppInst. Когда его принимает 
+одно из окон нашей программы, код в <I>DlgProc </I>просто обновляет в диалоговом 
+окнс значение, отражающее текущее количество экземпляров (а эта ве личина 
+хранится в переменной <I>g_lApplicattonInstances</I>)<I>.</I> </FONT></P>
+
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/17-AppInst.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>AppInst</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t2></A>Файлы данных, проецируемые в память</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Операционная 
+система позволяет проецировать на адресное пространство процесса и файл данных 
+Это очень удобно при манипуляциях с большими потоками данных Чтобы представить 
+всю мощь такого применения механизма проецирования фай лов, рассмотрим четыре 
+возможных метода реализации программы, меняющей по рядок следования вссх байтов 
+в фяйле на обратный </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t2p1></A>Метод 1: один файл, один буфер </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый (и 
+теоретически простейший) метод — выделение блока памяти, достаточ ного для 
+размещения всего файла Открываем файл, считываем eго содержимое в блок памяти, 
+закрываем. Располагая в памяти содержимым файла, можно поменять первый 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>байт с 
+последним, второй — с предпоследним и т. д. Этот процесс будет продолжать ся, 
+пока мы не поменяем местами два смежных байта, находящихся в середине файла. 
+Закончив эту операцию, вновь открываем файл и перезаписываем его содержимое. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот довольно 
+простой в реализации метод имеет два существенных недостатка Во-первых, придется 
+выделить блок памяти такого же размера, что и файл. Это тер пимо, если файл 
+небольшой. А если он занимает 2 Гб? Система просто не позволит приложению 
+передать такой объем физической памяти. Значит, к болыпим файлам нужен 
+совершенно иной подход. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-вторых, 
+если перезапись вдруг прервется, содержимое файла будет испорче но. Простейшая 
+мера предосторожности — создать копию исходного файла (потом ее можно удалить), 
+но это потребует дополнительного дискового пространства </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t2p2></A>Метод 2: два файла, один буфер </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Открываем 
+существующий файл и создаем на диске новый — нулевой длины. Затем выделяем 
+небольшой внутренний буфер размером, скажем, 8 Кб. Устанавливаем ука затель 
+файла в позицию 8 Кб от конца, считываем в буфер последние 8 Кб содержи мого 
+файла, меняем в нем порядок следования байтов на обратный и переписываем буфер в 
+только что созданный файл. Повторяем эти операции, пока нс доЙдем до начала 
+исходного файла, Конечно, если длина файла не будет кратна 8 Кб, операции 
+придется немного усложнить, но это не страшно. Закончив обработку, закрываем оба 
+файла и удаляем исходный файл. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот метод 
+посложнее первого, зато позволяет гораздо эффективнее использовать память, так 
+как требует выделения лишь 8 Кб, Но и здесь не без проблем, и вот двс главных.. 
+Во-первых, обработка идет медленнее, чем при первом методе: на каждой итерации 
+перед считыванием приходится находить нужный фрагмент исходного файла. 
+Во-вторых, может понадобиться огромное пространство па жестком диске. Если длина 
+исходного файла 400 Мб, новый файл постепенно вырастет до этой вели чины, и 
+перед самым удалением исходного файла будет занято 800 Мб, т. e. на 400 Мб 
+больше, чем следовало бы. Так что все пути ведут... к третьему методу 
+</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t2p3></A>Метод 3: один файл, два буфера </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Программа 
+инициализирует два раздельных буфера, допустим, по 8 Кб и считывает первые 8 Кб 
+файла в один буфер, а последние 8 Кб — в другой. Далее содержимое обоих буферов 
+обменивается в обратном порядке и первый буфер записывается в конец, а второй — 
+в начало того же файла. На каждой итерации программа переме щает 
+восьмикилобайтовые блоки из одной половины файла в другую. Разумеется, нужно 
+предусмотреть какую-то обработку на случай, ссли длина файла не кратна 16 Кб, и 
+эта обработка будет куда сложнее, чем в предыдущем методе. Но разве это испугает 
+опытного программиста? </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По сравнению 
+с первыми двумя этот метод позволяет экономить пространство на жестком диске, 
+так как все операции чтения и записи протекают в рамках одного файла. Что же 
+касается памяти, то и здесь данный метод довольно эффективен, ис пользуя всего 
+16 Кб. Однако он, по-видимому, самый сложный в реализации. И, кро ме того, как и 
+первый метод, он может испортить файл данных, ссли процесс вдруг прервется. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ну а теперь 
+посмотрим, как тот же процесс реализуется, если применить файлы, проецируемые в 
+память. </FONT></P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t2p4></A>Метод 4: один файл и никаких буферов </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы открываете 
+файл, указывая системе зарезервировать регион виртуального адрес ного 
+пространства. Затем сообщаете, что первый байт файла следует спроецировать на 
+первый байт этого региона, и обращаетесь к региону так, будто он на самом деле 
+содержит файл. Если в конце файла есть отдельный нулевой байт, можно вызвать 
+библиотечную функцию <I>_strrev </I>и поменять порядок следования байтов на 
+обратный. Огромный плюс этого метода в том, что всю работу по кэшированию файла 
+вы полняет сама система: не надо выделить память, загружать данные из файла в 
+память, переписывать их обратно в файл и т. д. и т. п. Но, увы, вероятность 
+прерывания про цесса, например из-за сбоя в электросети, по-прежнсму 
+сохраняется, и от порчи дан ных Вы не застрахованы. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t3></A>Использование проецируемых в память файлов</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для этого 
+нужно выполнить три операции: </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1. Создать 
+или открыть объект ядра "файл", идентифицирующий дисковый файл, который Вы 
+хотите использовать как проецируемый в память. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>2. Создать 
+объект ядра "проекция файла", чтобы сообщить системе размер фай ла и способ 
+доступа к нему. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3. Указать 
+системе, как спроецировать в адресное пространство Вашего процес са объект 
+«проекция файла» — целиком или частично. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив 
+работу с проецируемым в память файлом, следует выполнить тоже три операции: 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1. Сообщить 
+системе об отмене проецирования на адресное пространство про цесса объекта ядра 
+"проекция файла". </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>2. Закрыть 
+этот объект. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3. Закрыть 
+объект ядра "файл". </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Детальное 
+рассмотрение этих операций — в следующих пяти разделах. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t3p1></A>Этап1: создание или открытие объекта ядра «файл» 
+</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для этого Вы 
+должны применять только функцию <I>CreateFile</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateFile( PCSTR pszFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
+  PSECURITY_AIIRIBUTES psa, DWORD dwCreationDisposition, DWORD 
+  dwFlagsAndAttribules, HANDLE hTemplateFile);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, у 
+функции <I>CrealeFile </I>довольно много параметров. Здесь я сосредото чусь 
+только на первых трех: <I>pszFileName, dwDesiredAccess </I>и <I>dwSbareMode.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как Вы, 
+наверное, догадались, первый параметр<I>, pszFileName, </I>идентифицирует имя 
+создаваемого или открываемого файла (при необходимости вместе с путем). Второй 
+параметр, <I>dwDesiredAccess, </I>указывает способ доступа к содержимому файла. 
+Здесь за дастся одно из четырех значений, показанных в таблице ниже. </FONT></P>
+
+<TABLE height=112 cellSpacing=0 cellPadding=0 rules=all width=691 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=196 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=196 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>0 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержимое файла нельзя считывать или записывать, указывайте это 
+      значение, если Вы хотите всею лишь получить афибуты файла 
+</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=196 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>GENERIC 
+      _READ </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Чтение 
+      файла разрешено </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=196 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>GENERIC_WRITE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Запись 
+      в файл разрешена </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=196 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>GENERIC_READ | </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ENERIC_WRITE </FONT></P></TD>
+    <TD vAlign=top align=left width=489 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Разрешено и то и другое </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создавая или 
+открывая файл данных с намерением использовать его в качестве проецируемого в 
+память, можно установить либо флаг GENERIC_READ (только для чтения), либо 
+комбинированный флаг GENERIC_READ | GENУRIC_WRITE (чтение/ча пись) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третий 
+параметр, <I>dwShareMode, </I>указывает тип совместного доступа к данному 
+файлу(см следующуютаблицу) </FONT></P>
+<TABLE height=117 cellSpacing=0 cellPadding=0 rules=all width=689 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=249 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD>
+    <TD vAlign=top align=left width=434 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=249 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>0 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=434 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Другие 
+      попытки открыть файл закончатся неудачно </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=249 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FILE_SHARE_REAU </FONT></P></TD>
+    <TD vAlign=top align=left width=434 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Попытка 
+      постороннего процесса открыть файл с флагом GENERIC_WRITE не удается 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=249 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FILb_SHARF_WRlTE </FONT></P></TD>
+    <TD vAlign=top align=left width=434 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Попьлка 
+      постороннего процесса открыть файл с флагом GENERIC_READ не удается 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=249 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>FILE 
+      SHARE RFAD | FILE_SHARE_WRTTE </FONT></P></TD>
+    <TD vAlign=top align=left width=434 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Посторонний процесс может открывать файл без ограничений 
+    </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав или 
+открыв указанный файл, <I>CreateFile </I>возвращает его описатель, в ином случае 
+— идентификатор INVALID_HANDLE_VALUE </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Большинство функций Windows, возвращающих те 
+  или иные описатели, при неудачном вызове дает NULL Ho <I>CreateFile </I>— 
+  исключение и в таких случаях возвращает идентификатор INVALID_HANDIF_VALUE, 
+  определенный как ((HANDLE) -1) </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t3p2></A>Этап 2: создание объекта ядра «проекция файла» </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызвав 
+<I>CreateFile, </I>Вы указали операционной системе, где находится физическая па 
+мять для проекции файла на жестком диске в сети, на CD-ROM или в другом месте 
+Теперь сообщите системе, какой обьем физической памяти нужен проекции файла Для 
+этого вызовите функцию <I>CreateFileMapping</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateFileMapping( HANDLE hFile, PSECURITY_ATTRIBUTES psa, DWORD fdwProtect, 
+  DWOPD dwMaximumSizeHigh, DWORD dwMaximumSizcLow, PCSTR pszName);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+параметр, <I>hFile, </I>идентифицирует описатель файла, проецируемою на ад 
+реснос пространство процесса этот описатель Вы получили после вызова 
+<I>CreateFile </I>Параметр <I>psa</I> — указатель на структуру 
+SECURITY_ATTRIBUTES, которая относится к обьекту ядра "проекция файла", для 
+установки защиты по умолчанию ему присваива ется NULL </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил в начале этой главы, создание файла, проецируемого в память, аналогично 
+резервированию региона адресного пространства с последующей пере дачей сму 
+физической памяти Разница лишь в том, что физическая память для про ецируемого 
+файла — сам файл на диске, и для него не нужно выделять пространство в 
+страничном файле. При создании объекта «проекция файла» система не резервиру ет 
+регион адресного пространства и не увязывает его с физической памятью из фай ла 
+(кяк это сделать, я расскажу в следующем разделе). Но, как только дело дойдет до 
+отображения физической памяти на адресное пространство процесса, системе пона 
+добится точно знать атрибут защиты, присваиваемый страницам физической памя ти 
+Поэтому в <I>fdwProteсе </I>надо указать желательные атрибуты защиты. Обычно ис 
+пользуется один из перечисленных в следующей таблице. </FONT></P>
+<TABLE height=161 cellSpacing=0 cellPadding=0 rules=all width=683 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Атрибут 
+      защиты </FONT></P></TD>
+    <TD vAlign=top align=left width=551 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>PAGE_READONLY </FONT></P></TD>
+    <TD vAlign=top align=left width=551 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Отобразив объект «проекция файла» на адресное пространство, можно 
+      считывать данные из файла. При этом Вы должны были пе редать в 
+      <I>CreateFile </I>флаг GENERIC_READ. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=51>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>PAGE_READWRITE </FONT></P></TD>
+    <TD vAlign=top align=left width=551 height=51>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Отобразив объект «проекция файла» на адресное пространство, можно 
+      считывать данные из файла и записывать их При этом Вы должны были передать 
+      в <I>CreateFile </I>комбинацию флагов GENERIC_READ | GENERIC_WRITE. 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>PAGE_WRITECOPY </FONT></P></TD>
+    <TD vAlign=top align=left width=551 height=58>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Отобразив объект "проекция файла" на адресное пространство, можно 
+      считывать данные из файла и записывать их. Запись приве дет к созданию 
+      закрытой копии страницы При этом Вы должны были передать в <I>CreateFile 
+      </I>либо GENERIC_READ, либо GENERIC_READ | GENERIC_WRITE 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Windows 98 функции <I>CreateFileMapping 
+  </I>можно передать флаг PAGE_WRITE COPY; тем самым Вы скажете системе передать 
+  физическую память из странич ного файла. Эта память резервируется для копии 
+  информации из файла дан ных, и лишь модифицированные страницы действительно 
+  записываются в страничный файл. Изменения не распространяются на исходный файл 
+  данных. Результат применения флага PAGE_WRITECOPY одинаков в Windows 2000 и в 
+  Windows 98 </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме 
+рассмотренных выше атрибутов защиты страницы, существует еще и че тыре атрибута 
+раздела; их можно ввести в параметр <I>fdwProtect </I>функции <I>CreateFile 
+Mapping </I>побитовой операцией OR. Раздел (section) — всего лишь еще одно 
+название проекции памяти. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый из 
+этих атрибутов, SEC_NOCACHE, сообщает системе, что никакие стря ницы файла, 
+проецируемого в память, кэшировать не надо. В результате при записи данных в 
+файл система будет обновлять данные на диске чаще обычного. Этот флаг, как и 
+атрибут защиты PAGE_NOCACHE, предназначен для разработчиков драйверов устройств 
+и обычно в приложениях пе используется. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Windows 98 игнорирует флаг SEC_NOCACHE. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+атрибут, SEC_IMAGE, указывает системе, что данный файл является пере носимым 
+исполняемым файлом (portable executable, PE). Отображая его на адресное 
+пространство процесса, система просматривает содержимое файла, чтобы опреде 
+лить, какие атрибуты защиты следует присвоить различным страницам проецируе 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>мого образа 
+(mapped image). Например, раздел кода РЕ-файла <I>(text) </I>обычно проеци 
+руется с атрибутом PAGE_EXECUTE_READ, тогда как раздел данных этого же файла 
+<I>(.data) — с </I>атрибутом PAGE_READWRITE Атрибут SEC_IMAGE заставляет систему 
+спро ецировать образ файла и автоматически подобрать подходящие атрибуты защиты 
+страниц </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Windows 98 игнорирует флаг SEC_IMAGE. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последние два 
+атрибута (SEC_RESERVE и SEC_COMMIT) взаимоисключают друг друга и неприменимы для 
+проецирования в память файла данных. Эти флаги мы рас смотрим ближе к концу 
+главы. <I>CreateFileMapping </I>их игнорирует </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующие два 
+параметра этой функции <I>(dwMaximumSizeHigh </I>и <I>dwMaximum SizeLow) 
+</I>самые важные. Основное назначение <I>CreateFileMapping — </I>гарантировать, 
+что объекту "проекция файла" доступен нужный объем физической памяти Через эти 
+параметры мы сообщаем системе максимальный размер файла в байтах. Так как Win 
+dows позволяет работать с файлами, размеры которых выражаются 64-разрядными 
+числами, в параметре <I>dwMaximumSizeHigh </I>указываются старшие 32 бита, а в 
+<I>dwMaxi mumSizeI.ow - </I>младшие 32 бита этого значения. Для файлов размером 
+менее 4 Гб <I>dwMaximumSizeHigh </I>всегда равен 0. Наличие 64-разрядного 
+значения подразумевает, что Windows способна обрабатывать файлы длиной до l6 
+экзабайтов </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для создания 
+объекта «проекция файла" таким, чтобы он отражал текущий раз мер файла, 
+передайте в обоих параметрах нули. Так же следует поступить, если Вы собираетесь 
+ограничиться считыванием или как-то обработать файл, не меняя его раз мер Для 
+дозаписи данных в файл выбирайте его размер максимальным, чтобы оста вить 
+пространство «для маневра» Если в данный момент файл на диске имеет нуле вую 
+длину, в параметрах <I>dwMaximumSizeHigh </I>и <I>dwMaximumSizeLow </I>нельзя 
+передавать нули Иначе система решит, что Вам нужна проекция файла с объемом 
+памяти, рав ным 0. А это ошибка, и <I>CreateFileMapping </I>вернет NULL 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы еще 
+следите за моими рассуждениями, то, должно быть, подумали: что-то тут нс все 
+ладно. Очень, конечно, мило, что Windows поддерживает файлы и их про екции 
+размером вплоть до 16 экзабайтов, но как, интересно, спроецировать такой файл на 
+адресное пространство 32-разрядного процесса, ограниченное 4 Гб, из ко торых и 
+использовать-то можно только 2 Гб? На этот вопрос я отвечу в следующем разделе. 
+(Конечно, адресное пространство 64-разрядного процесса, размер которого 
+составляет 16 экзабайтов, позволяет работать с еще большими проекциями файлов, 
+но аналогичное ограничение существует и там) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+досконально разобраться, как работают функции <I>CreateFtle </I>и <I>CreateFile 
+Mapping, </I>предлагаю один эксперимент Возьмите код, приведенный ниже, соберите 
+его и запустите под отладчиком. Пошагово выполняя операторы, переключитесь в 
+окно командного процессора и запросите содержимое каталога «C:\» командой dir 
+Обратите внимание на изменения, происходящие в каталоге при выполнении каждо го 
+оператора.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  _tWinMain(HINSIANCE hinstExe, HINSTANCE, PISTR pszCmdLine, int nCmdShow) <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// перед 
+    выполнением этого оператора, в каталоге C:\ <BR>// еще нет файла 
+    "MMFTest.dat" </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANOLE hfile 
+    = CreateFile("C.\\MMFTest dat", GENERIC_READ | GENERIC_WRITE, 
+    FILE_SHARE_READ | FILE_SHARE_WRITE_, NULL, CREATE_ALWAYS, 
+    FILE_ATTRIBUTE_NORMAL, NULL); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// перед 
+    выполнением этого оператора файл MMFTest.dat существует, <BR>// но имеет 
+    нулевую длину <BR>HANDLE htilemap = CreateFileMapping(hfile, NULL, 
+    PAGE_READWRITE, 0, 100, NULL); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// после 
+    выполнения предыдущею оператора размер файла MMFTest.dat <BR>// возрастает 
+    до 100 байтов </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// очистка 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>CloseHandle(hfilemap); <BR>CloseHandle(hfile);</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// по 
+    завершении процесса файл MMFTest.dat останется <BR>// на диске и будет иметь 
+    длину 100 байтов </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(0); 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызов 
+<I>CreateFileMapping </I>с флагом PAGE_READWRITE заставляет систему проверять, 
+чтобы размер соответствующего файла данных на диске был нс меньше, чем указано в 
+параметрах <I>dwMaximumSizeHigh </I>и <I>dwMaximumSizeLow. </I>Если файл 
+окажется меньше заданного, <I>CreateFileMapping </I>увеличит его размер до 
+указанной величины. Это дела ется специально, чтобы выделить физическую память 
+перед использованием файла в качестве проецируемого в память. Если объект 
+"проекция файла" создан с флагом PAGE_READONLY или PAGE_WRITECOPY, то размер, 
+переданный функции <I>Create FileMapping, </I>не должен превышать физический 
+размер файла на диске (так как Вы не сможете что-то дописать в файл). 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+параметр функции <I>CreateFileMapping </I>— <I>pszName — </I>строка с нулевым 
+байтом в конце; в ней указывается имя объекта "проекция файла", которое использу 
+ется для доступа к данному объекту из другого процесса (пример см, в главе 3). 
+Но обычно совместное использование проецируемого в память файла не требуется, и 
+поэтому в данном параметре передают NULL. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+создает объект «проекция файла» и возвращает его описатель в вызвав ший функцию 
+поток. Если объект создать не удалось, возвращается нулевой описа тель (NULL). И 
+здесь еще раз обратите внимание на отличительную особенность фун кции 
+<I>CreateFile — </I>при ошибке она возвращает не NULL, а идентификатор INVALID_ 
+HANDLE_VALlJE (определенный как - 1). </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t3p3></A>Этап 3: проецирование файловых данных на адресное пространство 
+процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда объект 
+"проекция файла"создан, нужно, чтобы система, зарезервировав реги он адресного 
+пространства под данные файла, передала их как физическую память, отображенную 
+на регион. Это делает функция <I>MapViewOfFile</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  MapViewOfFile( HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD 
+  dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T 
+  dwNumberOfBytesToMap);</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hFileMappingObject</I> идентифицирует описатель объекта "проекция фай ла", 
+возвращаемый предшествующим вызовом либо <I>CreateFtleMapping, </I>либо 
+<I>OpenFile Mapping </I>(ее мы рассмотрим чуть позже) Параметр 
+<I>dwDesiredAccess </I>идентифицирует вид доступа к данным Bce правильно 
+придется опять указывать, как именно мы хо тим обращалься к файловым данным 
+Можно задать одно из четырех значений, опи санных в следующей таблице 
+</FONT></P>
+<TABLE height=130 cellSpacing=0 cellPadding=0 rules=all width=685 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=157 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD>
+    <TD vAlign=top align=left width=492 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=157 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FILE_MAP_WRITE </FONT></P></TD>
+    <TD vAlign=top align=left width=492 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Файловые данные можно считывать и записывать, Вы должны были 
+      передать функции <I>CreateFileMapping </I>атрибут PAGE_READWRITE 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=157 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>FILE 
+      MAF_READ </FONT></P></TD>
+    <TD vAlign=top align=left width=492 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Файловые данные можно только считывать Вы должны были вызвать 
+      <I>CreateFileMapping </I>с любым из следующих атрибутов PAGE_READONLY, 
+      PAGE_READWRITE или PAGE_WRITECOPY </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=157 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FILE_MAP_ALL_ACCESS </FONT></P></TD>
+    <TD vAlign=top align=left width=492 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>То же, 
+      что и FILE_MAP_WRITE </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=157 height=60>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FILE_MAP_COPY </FONT></P></TD>
+    <TD vAlign=top align=left width=492 height=60>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Файловые данные можно считывать и записывать, но запись приводит к 
+      созданию закрытой копии страницы Вы должны были вызвать 
+      <I>CrealeFileMapping с </I>любым из следующих атрибу тов PAGE_READONIY, 
+      PAGE_READWRITE или РАСЕ_WRITECOPY (Windows 98 требует вызывать 
+      <I>CreateFileMapping с </I>атрибутом PACE_WRITECOPY) 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кажется 
+странным и немного раздражает, что Windows требует бесконечно ука зывать все эти 
+атрибуты защиты Могу лишь предположить, что это сделано для того, чтобы 
+приложение максимально полно контролировало защиту данных </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Остальные три 
+параметра относятся к резервированию региона адресного про странства и к 
+отображению на него физической памяти При этом необязательно проецировать на 
+адресное пространство весь файл сразу Напротив, можно спроеци ровать лишь малую 
+его часть, которая в таком случае называется представлением (view) — теперь-то 
+Вам, наверное, понятно, откуда произошло название функции <I>MapViewOfFile</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проецируя на 
+адресное пространство процесса представление файла, нужно сде лать двс вещи 
+Во-первых, сообщить системе, какой байт файла данных считать в представлении 
+первым Для этого предназначены параметры <I>dwFileOffsetHigh </I>и <I>dwFile 
+OffsetLow </I>Поскольку Windows поддерживает файлы длиной до 16 экзабайтов, 
+прихо дится определять смещение в файле как 64 разрядное число старшие 32 бита 
+пере даются в параметре <I>dwFileOffsetHigh, </I>а младшие 32 бита — в параметре 
+<I>dwFileOffsetLow </I>Заметьте, что смещение в файле должно быть кратно 
+гранулярности выделения па мяти в данной системе (В настоящее время во всех 
+реализациях Windows она состав ляет 64 Кб) О гранулярности выделения памяти см 
+раздел "Системная информация" в ]лаве 14 </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-вторых, от 
+Baс потребуется указать размер представления, т.e. сколько байтов файла данных 
+должно быть спроецировано на адресное пространство Это равносиль но тому, как 
+если бы Вы задали размер региона, резервируемого в адресном простран стве Размер 
+указывается впараметре <I>dwNumberOfBytesToMap</I> Если этот параметр ра вен 0, 
+система попытается спроецировать представление, начиная с указанного сме щения и 
+до конца файла </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Windows 98, если <I>MapViewOfFile </I>не 
+  найдет регион, достаточно большой для размещения всего объекта «проекция 
+  файла», возвращается NULL — независи мо от того, какой размер представления 
+  был запрошен </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 2000 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>B 
+  Windows 2000 функция <I>MapViewOfFile </I>ищет регион, достаточно большой для 
+  размещения запрошенного представления, не обращая внимания на размер самого 
+  объекта "проекция файла". </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если при 
+вызове <I>MapViewOfFile </I>указан флаг FILE_MAP_COPY, система передает 
+физическую память из страничного файла. Размер передаваемого пространства оп 
+ределяется параметром <I>dwNumberOfBytesToMap. </I>Пока Вы лишь считываете 
+данные из представления файла, страницы, переданные из страничного файла, пе 
+используют ся, Но стоит какому-нибудь потоку в Вашем процессе совершить попытку 
+записи по адресу, попадающему в границы представления файла, как система тут же 
+берет из страничного файла одну из переданных страниц, копирует на нее исходные 
+данные и проецирует ее на адресное пространство процесса. Так что с этого 
+момента пото ки Вашего процесса начинают обращаться к локальной копии данных и 
+теряют дос туп к исходным данным. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав копию 
+исходной страницы, система меняет ее атрибут защиты с PAGE_WRI TECOPY на 
+PAGE_READWRITE. Рассмотрим пример:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// открываем 
+  файл, который мы собираемся спроецировать <BR>HANDLE hFile = 
+  CreaTeFile(pszFileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, 
+  FILE_ATTRIBUTE_NORMAL, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем для 
+  файла объект "проекция файла" <BR>HANDLE hFileMapping = 
+  CreateFileMapping(hFile, NULL, PAGE_WRITECOPY, 0, 0, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Проецируем 
+  представление файла с атрибутом "копирование при записи"; <BR>// система 
+  передаст столько физической памяти из сфаничного файла, <BR>// сколько нужно 
+  для размещения всего файла. Первоначально все страницы <BR>// в представлении 
+  получат атрибут PAGE_WRITECOPY. <BR>PBYTE pbFile = (PBYTE) 
+  MapViewOfFile(hFileMapping, FILE_MAP_COPY, 0, 0, 0); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// считываем 
+  байт из представления файла <BR>BYTE bSomeByte = pbFile[0]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// при чтении 
+  система не трогает страницы, переданные из страничного файла; <BR>// страница 
+  сохраняет свой атрибут PAGE_WRITECOPY </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// записываем 
+  байт в представление файла <BR>pbFile[0] = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// При первой 
+  записи система берет страницу, переданную из страничного файла, <BR>// 
+  копирует исходное содержимое страницы, расположенной по запрашиваемому адресу 
+  <BR>// в памяти, и проецирует новую страницу (копию) на адресное пространство 
+  процесса. <BR>// Новая страница получает атрибут PAGE_READWRITE. </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// записываем 
+  еще один байт в представление файла <BR>pbFile[1] = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// поскольку 
+  теперь байт располагается на странице с атрибутом PAGE_RFADWRITE, <BR>// 
+  система просто записывает его на эту страницу (она связана со страничным 
+  файлом) </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// закончив 
+  работу с представлением проецируемого файла, прекращаем проецирование; <BR>// 
+  функция UnmapViewOfFile обсуждается в следующем разделе 
+  <BR>UnmapViewOfFile(pbFile); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вся 
+  физическая память, взятая из страничного файпа, возвращается системе; <BR>// 
+  все, что было записано на эти страницы, теряется </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// "уходя, 
+  гасите свет" </FONT><BR><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hFileMapping); <BR>CloseHandle(hFile); </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Как уже упоминалось, Windows 98 сначала 
+  передаст проецируемому файлу физическую память из страничного файла Однако 
+  запись модифицированных страниц в страничный файл происходит только при 
+  необходимости. </FONT></P><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t3p4></A>Этап 4: отключение файла данных от адресного пространства 
+процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+необходимость в данных файла (спроецированного на регион адресного про странства 
+процесса) отпадет, освободите регион вызовом:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  UnmapViewOfFile(PVOID pvBaseAddress); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ее 
+единственный параметр<I>, pvBaseAddress, </I>указывает базовый адрес возвращаемо 
+го системе региона. Он должен совпадать со значением, полученным после вызова 
+<I>MapViewOfFile. </I>Вы обязаны вызывать функцию <I>UnmapViewOfFile. </I>Если 
+Вы не сделаете этoro, регион не освободится до завершения Вашего процесса. И 
+еще: повторный вызов <I>MapVietvOfFile </I>приводит к резервированию нового 
+региона в пределах адрес ного пространства процесса, но ранее выделенные регионы 
+<I>не освобождаются.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для повышения 
+производительности при работе с представлением файла систе ма буферизует 
+страницы данных в файле и не обновляет немедленно дисковый об раз файла. При 
+необходимости можно заставить систему записать измененные дан ные (все или 
+частично) в дисковый образ файла, вызвав функцию 
+<I>FlushViewOfFile</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  FlushViewOfFile( PVOID pvAddress, SIZE_T dwNuuiberOfBytesToFlush); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ее первый 
+параметр принимает адрес байта, который содержится в границах пред ставления 
+файла, проецируемого в память. Переданный адрес округляется до значе ния, 
+кратного размеру страниц, Второй параметр определяет количество байтов, ко торые 
+надо записать в дисковый образ файла. Если <I>FlusbViewOfFile </I>вызывается в 
+от сутствие измененных данных, она просто возвращает управление. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В случае 
+проецируемых файлов, физическая память которых расположена на се тевом диске, 
+<I>FlushViewOfFile </I>гарантирует, что файловые данные будут перекачаны <I>с 
+</I>рабочей станции. Но она не гарантирует, что сервер, обеспечивающий доступ к 
+это му файлу, запишет данные на удаленный диск, так как он может просто 
+кэшировать их. Для подстраховки при создании объекта «проекция файла» и 
+последующем про ецировании его представления используйте флаг 
+FILE_FLAG_WRITE_THROUGH. При открытии файла с этим флагом функция 
+<I>FlushViewOfFile </I>вернет управление только после сохранения на диске 
+сервера всех файловых данных. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>У функции 
+<I>UnmapViewOfFile </I>есть одна особенность. Если первоначально представ ление 
+было спроецировано с флагом FILE_MAP_COPY, любые изменения, внесенные Вами в 
+файловые данные, на самом деле производятся над копией этих данных, хра нящихся 
+в страничном файле. Вызванной в этом случае функции <I>UnmapViewOfFile 
+</I>нечего обновлять в дисковом файле, и она просто инициирует возврат системе 
+стра ниц физической памяти, выделенных из страничного файла. Все изменения в 
+данных на этих страницах теряются. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поэтому о 
+сохранении измененных данных придется заботиться самостоятель но. Например, для 
+уже спроецированного файла можно создать еще один объект «про </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>екция файла» 
+с атрибутом PAGE_READWRITE и спроецировать его представление на адресное 
+пространство процесса с флагом FILE_MAP_WRITE. Затем просмотреть пер вое 
+представление, отыскивая страницы с атрибутом PAGE_READWRITE. Найдя стра ницу с 
+таким атрибутом. Вы анализируете ее содержимое и решаете: записывать ее или нет 
+Если обновлять файл не нужно, Вы продолжаете просмотр страниц. А для сохранения 
+страницы с измененными данными достаточно вызвать <I>MoveMemory </I>и 
+скопировать страницу из первого представления файля во второе. Поскольку второе 
+представление создано с атрибутом PAGE_READWRITE, функция <I>MoveMemory 
+</I>обновит содержимое дискового файла. Так что этот метод вполне пригоден для 
+анализа изме нений и сохранения их в файле. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Windows 98 нс поддерживает атрибут защиты 
+  «копирование при записи», по этому при просмотре первого представления файла, 
+  проецируемого в память, Вы не сможете проверить страницы по флагу 
+  PAGE_READWRITE Вам придется разработать свой метод. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t3p5></A>Этапы 5 и 6: закрытие объектов «проекция файла» и «файл» 
+</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив 
+работу с любым открытым Вами объектом ядра, Вы должны его закрыть, иначе в 
+процессе начнется утечка ресурсов. Конечно, по завершении процесса сис тема 
+автоматически закроет объекты, оставленные открытыми Но, если процесс по 
+работает еще какое-то время, может накопиться слишком много незакрытых описа 
+телей. Поэтому старайтесь придерживаться правил хорошего тона и пишите код так, 
+чтобы открытые объекты всегда закрывались, как только они станут не нужны. Для 
+закрытия объектов «проекция файла» и «файл» дважды вызовите функцию 
+<I>CloseHandle. </I>Рассмотрим это подробнее на фрагменте 
+псевдокода.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile = 
+  CreateFile(...); <BR>HANDLE hFileMapping = CreateFileMapping(hFile,...); 
+  <BR>PVOID pvFilfi =<I> </I>MapViewOfFile(hFileMapping, ); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// работаем с 
+  файлом, спроецированным в память <BR>UnmapViewOfFile(pvFile); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hFileMapping); <BR>CloseHandle(hFile);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот фрагмент 
+иллюстрирует стандартный метод управления проецируемыми файлами. Но он не 
+отражает того факта, что при вызове <I>MapViewOfFile </I>система уве личивает 
+счетчики числа пользователей ибьектов «файл» и "проекция файла". Этот побочный 
+эффект весьма важен, так как позволяет переписать показанный выше фрагмент кода 
+следующим образом:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile = 
+  CreateFile( . ); <BR>HANDLE hFileMapping = CreateFileMapping(hFile, ); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hFile); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID pvFile = 
+  MapViewOfFile(hFileMapping,...); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hFileMapping); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// работаем с 
+  файлом, спроецированным в память <BR>UnmapViewOfFile(pvFile); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При операциях 
+с проецируемыми файлами обычно открывают файл, создают объект "проекция файла" и 
+с его помощью проецируют представление файловых </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>данных на 
+адресное пространство процесса. Поскольку система увеличивает внутрен ние 
+счетчики объектов "файл" и «проекция файла», их можно закрыть в начале кода, тем 
+самым исключив возможную утечку ресурсов. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+будете создавать из одного файла несколько объектов "проекция файла" или 
+проецировать несколько представлений этого объекта, применить функцию 
+<I>CloseHandle в </I>начале кода не удается — описатели еще понадобятся Вам для 
+дополни тельных вызовов <I>CreateFileMapping </I>и 
+<I>MapViewOfFile</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t3p6></A>Программа-пример FileRev </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «17 FileRev.exe» (см. листинг на рис. 17-2), демонстрирует, как с 
+помо щью механизма проецирования записать в обратном порядке содержимое текстово 
+го ANSI- или Unicode-файла. Файлы исходного кода и ресурсов чтой программы на 
+ходятся в каталоге 17-FileRev на компакт-диске, прилагаемом к книге. После 
+запуска FileRev на экране появляется диалоговое окно, показанное ниже. 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=102 alt=rihter17-6.jpg src="images/rihter17-6.jpg" 
+width=332> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выбрав имя 
+файла и щелкнув кнопку Reverse File Contents, Вы активизируете фун кцию, которая 
+меняет порядок символов в файле на обратный, Программа коррект но работает 
+только с текстовыми файлами. В какой кодировке создан текстовый файл (ANSI или 
+Unicode), FileRev определяет вызовом <I>IsTextUnicode </I>(см. главу 2). 
+</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 98 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>В 
+  Windows 98 функция IsTextUnitode определена, но не реализована, она про сто 
+  возвращает FALSE, а последующий вызов GetLastError дает ERROR_CALL_ 
+  NOT_IMPLEMENTED. Это значит, что программа FileRev, выполняемая в Win dows 98, 
+  всегда считает, что файл содержит текст в ANSI-кодировке. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После щелчка 
+кнопки Reverse File Contents программа создает копию файла с именем FileRev.dat, 
+Делается это для того, чтобы не испортить исходный файл, изме нив порядок 
+следования байтов на обратный. Далее программа вызывает функцию <I>FileReverse 
+</I>— она меняет порядок байтов на обратный и после этого вызывает <I>Create 
+File, </I>открывая FileRev.dat для чтения и записи </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил, простейший способ «перевернуть* содержимое файла — выз вать функцию 
+<I>_strrev </I>из библиотеки С. Но для этого последний символ в строке дол жен 
+быть нулевой. И поскольку текстовые файлы не заканчиваются нулевым симво лом, 
+программа FileRev подписывает его в конец файла. Для этого сначала вызывает ся 
+функция <I>GetFileSize:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwFileSize = 
+  GetFileSize(hFile, NULL); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь, 
+вооружившись знанием длины файла, можно создать объект "проекция файла", вызвав 
+<I>CreateFileMapping. </I>При этом размер объекта равен <I>dwFileSize </I>плюс 
+размер «широкого» символа, чтобы учесть дополнительный нулевой символ в конце 
+файла. Создав объект "проекция файла", программа проецирует на свое адресное 
+пространство представление этого объекта. Переменная <I>pvFile </I>содержит 
+значение, возвращенное функцией <I>MapViewOfFile, </I>и указывает на первый байт 
+текстового файла. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующий шаг 
+— запись нулевого символа в конец файла и реверсия строки:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PSTR pchANSI = 
+  (PSFR) pvFile; <BR>pchANSI[dwFileSize / sizeof(CHAR)] = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  "переворачиваем" содержимое файла <BR>_strrev(pchANSI);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В текстовом 
+файле каждая строка завершается символами возврата каретки ("\r") и перевода 
+строки ('\n') К сожалению, после вызова функции <I>_strrev </I>эти символы тоже 
+меняются местами. Поэтому для загрузки преобразованного файла в текстовый ре 
+дактор придется заменить все пары «\n\r» на исходные «\r\n». B программе этим за 
+нимается следующий цикл. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while (pchANSI 
+  != NULL) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вхождение 
+    найдено </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>*pchANSI++ = 
+    '\r ; // заменяем '\n' на '\r' </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>*pchANSI++ = 
+    '\n', // заменяем '\r на \n' </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>pchANSI = 
+    strchr(pchANSI, \n');</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ищем 
+    следующее вхождение </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив 
+обработку файла, программа прекращает отображение на адресное про странство 
+представления объекта «проекция файла» и закрывает описатель всех объ ектов ядра 
+Кроме того, программа должна удалить нулевой символ, добавленный в конец файла 
+(функция <I>strrev </I>не меняет позицию этого символа) Если бы програм ма не 
+убрала нулевой символ, то полученный файл оказался бы на 1 символ длиннее, и 
+тогда повторный запуск программы FileRev не позволил бы вернуть этот файл в 
+исходное состояние Чтобы удалить концевой нулевой символ, надо спуститься на 
+уровень ниже и воспользоваться функциями, предназначенными для работы непос 
+редственно с файлами на диске. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прежде всего 
+установите указатель файла в требуемую позицию (в данном слу чае — в конец 
+файла) и вызовите функцию <I>SetEndOfFile:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetFilePointer(hFile, dwFileSize, NULL, 
+  FILE_BEGIN);<BR>SetEndOfFile(hFile); </FONT></P></BLOCKQUOTE>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=346 alt=rihter17-7.jpg src="images/rihter17-7.jpg" 
+width=479> </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Функцию <I>SetEndOfFile </I>нужно вызывать 
+  после отмены проецирования представ ления и закрытия объекта «проекция файла», 
+  иначе она вернет FALSE, а функ ция <I>GetLastError — 
+  </I>ERROR_USER_MAPPED_FILE. Данная ошибка означает, что операция перемещения 
+  указателя в конец файла невозможна, пока этот файл связан с объектом "проекция 
+  файла". </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последнее, 
+что делает FileRev, — запускает экземпляр Notepad, чтобы Вы могли увидеть 
+преобразованный файл. Вот как выглядит результат работы программы FileRev 
+применительно к собственному файлу FileRev.cpp. </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/17-FileRev.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>FileRev</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t4></A>Обработка больших файлов</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я обещал 
+рассказать, как спроецировать на небольшое адресное просранство файл длиной 16 
+экзабайтов. Так вот, этого сделать нельзя Вам придется проецировать не весь 
+файл, а сго представление, содержащее лишь некую часть данных Вы начнете с того, 
+что спроецируете представление самого начала файла Закончив обработку дан ных в 
+этом представлении, Вы отключите его и спроецируете представление следую щей 
+части файла — и так до тсх пор, пока нс будет обработан весь файл Конечно, это 
+делает работу с большими файлами, проецируемыми в память, не слишком удоб ной, 
+но утешимся тем, чго длина большинства файлов достаточно мала </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрим 
+сказанное на примере файла размером 8 Гб Ниже приведен текст подпрограммы, 
+позволяющей в несколько этапов подсчитывать, сколько раз встреча ется нулевой 
+байт в том или ином двоичном файле данных.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__int64 
+  CountOs(void) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// начальные 
+    границы представлений всегда начинаются no адресам, <BR>// кратным 
+    гранулярности выделения памяти <BR>SYSTEM_INFO sinf; 
+    <BR>GetSystemInfo(&amp;sinf); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// открываем 
+    файл данных <BR>HANOLE hFile = CreateFile( "С:\\HugeFile.Big , GENERIC_READ, 
+    FILE_SHARE_READ NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL SCAN, NULL); 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+    объект проекция файла <BR>HANDLE hFileMapping = CreateFileMapping(hFile, 
+    NULL, PAGE_READONLY, 0, 0, NULL); <BR>DWORD dwFileSizeHigh; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__int64 
+    qwFileSize =<I> </I>GetFileSize(hFile, &amp;dwFileSizeHigh); <BR>qwFileSize 
+    += (((__int64) dwFileSizeHigh) &lt;&lt; 32); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// доступ к 
+    описателю объекта файл нам больше не нужен <BR>CloseHandle(hFile); 
+    </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__int64 
+    qwFileOffset = 0; <BR>qwNumOfOs = 0; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while 
+    (qwFileSize &gt; 0) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      определяем, сколько байтов надо спроецировать <BR>DWORD dwBytesInBlock = 
+      sinf.dwAllocationGranularity; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+      (qwFileSize &lt; sinf.dwAllocationGranularity)</FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+        size=2>dwBytesInBlock = (DWORD)qwFileSize; </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PBYTE 
+      pbFile = (PBYTE)MapViewOfFile(hFileMapping, FILE_MAP_READ, (DWORD) 
+      (qwFileOffset &gt;&gt; 32), // начальный байт (DWORD) (qwFileOffset &amp; 
+      0xFFFFFFFF), // в файле dwBytesInBlock); // число проецируемых байтов 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      подсчитываем количество нулевых байтов в этом блоке <BR>for (DWORD dwByte 
+      = 0; dwByte &lt; dwBytesInBlock; dwByte++)<BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+        (pbFilfe[dwByte] == 0) </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+          size=2>qwNumOfOs++; </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P></BLOCKQUOTE></BLOCKQUOTE></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <BLOCKQUOTE>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>//<I> 
+      </I>прекращаем проецирование представления, чтобы в адресном пространстве 
+      <BR>// не образовалось несколько представлений одного файла </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>UnmapViewOfFiie(pbFile); </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      переходим к следующей группе байтов в файле <BR>qwFileOffset += 
+      dwBytesInBlock; <BR>qwFileSize -= dwBytesInBlock; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>CloseHandle(hFileMapping); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(qwNumOfOs); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот алгоритм 
+проецирует представления по 64 Кб (в соответствии с грануляр ностью выделения 
+памяти) или менее Кроме того, функция <I>MapViewOfFile </I>требует, чтобы 
+передаваемое ей смещение в файле тоже было кратно гранулярности выделе ния 
+памяти. Подпрограмма проецирует на адресное пространство сначала одно пред 
+ставление, подсчитывает в нем количество нулей, затем переходит к другому пред 
+ставлению, и все повторяется. Спроецировав и просмотрев все 64-килобайтовые бло 
+ки, подпрограмма закрывает объект «проекция файла». </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t5></A>Проецируемые файлы и когерентность</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+позволяет проецировать сразу несколько представлений одних и тех же файловых 
+данных. Например, можно спроецировать в одно представление первые 10 Кб файла, а 
+затем — первые 4 Кб того же файла в другое представление Пока Вы проецируете 
+один и тот же объект, система гарантирует <I>когерентность </I>(согласован 
+ность) отображаемых данных. Скажем, если программа изменяет содержимое файла в 
+одном представлении, это приводит к обновлению данных и в другом. Так проис 
+ходит потому, что система, несмотря па многократную проекцию страницы на вир 
+туальное адресное пространство процесса, хранит данные на единственной страни це 
+оперативной памяти Поэтому, ссли представления одного и того же файла дан ных 
+создаются сразу несколькими процессами, данные по-прежнему сохраняют ко 
+герентность — ведь они сопоставлены только с одним экземпляром каждой страни цы 
+в оперативной памяти Bcc это равносильно тому, как если бы страницы опера тивной 
+памяти были спроецированы на адресные пространства нескольких процес сов 
+одновременно. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Windows позволяет создавать несколько объектов 
+  «проекция файла», связан ных с одним и тем же файлом данных. Но тогда у Вас не 
+  <I>будет </I>гарантий, что содержимое представлений этих объектов когерентно 
+  Такую гарантию Win dows дает только для нескольких представлений одного 
+  объекта «проекция файла". </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, 
+функция <I>CreateFile </I>позволяет Вашему процессу открывать файл, проеци 
+руемый в память другим процессом После этого Ваш процесс сможет считывать или 
+записывать данные в файл (с помощью функций <I>ReadFite </I>или <I>WriteFile), 
+</I>Разумеется, при вызовах упомянутых функций Ваш процесс будет считывать или 
+записывать дан ные не в файл, а в некий буфер памяти, который должен быть создан 
+именно этим процессом; буфер не имеет никакого отношения к участку памяти, 
+используемому для проецирования данного файла. Но надо учитывать, что, когда два 
+приложения откры вают один файл, могут возникнуть проблемы. Дсло в том, что один 
+процесс может вызвать <I>ReadFile, </I>считать фрагмент файла, модифицировать 
+данные и записать их обратно в файл с помощью <I>WriteFile, </I>а объект 
+«проекция файла», принадлежащий вто рому процессу, ничего об этом не узнает. 
+Поэтому, вызывая для проецируемого фай ла функцию <I>CreateFile, </I>всегда 
+указывайте нуль в параметре <I>dwShareMode. </I>Тем самым Вы сообщите системе, 
+что Вам нужен монопольный доступ к файлу и никакой посто ронний процесс не 
+должен его открывать. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Файлы с 
+доступом "только для чтения" не вызывают проблем с когерентностью — значит, это 
+лучшие кандидаты на отображение в память. Ни в коем случае не исполь зуйте 
+механизм проецирования для доступа к записываемым файлам, размещенным на сетевых 
+дискях, так как система не сможет гарантировать когерентность представ лений 
+данных. Если один компьютер обновит содержимое файла, то другой, у кото рого 
+исходные данные содержатся в памяти, не узнает об изменении информации. 
+</FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t6></A>Базовый адрес файла, проецируемого в память</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Помните, как 
+Вы с помощью функции <I>VirtualAlloc </I>указывали базовый адрес региона, 
+резервируемого в адресном пространстве? Примерно так же можно указать системе 
+спроектировать файл по определенному адресу — только вместо функции <I>MapView 
+PVOID </I>нужна <I>MapViewOfFileEx;</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  MapViewOfFileEx( HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD 
+  dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T dwNumberOfBytesToMap, PVOID 
+  pvBaseAddress); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все параметры 
+и возвращаемое этой функцией значение идентичны применяе мым в <I>MapViewOfFile, 
+</I>кроме последнего параметра — <I>pvBaseAddress. </I>B нем можно за дать 
+начальный адрес файла, проецируемого в память Как и в случае <I>VirtualAlloc, 
+</I>ба повый адресдолжен быть кратным гранулярности выделения памяти в системе 
+(обыч но 64 Кб), иначе <I>MapViewOfFileEx </I>вернет NULL. сообщив тем самым об 
+ошибке. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+укажете базовый адрес, не кратный гранулярности выделения памяти, то 
+<I>MapViewOfFileEx </I>в Windows 2000 завершится с ошибкой, и <I>GetLastError 
+</I>вернет код 1132 (ERROR_MAPPED_ALIGNMENT) а в Windows 98 базовый адрес будет 
+округлен до бли жайшего меньшего значения, кратного гранулярности выделения 
+памяти. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если система 
+не в состоянии спроецировать файл по этому адресу (чаще всего из за того, что 
+файл слишком велик и мог бы перекрыть другие регионы зарезервиро ванного 
+адресного пространства), функция также возвращает NULL B этом случае она не 
+пытается подобрать диапазон адресов, подходящий для данного файла Но если Вы 
+укажете NUI,L в параметре <I>pvBaseAddress, </I>она поведет себя идентично 
+<I>MapViewOfFile.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>MapViewOfFileEx </I>удобна, когда механизм проецирования файлов в 
+память приме няется для совместного доступа нескольких процессов к одним данным. 
+Поясню Допустим, нужно спроецировать файл в память по определенному адресу; при 
+этом два или более приложений совместно используют одну группу структур данных, 
+со держащих указатели на другие структуры данных Отличный тому пример — связан 
+ный список Каждый узел, или элемент, такого списка хранит адрес другого узла 
+спис ка. Для просмотра списка надо узнать адрес первого узла, а затем сделать 
+ссылку на то его поле, где содержится адрес следующего узла Но при использовании 
+файлов, проецируемых в память, это весьма проблематично. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если один 
+процесс подготовил в проецируемом файле связанный список, а затем разделил его с 
+другим процессом, нс исключено, что второй процесс спроецирует этот файл в своем 
+адресном пространстве на совершенно иной регион. Адальше бу дет вот что. 
+Попытавшись просмотреть связанный список, второй процесс проверит первый узсл 
+списка, прочитает адрес следующего узла и, сделав на нсго ссылку, полу чит 
+совсем не то, что ему было нужно, — адрес следующего элемента в первом узле 
+некорректен для второго процесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>У этой 
+проблемы два решения Во-первых, второй процесс, проецируя файл со связанным 
+списком на свое адресное пространство, может вызвать <I>MapViewOfFileEx 
+</I>вместо <I>MapVtewOfFile. </I>Для этого второй процесс должен знать адрес, по 
+которому файл спроецирован на адресное пространство первого процесса на момент 
+создания спис ка Если оба приложения разработаны с учетом взаимодействия друг с 
+другом (а так чаще всего и делают), нужный адрес может быть просто заложен в код 
+этих программ или же один процесс как-то уведомляет другой (скажем, посылкой 
+сообщения в окно). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А можно и так 
+Процесс, создающий связанный список, должен записывать в каж дый узел смещение 
+следующего узла в пределах адресного пространства. Тогда про грамма, чтобы 
+получить доступ к каждому узлу, будет суммировать это смещение с базовым адресом 
+проецируемого файла. Несмотря на простоту, этот способ не луч ший: 
+дополнительные операции замедлят работу программы и увеличат объем ее кода (так 
+как компилятор для выполнения всех вычислений, естественно, сгенерирует до 
+полнительный код) Кроме того, при этом способе вероятность ошибок значительно 
+выше. Тем не менее он имеет право на существование, и поэтому компиляторы Micro 
+soft поддерживают указатели со смещением относительно базового значения (based 
+pointers), для чего предусмотрено ключевое слово _<I>based</I> </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>В Windows 98 при вызове <I>MapViewOfFileEx 
+  </I>следует указывать адрес в диапазо не от 0x80000000 до 0xBFFFFFFF, иначе 
+  функция вернет NULL </FONT></P><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 2000</FONT> <BR>В Windows 2000 при вызове 
+  <I>MapViewOfFileEx </I>следует указывать адрес в грани цах пользовательского 
+  раздела адресного пространства процесса, иначе фун кция вернет NULL. 
+  </FONT></P></BLOCKQUOTE>
+
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t7></A>Особенности проецирования файлов на разных платформах</B> 
+</FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Механизм 
+проецирования файлов в Windows 2000 и Windows 98 реализован по-раз ному Вы 
+должны знать об этих отличиях, поскольку они могут повлиять на код про грамм и 
+целостность используемых ими данных </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 98 
+представление всегда проецируется на раздел адресного простран ства, 
+расположенный в диапазоне от 0x80000000 до 0xBFFFFFFF. Значит, после успеш ного 
+вызова функция <I>MapViewOfFile </I>вернет какой-нибудь адрес из этого 
+диапазона. Но вспомните: данные в этом разделе доступны всем процессам. Если 
+один из про цессов отображает сюда представление объекта «проекция файла, то 
+принадлежащие этому объекту данные физически доступны всем процессам, и уже 
+неважно: проеци руют ли они сами представление того же объекта. Если другой 
+процесс вызывает <I>MapViewOJFile, </I>используя тот же объект «проекция файла», 
+Windows 98 возвращает адрес памяти, идентичный тому, что она сообщила первому 
+процессу. Поэтому два процесса обращаются к одним и тсм же данным и 
+представления их объектов коге рентны. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 98 
+один процесс может вызвать <I>MapViewOJFile </I>и, воспользовавшись какой-либо 
+формой межпроцессной связи, передать возвращенный ею адрес памяти потоку другого 
+процесса. Как только этот поток получит нужный адрес, ему уже нич то не помешает 
+получить доступ к тому же представлению объекта "проекция фай ла". Но прибегать 
+к такой возможности не следует по двум причинам: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>приложение 
+  не будет работать в Windows 2000 (и я только что рассказал — почему); </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>если 
+  первый процесс вызовет <I>UnmapViewOfFile, </I>регион адресного простран ства 
+  освободится. А значит, при попытке потока второго процесса обратиться к 
+  участку памяти, где когда-то находилось представление, возникнет наруше ние 
+  доступа. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы второй 
+процесс получил доступ к представлению проецируемого файла, его поток тоже 
+должен вызвать <I>MapViewOfFile </I>Тогда система увеличит счетчик числа 
+пользователей объекта "проекция файла". И если первый процесс обратится к 
+<I>Unmap ViewOfFile, </I>регион адресного пространства, занятый представлением, 
+не будет осво божден, пока второй процесс тоже не вызовет <I>UnmapViewOfFile. 
+</I>А вызвав <I>MapView OfFile, </I>второй процесс получит тот же адрес, что и 
+первый. Таким образом, необхо димость в передаче адреса от первого процесса 
+второму отпадает. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+2000 механизм проецирования файлов реализован удачнее, чем в Win dows 98, потому 
+что Windows 2000 для доступа к файловым данным в адресном про странстве 
+<I>требует </I>вызова <I>MapViewOfFile. </I>При обращении к этой функции система 
+резервирует для проецируемого файла закрытый регион адресного пространства, и 
+никакой другой процесс нс получает к нему доступ автоматически. Чтобы посторон 
+ний процесс мог обратиться к данным того же объекта «проекция файла», сго поток 
+тоже должен вызвать <I>MapViewOfFile, </I>и система отведет регион для 
+представления объекта в адресном пространстве второго процесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Адрес, 
+полученный при вызове <I>MapViewOfFile </I>первым процессом, скорее всего не 
+совпадет с тем, что получит при ее вызове второй процесс, - даже несмотря на то 
+что оба процесса проецируют представление одного и того же объекта. И хотя в 
+Windows 98 адреса, получаемые процессами при вызове <I>MapViewOfFile, 
+</I>совпадают, </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>лучше не 
+полагаться на эту особенность — иначе приложение не станет работать в Windows 
+2000! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрим 
+еще одно различие механизмов проецирования файлов у Windows 2000 и Windows 98. 
+Взгляните на текст программы, проецирующей два представления един ственного 
+объекта «проекция файла».</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#include 
+  &lt;Windows.h&gt; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain(HINSTANCE hinstExe, HINSTANCE, PTSTR pszCmdLine, int nCmdShow) <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// открываем 
+    существующий файл; он должен быть больше 64 Кб <BR>HANDLE hFile = 
+    CreateFile(pszCmdLine, GENERIC_READ | GENERlC_WRITE, 0, NULL, OPEN_ALWAYS, 
+    FILE_ATTRIBUTE_NORMAL, NULL); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+    объект "проекция файла", связанный с файлом данных <BR>HANDLE hFileMapping = 
+    CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, 0, NULL); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    проецируем представление всего файла на наше адресное пространство <BR>PBYTE 
+    pbFilc = (PBYTE)MapViewOfFile(hFileMapping, FILE_MAP_WRITE, 0, 0, 0); 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    проецируем второе представление файла, начиная со смещения 64 Кб </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PBYTE<B> 
+    </B>pbFile2 = (PBYTE)MapViewOfFile(hFileMapping, FILE_MAP_WRITE, 0, 65536, 
+    0); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if ((pbFile 
+    + 65536) == pbFilft2)) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// если 
+      адреса перекрываются, оба предсгавления проецируются на один <BR>// 
+      регион, и мы работаем в Windows 98 <BR>MessageBox(NULL, "We are running 
+      under Windows 98", NULL, MB_OK); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} <BR>else 
+    <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// если 
+      адреса не перекрываются, каждое представление размещается в <BR>// своем 
+      регионе адресного пространства, и мы работаем в Windows 2000 
+      <BR>MessageBox(NULL, "We are running under Windows 2000", NULL, MB_OK), 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>UnmapViewOfFile(pbFile2); <BR>UnmapViewOfFile(pbFile); 
+    <BR>CloseHandle(hFileMapping); <BR>CloseHandle(hFile}; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(0); 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+приложение в Windows 98 отображает на адресное пространство представ ление 
+объекта «проекция файла», ему отводится регион, достаточно большой для раз 
+мещения всего объекта Это происходит, даже если Вы просите <I>MapViewOfFile 
+</I>спрое цировать лишь малую часть такого объекта. Поэтому спроецировать объект 
+размером 1 Гб не удастся, даже если указать, что представление должно быть не 
+более 64 Кб. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+каким-либо процессом функции <I>MapViewOfFile </I>ему возвращается ад рес в 
+пределах региона, зарезервированного для <I>целого </I>объекта "проекция файла". 
+Так что в покязанной выше программе первый вызов этой функции дает базовый адрес 
+региона, содержащего весь спроецированный файл, а второй — адрес, смещенный 
+«вглубь» того же региона на 64 Кб. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Wmdows 2000 и 
+здесь ведет себя совершенно иначе Два вызова функции<I> МарView OfFile </I>(как 
+в показанном выше коде) приведут к тому, что будут зарезервированы два 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>региона 
+адресного пространства. Объем первого будет равен размеру объекта «про екция 
+файла", объем второго — размеру объекта минус 64 Кб. Хотя регионы <I>- </I>раз 
+ные, система гарантирует когерентность данных, так как оба представления созданы 
+на основе одного объекта «проекция файла» А в Windows 98 такие представления 
+когерентны потому, что они расположены в одном участке памяти </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t8></A>Совместный доступ процессов к данным через механизм 
+проецирования</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+всегда было много механизмов, позволяющих приложениям легко и быс тро разделять 
+какие-либо данные. К этим механизмам относятся RPC, COM, OLE, DDE<B>, 
+</B>оконные сообщения (особенно WM_COPYDATA), буфер обмена, почтовые ящики, 
+сокеты и т. д. Самый низкоуровневый механизм совместного использования данных на 
+одной машине — проецирование файла в память. На нем так или иначе базируют ся 
+все перечисленные мной механизмы разделения данных Поэтому, если Вас инте ресует 
+максимальное быстродействие с минимумом издержек, лучше всего применять именно 
+проецирование. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Совместное 
+использование данных в этом случае происходит так: два или более процесса 
+проецируют в намять представления одного и того же объекта «проекция файла", т. 
+e. делягодни и те жс страницы физической памяти. В результате, когда один 
+процесс записывает данные в представление общего объекта «проекция файла», из 
+менения немедленно отражаются на представлениях в других процессах. Но при этом 
+все процессы должны использовать одинаковое имя объекта "проекция файла» 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А вот что 
+происходит при запуске приложения. При открытии ЕХЕ-файла на дис ке система 
+вызывает <I>CreateFile, </I>с помощью <I>CreateFileMapping </I>создает объект 
+«проек ция файла" и, наконец, вызывает <I>MapVtewQfFileEx </I>(с флагом 
+SEC_IMAGE) для отобра жения ЕХЕ-файла на адресное пространство только что 
+созданного процесса. <I>Map ViewOfFileEx </I>вызывается вместо <I>MapViewOfFile, 
+</I>чтобы представление файла было спро ецировано по базовому адресу, значение 
+которого хранится в самом ЕХЕ-файле По том создается первичный поток процесса, 
+адрес первого байта исполняемого кода в спроецированном представлении заносится 
+в регистр указателя команд (IP), и про цессор приступает к исполнению кода. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+пользователь запустит второй экземпляр того же приложения, система уви дит, что 
+объект "проекция файла» для нужного ЕХЕ-файла уже существует и не станет 
+создавать новый объект. Она просто спроецирует еще одно представление файла — на 
+этот раз в контексте адресного пространства только что созданного второго про 
+цесса, т. e. одновременно спроецирует один и тот же файл на два адресных 
+простран ства Это позволяет эффективнее использовать память, так как оба 
+процесса делят одни и те же страницы физической памяти, содержащие порции 
+исполняемого кода. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как и все 
+объекты ядра, проекции файлов можно совместно использовать из не скольких 
+процессов тремя методами: наследованием описателей, именованием и дуб лированием 
+описателей. Подробное объяснение этих трех методов см. в главе 3. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t9></A>Файлы, проецируемые на физическую память из страничного файла</B> 
+</FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>До сих пор мы 
+говорили о методах, позволяющих проецировать представление фай ла, размещенного 
+на диске В то же время многие программы при выполнении созда ют данные, которые 
+им нужно разделять с другими процессами А создавать файл на диске и хранить там 
+данные только с этой целью очень неудобно. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прекрасно 
+понимая это, Microsoft добавила возможность проецирования файлов непосредственно 
+на физическую память из страничного файла, а не из специально создаваемого 
+дискового файла. Этот способ даже проще стандартного — основанно го на создании 
+дискового файла, проецируемого в память. Во-первых, не надо вызы вать 
+<I>CreateFile, </I>так как создавать или открывать специальный файл не требуется 
+Вы просто вызываете, как обычно, <I>CreateFileMapping </I>и передаете 
+INVALID_HANDLE_VALUE в параметре <I>hFite. </I>Тем самым Вы указываете системе, 
+что создавать объект «проекция файла», физическая память которого находится на 
+диске, не надо; вместо этого сле дует выделить физическую память из страничного 
+файла. Объем выделяемой памяти определяется параметрами <I>dwMaximumStzeHigh 
+</I>и <I>dwMaximumSizeLow.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав объект 
+«проекция файла" и спроецировав его представление на адресное пространство 
+своего процесса, его можно использовать так же, как и любой другой регион 
+памяти. Если Вы хотите, чтобы данные стали доступны другим процессам, вызовите 
+<I>CreateFileMapping </I>и передайте в параметре <I>pszName</I> строку с нулевым 
+сим волом в конце. Тогда посторонние процессы — если им понадобится сюда доступ 
+— смогут вызвать <I>CreateFileMapping </I>или <I>OpenFileMapping </I>и передать 
+ей то же имя. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+необходимость в доступе к объекту «проекция файла" отпадет, процесс дол жен 
+вызвать <I>CloseHandle. </I>Как только все описатели объекта будут закрыты, 
+система освободит память, переданную из страничного файла. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Есть одна интересная ловушка, в которую может 
+  попасть неискушенный про граммист. Попробуйте догадаться, что неверно в этом 
+  фрагменте кода:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile 
+    = CreateFile(...); <BR>HANDLE hMap = CreateFileMapping(hFile, ...); 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hMap == 
+    NULL) </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>return(GetLasttrror()); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>...</FONT></P></BLOCKQUOTE><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если вызов 
+<I>CreateFile </I>не удастся, она вернет INVALID_HANDLE_VALUE. Но программист, 
+написавший этот код, не дополнил его проверкой на успешное создание файла. 
+Поэтому, когда в дальнейшем код обращается к функции <I>Create FileMapping, 
+</I>в параметре <I>hFile </I>ей передается INVALID_HANDLE_VALUE, что зас тавляет 
+систему создать объект "проекция файла» из ресурсов страничного файла, а не из 
+дискового файла, как предполагалось в программе. Весь после дующий код, который 
+используег проецируемый файл, будет работать правиль но. Но при уничтожении 
+объекта «проекция файла" все данные, записанные в спроецированную память 
+(страничный файл), пропадут. И разработчик будет долго чесать затылок, пытаясь 
+понять, в чем дело! </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t9p1></A>Программа-пример MMFShare </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «17 MMFShare.exe» (см. листинг на рис. 17-3), демонстрирует, как про 
+исходит обмен данными между двумя и более процессами с помощью файлов, про 
+ецируемых в память. Файлы исходного кода и ресурсов этой программы находятся в 
+каталоге 17-MMFShare на компакт-диске, прилагаемом к книге. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+понаблюдать за происходящим, нужно запустить минимум две копии MMFShare. Каждый 
+экземпляр программы создаст свое диалоговое окно. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+переслать данные из одной копии MMFShare в другую, наберите какой нибудь текст в 
+поле Data. Затем щелкните кнопку Create Mapping Of Data. Программа вызовет 
+функцию <I>CreateFileMapping, </I>чтобы создать объект «проекция файла» разме 
+ром 4 Кб и присвоить ему имя <I>MMFSharedData </I>(ресурсы выделяются объекту из 
+стра </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ничного 
+файла) Увидев, что объект с таким именем уже существует, программа вы даст 
+сообщение, что не может создать объект. Л если такого объекта нет, программа 
+создаст объект, спроецирует представление файла на адресное пространство 
+процесса и скопирует данные из поля Data в проецируемый файл. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=119 alt=rihter17-8.jpg src="images/rihter17-8.jpg" 
+width=283> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее 
+MMFShare прекратит проецировать представление файла, отключит кнопку Create 
+Mapping Of Data и активизирует кнопку Close Mapping Of Data. На этот момент 
+проецируемый в память файл с именем <I>MMFSharedData </I>будет просто «сидеть» 
+где-то в системе. Никакие процессы пока не проецируют представление на данные, 
+содер жащиеся в файле. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+теперь перейдете в другую копию MMFShare и щелкнете там кнопку Open Mapping And 
+Get Data, программа попытается найти объект «проекция файла" с име нем 
+<I>MMFSharedData </I>через функцию <I>OpenFileMapping, </I>Если ей не удастся 
+найли объект с таким именем, программа выдаст соответствующее сообщение В ином 
+случае она спроецирует представление объекта на адресное пространство своего 
+процесса и скопирует данные из проецируемого файла в поле Data. Вот и все! Вы 
+переслали дан ные из одного процесса в другой </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кнопка Close 
+Mapping OfData служит для закрытия объекта «проекция файла», что высвобождает 
+физическую память, занимаемую им в страничном файле. Если же объект «проекция 
+файла» не существует, никакой другой экземпляр программы MMFShare не сможет 
+открыть зтот объект и получить от него данные Кроме того, если один экземпляр 
+программы создал объект «проекция файла", то остальным повторить его создание и 
+тем самым перезаписать данные, содержащиеся в файле, уже не удастся. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=2><A 
+href="examp/17-MMFShare.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>MMFShare</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h17t10></A>Частичная передача физической памяти проецируемым файлам</B> 
+</FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>До сих пор мы 
+видели, что система требует передавать проецируемым файлам всю физическую память 
+либо из файла данных на дигке, либо из страничного файла Это значит, что память 
+используется не очень эффективно Давайте вспомним то, что я говорил в разделе "B 
+какой момен! региону передают физическую память" главы 15 Допустим, Вы xoтитe 
+сделать всю таблицу доступной другому процессу Если приме нить для этого 
+механизм проецирования файлов, придется передать физическую па мять целой 
+таблице</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>CELLDATA 
+  CellData[200][256]; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+структура CELLDATA занимает 128 байтов, показанный массив потребует 6 553 600 
+(200 x 256 x 128) байтов физической памяти Это слишком много — тем бо лее, что в 
+таблице обычно заполняют всего несколько строк </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Очевидно, что 
+в данном случае, создав объект "проекцин файла", желательно не передавать ему 
+заранее всю физическую память Функция <I>CreateFtleMapping </I>предус матривает 
+такую возможность, для чего в параметр <I>fdwProtect </I>нужпо передать один из 
+флагов SEC_RESRVE или SEC_COMMlT </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти флаги 
+имеют смысл, только если Вы создаете объект «проекция файла", ис пользующий 
+физическую память из страничного файла. Флаг SEC_COMMIT заставля ет 
+<I>CreateFileMapping </I>сразу же передать память из страничного файла. (То же 
+самое происходит, если никаких флагов не указано.) Но когда Вы задаете флаг 
+SEC_RESERVE, система не передает физическую память из страничного файла, а 
+просто возвращает описатель объекта «проекция файла". Далее, вызвав 
+<I>MapViewOfFile </I>или <I>MapViewOfFileEx, </I>можно создать представление 
+этого объекта. При этом <I>MapViewOfFile </I>или <I>MapView OfFileEx 
+</I>резервирует регион адресного пространства, не передавая ему физической 
+памяти. Любая попытка обращения по одному из адресов зарезервированного регио на 
+приведёт к нарушению доступа </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таким 
+образом, мы имеем регион зарезервированного адресного пространства и описатель 
+объекта "проекция файла", идентифицирующий этот регион. Другие про цессы могут 
+использовать данный объект для проецирования представления того же региона 
+адресного пространства. Физическая память региону по-прежнему не пере дается, 
+так что, если потоки в других процессах попытаются обратиться по одному из 
+адресов представления в своих регионах, они тоже вызовут нарушение доступа. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь 
+самое интересное. Оказывается, все, что нужно для передачи физической памяти 
+общему (совместно используемому) региону, - вызвать функцию 
+<I>VirtualAlloc:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  VirtualAlloc( PVOID pvAddress, SIZE_T dwSize, DWORD fdwAllocationType, DWORD 
+  friwProtect); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эту функцию 
+мы уже рассматривали (и очень подробно) в главе 15. Вызвать <I>Virtual Alloc 
+</I>для передачи физической памяти представлению региона — то же самое, что 
+вызвать <I>VirtualAlloc </I>для передачи памяти региону, ранее 
+зарезервированному вызовом <I>VirtualAlloc </I>с флагом MEM_RESERVE. Получается, 
+что региону, зарезервированному функциями <I>MapViewOfFile </I>или 
+<I>MapViewOfFileEx, — </I>как и региону, зарезервированно му функцией 
+<I>VirtualAlloc, </I>— тоже можно передавать физическую память порциями, а не 
+всю сразу. И если Вы поступаете именно так, учтите, что все процессы, спроеци 
+ровавшие на этот регион представление одного и того же объекта «проекция файла», 
+теперь тоже получат доступ к страницам физической памяти, переданным региону. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, флаг 
+SEC_RESERVE и функция <I>VirtualAlloc </I>позволяют сделать табличную мат рицу 
+<I>CellData </I>«общедоступной" и эффективнее использовать память. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Обычно <I>VirtualAlloc </I>не срабатывает, 
+  если Вы передаете ей адрес памяти, выхо дящий за пределы диапазона от 
+  0x00400000 до 0x7FFFFFFF. Однако при перс даче физической памяти проецируемому 
+  файлу, созданному с флагом SEC_RE SERVE, в <I>VirtualAlloc </I>нужно передать 
+  адрес, укладывающийся в диапазон от 0x80000000 до 0xBFFFFFFE Только тогда 
+  Windows 98 поймет, что физическая память передается региону, 
+  зарезервированному под проецируемый файл, и даст благополучно выполнить вызов 
+  функции. </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 2000</FONT> <BR>В Windows 2000 функция <I>VirtualFree 
+  </I>не годится для воврата физической па мяти, переданной в свос время 
+  проецируемому файлу (созданному с флагом SEC_RESERVE). Однако в Windows 98 
+  такого ограничения нет. </FONT></P><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Файловая 
+система NTFS 5 поддерживает так называемые разреженные файлы (spar se files). 
+Это потрясяющая новинка. Она позволяет легко создавать и использовать 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>разреженные 
+проецируемые файлы (sparse memory-mapped files), которым физичес кая память 
+предоставляется не из страничного, а из обычного дискового файла </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот пример 
+гого, как можно было бы воспользоваться этой новинкой Допустим, Вы хотите 
+создать проецируемый в память файл (MMF) для записи аудиоданных При этом Вы 
+должны записывать речь в виде цифровых аудиоданных в буфер памяти, связанный с 
+дисковым файлом. Самый простой и эффективный способ решить эту задачу — 
+применить разреженный MMF Все дело в том, что Вам заранее не известно, сколько 
+времени будет говорить пользователь, прежде чем щелкнет кнопку Stop. Mo жет, 
+пять минут, а может, пять часов — разница большая! Однако при использовании 
+разреженного MMF это не проблема. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h17t10p1></A>Программа-пример MMFSparse </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «17 MMFSparseexe" (см листинг на рис. 17-4), демонстрирует, как 
+создать проецируемый в память файл, связанный с разреженным файлом NTFS 5 Файлы 
+исходного кода и ресурсов этой программы находятся в каталоге 17-MMFSparse на 
+компакт-диске, прилагаемом к книге После запуска MMFSparse па экране появля ется 
+окно, показанное ниже. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=345 alt=rihter17-9.jpg src="images/rihter17-9.jpg" 
+width=263> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вы 
+щелкнсте кнопку Create а 1 MB (1024 KB) Sparse MMF, программа попы тается 
+создать разреженный файл «C:\MMFSpanse». Если Ваш диск С не является томом NTFS 
+5, у программы ничего не получится, и ее процесс завершится А если Вы созда ли 
+том NTFS 5 на каком-то другом диске, модифицируйте мою программу и переком 
+пилируйте ее, чтобы посмотреть, как она работает </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+создания разреженный файл проецируется на адресное пространство про цесса. В 
+поле Allocated Kangcs (внизу окна) показывается, какие части файла действи 
+тельно связаны с дисковой памятью. Изначально файл не связан ни с какой памятью, 
+и в этом поле сообщается «No allocated ranges in the file» («В файле нет 
+выделенных диапазонов»). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы считать 
+байт, просто введите число в поле Offset и щелкните кнопку Read Byte. Введенное 
+Вами число умножается на 1024 (1 Кб), и программа, считав байт по полученному 
+адресу, выводит его значение в поле Byte Если адрес попадает в область, не 
+связанную с физической памятью, в этом поле всегда показывается нулевой байт. 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для записи 
+байта введите число в поле Offset, a значение байта (0-255) — в поле <B>Byte. 
+</B>Потом, когда Вы щелкнете кнопку Wrice Byte, смещение будет умножено на 1024, 
+и байт по соответствующему адресу получит новое значение Операция записи мо жет 
+заставить файловую систему передать физическую память какой-либо части фай ла 
+Содержимое поля Allocated Ranges обновляется после каждой операции чтения или 
+записи, показывая, какие части файла связаны с физической памятью на данный мо 
+мент. Вот как вьплядит окно программы после записи всего одного байта по смеще 
+нию 1 024 000 (1000 x 1024). </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=341 alt=rihter17-10.jpg src="images/rihter17-10.jpg" 
+width=261> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На этой 
+иллюстрации видно, что физическая память выделена только одномуди апазону 
+адресов — размером 65 536 байтов, начиняя с логического смещения 983 040 от 
+начала файла С помощью ExpIorer Вы можете просмотреть свойства файла 
+C:\MMFSparbe, как показано ниже. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=332 alt=rihter17-11.jpg src="images/rihter17-11.jpg" 
+width=275> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте: на 
+этой странице свойств сообщается, что длина файла равна 1 Мб (это виртуальный 
+размер фаЙла), по на деле он занимает на диске только 64 Кб. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последняя 
+кнопка, Free All Allocated Regions, заставляет программу высвободить всю 
+физическую память, выделенную для файла; таким образом, соответствующее дисковое 
+пространство освобождается, а все байты в файле обнуляются. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+поговорим о том, как работает эта программа. Чтобы упростить ее исход ный код, я 
+создал С++-класс CSparseStream (который содержится в файле Sparse Stream.h) Этот 
+класс инкапсулирует поддержку операций с разреженным файлом или потоком данных 
+(stream). В файле MMFSparse.cpp я создал другой С++-класс, CMMFSparse, 
+производный от CSparseStream. Так что объект класса CMMFSparse обла дает не 
+только функциональностью CSparseStream, но и дополнительной, необходи мой для 
+использования разреженного потока данных как проецируемого в память файла. В 
+процессе создается единственный глобальный экземпляр класса CMMF Sparse — 
+переменная <I>g_mmf. </I>Манипулируя разреженным проецируемым файлом, про грамма 
+часто ссылается на эту глобальную переменную. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+пользователь щелкает кнопку Create а 1MB (1024 KB) Sparse MMF, програм ма 
+вызывает <I>CreateFile </I>для создания нового файла в дисковом разделе NTFS 5. 
+Пока что это обычный, самый заурядный файл Но потом я вызываю метод 
+<I>Initialize </I>гло бального объекта <I>g_mmf, </I>передавая ему описатель и 
+максимальный размер файла (1 Мб). Метод <I>Initialize </I>в свою очередь 
+обращается к <I>CreateFileMapping </I>и создает объект ядра «проекция файла» 
+указанного размера, а затем вызывает <I>MapViewOfFile, </I>чтобы сделать 
+разреженный файл видимым в адресном пространстве данного процесса </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+<I>Initialize </I>возвращает управление, вызывается функция <I>Dlg_ShowAllocated 
+Ranges </I>Используя Windows-функции, она перечисляет диапазоны логических адре 
+сов в разреженном файле, которым передана физическая память. Начальное смеще ние 
+и длина каждого такого диапазона показываются в нижнем поле диалогового окна В 
+момент инициализации объекта <I>g_mmf </I>файлу на диске еще не выделена физичес 
+кая память, и данное поле отражает этот факт. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+пользователь может попытаться считать или записать какие-то байты в пределах 
+разреженного проецируемого файла При записи программа извлекает зна чение байта 
+и смещение из соответствующих полей, а затем помещает этот байт по вычисленному 
+адресу в объект <I>g_mmf. </I>Такая операция может потребовать от файло вой 
+системы передачи физической памяти логическому блоку файла, но программа не 
+принимает в этом участия. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При чтении 
+объекта <I>g_mmf </I>возвращается либо реальное значение байта, если дан ному 
+диапазону адресов передана физическая память, либо 0, если память не передана, 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Моя программа 
+также демонстрирует, как вернуть файл в исходное состояние, высвободив все 
+выделенные сму диапазоны адресов (после этого он фактически не занимает места ня 
+диске) Реализуется это так. Пользователь щелкает кнопку Free All Allocated 
+Regions. Однако освободить все диапазоны адресов, выделенные файлу, ко торый 
+проецируется в память, нельзя Поэтому первое, что делает программа, — вы зывает 
+метод <I>ForceClose </I>объекта <I>g_mmf </I>Этот метод обращается к 
+<I>UnmapViewOfFile, </I>а потом — к <I>CloseHandle, </I>передавая описатель 
+объекта ядра «проекция файла». </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее 
+вызывается метод <I>DecommitPortionOfStream, </I>который освобождает всю па 
+мять, выделенную логическим байтам в файле. Наконец, программа вновь обращает ся 
+к методу <I>Initialize </I>объекча <I>g_mmf, </I>и тот повторно инициализирует 
+файл, проеци руемый на адресное пространство данного процесса. Чтобы подтвердить 
+освобожде ние всей выделенной памяти, программа вызывает функцию 
+<I>Dlg_ShowAllocatedRanges </I>которая выводит в поле строку «No allocated 
+ranges in the file». </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее. 
+Используя разреженный проецируемый файл в реальном приложе нии, Вы, наверное, 
+захотите при закрытии файла урезать его логический размер до фактического 
+Отсечение концевой части разреженного файла, содержащей нулевые </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>байты, не 
+влияет на занимаемый им объем дискового пространства, но позволяет Explorer и 
+команде dir сообщать точный размер файла С этой целью Вы должны пос ле вызова 
+метода <I>ForceClose </I>использовать функции <I>SetFilePointer </I>и 
+<I>SetEndOfFile.</I> </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/17-MMFSparse.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16> MMFSparse</A></FONT></P>
+<P>&nbsp;</P>
+<HR>
+
+<P>
+<A href="head16.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head18.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

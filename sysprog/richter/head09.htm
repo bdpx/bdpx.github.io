@@ -1,0 +1,2114 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h9></A>ГЛАВA 9 Синхронизация потоков с использованием объектов ядра 
+</FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Впредыдущей 
+главе мы обсудили, как синхронизировать потоки с применением ме ханизмов, 
+позволяющих Вашим потокам оставаться в пользовательском режиме Са мое 
+удивительное, что эти механизмы работают очень быстро. Поэтому, если Вы оза 
+бочены быстродействием потока, сначала проверьте, нельзя ли обойтись синхрони 
+зацией в пользовательском режиме. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя 
+механизмы синхронизации в пользовательском режиме обеспечивают высо кое 
+быстродействие, им свойствен ряд ограничений, и во многих приложениях они просто 
+не будут работать. Например, <I>Intertocked-</I>функции<I> </I>оперируют только 
+с отдель ными переменными и никогда не переводят поток в состояние ожидания 
+Последнюю задачу можно решить с помощью критических секций, но они подходят лишь 
+в тех случаях, когда требуется синхронизировать потоки в рамках одного процесса. 
+Кроме того, при использовании критических секций легко попасть в ситуацию 
+взаимной блокировки потоков, потому что задать предельное время ожидания входа в 
+крити ческую секцию нельзя. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этой главе 
+мы рассмотрим, как синхронизировать потоки с помощью объектов ядра. Вы увидите, 
+что такие объекты предоставляют куда больше возможностей, чем механизмы 
+синхронизации в пользовательском режиме. В сущности, единственный их недостаток 
+— меньшее быстродействие Дело в том, что при вызове любой из фун кций, 
+упоминаемых в этой главе, поток должен перейти из пользовательского режи ма в 
+режим ядра. А такой переход обходится очень дорого — в 1000 процессорных тактов 
+на платформе <I>x86 </I>Прибавьте сюда еще и время, которое необходимо на вы 
+полнение кода этих функций в режиме ядра. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К этому 
+моменту я уже рассказал Вам о нескольких объектах ядра, в том числе о процессах, 
+потоках и заданиях Почти все они годятся и для решения задач синхро низации. В 
+случае синхронизации потоков о каждом из этих объектов говорят, что он находится 
+либо в свободном (signaled state), либо в занятом состоянии (nonsignaled state) 
+Переход из одного состояния в другое осуществляется по правилам, определен ным 
+Microsoft для каждого из объектов ядра Так, объекты ядра «процесс» сразу после 
+создания всегда находятся в занятом состоянии. В момент завершения процесса опе 
+рационная система автоматически освобождает его объект ядра "процесс", и он на 
+всегда остается в этом состоянии </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объект ядра 
+«процесс» пребывает в занятом состоянии, пока выполняется сопос тавленный с ним 
+процесс, и переходит в свободное состояние, когда процесс завер шается Внутри 
+этого объекта поддерживается булева переменная, которая при созда нии объекта 
+инициализируется как FALSE («занято"). По окончании работы процесса операционная 
+система меняет значение этой переменной на TRUE, сообщая тем са мым, что объект 
+свободен. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+пишете код, проверяющий, выполняется ли процесс в данный момент, Вам нужно лишь 
+вызвать функцию, которая просит операционную систему проверить значение булевой 
+переменной, принадлежащей объекту ядра «процесс". Тут нет ни чего сложного. Вы 
+можете также сообщить системе, чтобы та перевела Ваш поток в состояние ожидания 
+и автоматически пробудила его при изменении значения буле вой переменной с FALSE 
+на TRUE. Тогда появляется возможность заставить поток в родительском процессе, 
+ожидающий завершения дочернего процесса, просто заснуть до освобождения объекта 
+ядра, идентифицирующего дочерний процесс. В дальней шем Вы увидите, что в 
+Windows есть ряд функций, позволяющих легко решать эту задачу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я только что 
+описал правила, определенные Microsoft для объекта ядра «процесс". Точно такие 
+же правила распространяются и на объекты ядра «поток». Они тоже сра зу после 
+создания находятся в занятом состоянии. Когда поток завершается, опера ционная 
+система автоматически переводит объект ядра «поток" в свободное состоя ние Таким 
+образом, используя те же приемы, Вы можете определить, выполняется ли в данный 
+момент тот или иной поток. Как и объект ядра «процесс", объект ядра «по ток" 
+никогда не возвращается в занятое состояние. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующие 
+объекты ядра бывают в свободном или занятом состоянии: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>процессы 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>потоки 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>задания 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>файлы 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>консольный 
+  ввод </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>уведомления об изменении файлов </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>события 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ожидаемые 
+  таймеры </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>семафоры 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>мьютексы 
+  </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Потоки могут 
+засыпать и в таком состоянии ждать освобождения какого-либо объекта. Правила, по 
+которым объект переходит в свободное или занятое состояние, зависят от типа 
+этого объекта О правилах для объектов процессов и потоков я упо минал совсем 
+недавно, а правила для заданий были описаны в главе 5. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этой главе 
+мы обсудим функции, которые позволяют потоку ждать перехода определенного 
+объекта ядра в свободное состояние. Потом мы поговорим об объек тах ядра, 
+предоставляемых Windows специально для синхронизации потоков: собы тиях, 
+ожидаемых таймерах, семафорах и мьютексах </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда я 
+только начинал осваивать всю эту тематику, я предпочитал рассматривать понятия 
+«свободен-панят» по аналогии с обыкновенным флажком Когда объект сво боден, 
+флажок поднят, а когда он занят, флажок опущен. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=199 alt=h9-1.jpg src="images/h9-1.jpg" width=396> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Потоки спят, 
+пока ожидаемые ими объекты заняты (флажок опущен). Как только объект освободился 
+(флажок поднят), спящий поток замечает это, просыпается и возобновляет 
+выполнение. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=238 alt=h9-2.jpg src="images/h9-2.jpg" width=535> 
+</FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t1></A>Wait-функции</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Wait-функции 
+позволяют потоку в любой момент приостановиться и ждать освобож дения 
+какого-либо объекта ядра. Из всего семейства этих функций чаще всего исполь 
+зуется <I>WaitForSingleObject:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  WaitForSingleObject( HANDLE hObject, DWORD dwMilliseconds);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда поток 
+вызывает эту функцию, первый параметр, <I>hObject, </I>идентифицирует объект 
+ядра, поддерживающий состояния «свободен-занят» (То есть любой объект, 
+упомянутый в списке из предыдущего раздела.) Второй параметр, <I>dwMilliseconds, 
+</I>ука зывает, сколько времени (в миллисекундах) поток готов ждать освобождения 
+объекта. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующий 
+вызов сообщает системе, что поток будет ждать до тех пор, пока не завершится 
+процесс, идентифицируемый описателем <I>hProcess.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>WaitForSingleObject(hProcess, INFINITE);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В данном 
+случае константа INFINITE, передаваемая во втором параметре, подска зывает 
+системе, что вызывающий поток готов ждать этого события хоть целую веч ность. 
+Именно эта коистанта обычно и передается функции <I>WaitForSingleObject, </I>но 
+Вы можете указать любое значение в миллисекундах. Кстати, константа INFINITE 
+опре делена как 0xFFFFFFFF (или -1). Разумеется, передача INFINlTE нс всегда 
+безопасна Если объект так и не перейдет в свободное состояние, вызывающий поток 
+никогда не проснется; одно утешение, тратить драгоценное процессорное время он 
+при этом не будет </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот пример, 
+иллюстрирующий, как вызывать <I>WaitForSingleObject </I>co значением тай маута, 
+отличным от INFINITE</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dw = 
+  WaitForSlngleObject(hProcess, 5000); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch (dw) 
+  <BR>{ <BR>case WAIT_OBJECT_0: <BR>// процесс завершается <BR>break; 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WAIT_TIMEOUT: <BR>// процесс не завершился в течение 5000 мс <BR>break; 
+  </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WAIT_FAILED:<BR>// неправильный вызов функции (неверный описатель?) <BR>break; 
+  <BR>}</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Данный код 
+сообщает системе, что вызывающий поток не должен получать про цессорное время, 
+пока не завершится указанный процесс или не пройдет 5000 мс (в зависимости от 
+того, что случится раньше). Поэтому функция вернет управление либо до истечения 
+5000 мс, если процесс завершится, либо примерно через 5000 мс, если процесс к 
+тому времени не закончит свою работу Заметьте, что в параметре <I>dwMilli 
+seconds </I>можно передать 0, и гогда <I>WaitForSingleObject </I>немедленно 
+вернет управление </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Возвращаемое 
+значение функции <I>WaitForSingleObject </I>указывает, почему вызываю щий поток 
+снова стал планируемым Если функция возвращает WAITOBTECT_0, объ ект свободен, а 
+если WAIT_TIMEOUT — заданное время ожидания (таймаут) истекло. При передаче 
+неверного параметра (например, недопустимого описателя) <I>WaitForSing leObject 
+</I>возвращает WAIT_ EAILED. Чтобы выяснить конкретную причину ошибки, вы зовите 
+функцию <I>GetLastErroY.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>WaitForMultipleObjects </I>аналогична <I>WaitForSingleObject </I>c тем 
+исключением, что позволяет ждать освобождения сразу нескольких объектов или 
+какого-то одного из списка объектов:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  WaitForMultipleObjects( DWOHD dwCount, CONST HANDLE* phObjects, BOOL fWaitAll, 
+  DWORD dwMilliseconds); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>dwCount </I>определяет количество интересующих Вас объектов ядра Его 
+значениедолжло быть в пределах от 1 до MAXIMUM_WAIT_OBJECTS (в заголовочных 
+файлах Windows оно определено как 64). Параметр <I>phObject</I> — это указатель 
+на мас сив описателей объектов ядра. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>WaitForMultipleObjects </I>приостанавливает поток и засгавляет его 
+ждать освобожде ния либо всех заданных объектов ядра, либо одного из них. 
+Параметр <I>fWaitAll</I> как раз и определяет, чего именно Вы хотите от функции. 
+Если он равен TRUE, функция не даст потоку возобновить свою работу, пока нс 
+освободятся все объекты. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>dwMilliseconds </I>идентичен одноименному параметру функции <I>WaitFor 
+SingleObject </I>Если Вы указываете конкретное время ожидания, то no его 
+истечении функция в любом случае возвращает управление. И опять же, в этом 
+параметре обыч но передают INFINITE (будьте внимательны при написании кода, 
+чтобы не создать ситуацию взаимной блокировки). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Возвращаемое 
+значение функции <I>WaitForMultipleObjects </I>сообщает, почему возоб новилосъ 
+выполнение вызвавшего ее потока Значения WAIT_FAILED и WAIT_TIMEOUT никаких 
+пояснений не требуют. Если Вы передали TRUE в параметре <I>fWaitAll </I>и всс 
+объекты перешли в свободное состояние, функция возвращает значение WAIT_OB 
+JECT_0. Если <I>fWaitAll </I>приравнен FALSE, она возвращает управление, как 
+только ос вобождается любой из объектов. Вы, по-видимому, захотите выяснить, 
+кякой именно объект освободился В этом случае возвращается значение от 
+WAIT_OBJECT_0 до WAIT_OBJECT_0 + <I>dwCount - </I>1. Иначе говоря, если 
+возвращаемое значение не равно WAIT_TIMEOUT или WAIT_FAILED, вычтите из него 
+значение WAlT_OBJECT_0, и Вы получите индекс в массиве описателей, на который 
+указывает второй параметр фун кции <I>WaitForMultipleObjects. </I>Индекс 
+подскажет Вам, какой объект перешел в незаня тое состояние. Поясню сказанное на 
+примере. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE h[3]; 
+  <BR>h[0] = hProcess1; <BR>h[1] = hProcess2; <BR>h[2] = hProcess3, </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dw = 
+  WaitForMultipleObjects(3, h, FALSE, 5000); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch (dw) 
+  <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WAIT_FAILED: <BR>// неправильный вызов функции (неверный описатель?) 
+  <BR>break; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WAIT_TIMEOUT: <BR>// ни один из объектов не освободился в течение 5000 мс 
+  <BR>break; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WAIT_OBJECTJ) + 0:<BR>// завершился процесс, идентифицируемый h[0], т e 
+  описателем (hProcess1) <BR>break; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WATT_OBJECT_0 + 1: <BR>// завершился процесс, идентифицируемый h[1], т e 
+  описателем (hProcess2) <BR>break; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  WAIT_OBJECT_0 + 2: <BR>// завершился процесс, идентифицируемый h[2], т. e 
+  описателем (hProcess3) <BR>break; <BR>}</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+передаете FALSE в параметре <I>fWaitAll</I>, функция <I>WaitForMultipleObjects 
+</I>ска нирует массив описателей (начиная с нулевого элемента), и первый же 
+освободив шийся объект прерывает ожидание Это может привести к нежелательным 
+последстви ям. Например, Ваш поток ждет завершения трех дочерних процессов; при 
+этом Вы передали функции массив с их описателями. Если завершается процесс, 
+описатель которого находится в нулевом элементе массива, 
+<I>WaitForMultipleObjects </I>возвращает управление. Теперь поток может сделать 
+то, что ему нужно, и вновь вызвать эту фун кцию, ожидая завершения другого 
+процесса. Если поток передаст те же три описате ля, функция немедленно всрнст 
+управление, и Вы снова получите значение WAIT_OB JECT_0. Таким образом, пока Вы 
+не удалите описатели тех объектов, об освобожде нии которых функция уже сообщила 
+Вам, код будет работать некорректно. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t2></A>Побочные эффекты успешного ожидания</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Успешный 
+вызов <I>WaitForSingleObject </I>или <I>WaitForMultipleObjecls </I>на самом деле 
+меняет состояние некоторых объектов ядра. Под успешным вызовом я имею в виду 
+тот, при котором функция видит, что объект освободился, и возвращает значение, 
+относитель ное WAITOBJECT_0. Вызов считается неудачным, если возвращается 
+WAIT_TIMEOUT или WAIT_FAILED. В последнем случае состояние каких-либо объектов 
+не меняется. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Изменение 
+состояния объекта в результате вызова я называю <I>побочным эффек, том успешного 
+ожидания </I>(successful wait side effect). Например, поток ждет объест «событие 
+с автосбросом" (auto-reset event objcct) (об этих объектах я расскажу чуть 
+позжс) Когда объект переходит в свободное состояние, функция обнаруживает это и 
+может вернуть вызывающему потоку значение WAIT_OBJECT_0. Однако перед самым 
+возвратом из функции событие переводится в занятое состояние — здесь сказывает 
+ся побочный эффект успешного ожидания. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты ядра 
+«событие с автосбросом» ведут себя подобным образом, потому что таково одно из 
+правил, определенных Microsoft для объектов этого типа. Другие объек ты дают 
+иные побочные зффекты, а некоторые — вообще никаких К последним от носятся 
+объекты ядра «процесс" и «поток", так что поток, ожидающий один из этих 
+объектов, никогда не изменит его состояние. Подробнее о том, как ведут себя 
+объек ты ядра, я буду рассказывать при рассмотрении соответствующих объектов. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чем ценна 
+функция <I>WaitForMultipleObjects, </I>так это тем, что она выполняет все дей 
+ствия на уровне атомарного доступа. Когда поток обращается к этой функции, она 
+ждет освобождения вссх объектов и в случае успеха вызывает в них требуемые по 
+бочные эффекты; причем все действия выполняются как одна операция </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Возьмем такой 
+пример. Два потока вызывают <I>WaitForMultipleObjects </I>совершенно 
+одинаково.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE h[2]; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>h[0] = 
+  hAutoResetEvent1; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// изначально 
+  занят <BR>h[1] = hAutoResetEvent2; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// изначально 
+  занят <BR>WaitForMulUpleObjects(2, И, TRUE, INFINITE);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На момент 
+вызова <I>WaitForMultipleObjects </I>эти объекты-события заняты, и оба пото ка 
+переходят в режим ожидания Но вот освобождается объект <I>hAutoResetEventl 
+</I>Это становится известным обоим потокам, однако ни один из них не 
+пробуждается, так как объект <I>hAutoResetEvent2 </I>по-прежнему занят. 
+Поскольку потоки все еще ждут, ни какого побочного эффекта для объекта 
+<I>hAutoResetEvent1 </I>не возникает. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наконец 
+освобождается и объект <I>hAutoResetEvent2 </I>В этот момент один из пото ков 
+обнаруживает, что освободились оба объекта, которых он ждал. Его ожидание 
+успешно завершается, оба объекта снова переводятся в занятое состояние, и выпол 
+нение потока возобновляется. А что же происходит со вторым потоком? Он продол 
+жает ждать и будет делать это, пока вновь не освободятся оба объекта-события. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+упоминал, <I>WaitForMiltipleObjects </I>работает на уровне атомарного досту па, 
+и это очень важно. Когда она проверяет состояние объектов ядра, никто не может 
+«у нее за спиной» изменить состояние одного из этих объектов. Благодаря этому ис 
+ключаются ситуации со взаимной блокировкой. Только представьте, что получится, 
+если один из потоков, обнаружив освобождение <I>hAutoResetEventl, </I>сбросит 
+его в заня тое состояние, а другой поток, узнав об освобождении 
+<I>hAutoResetEvent2, </I>тоже переве дет его в занятое состояние. Оба потока 
+просто зависнут, первый будет ждать осво бождения объекта, захваченного вторым 
+потоком, а второй — освобождения объек та, захваченного первым. 
+<I>WaitForMultipleObjects </I>гарантирует, что такого не случится никогда. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Тут возникает 
+интересный вопрос. Если несколько потоков ждет один объект ядра, какой из них 
+пробудится при освобождении этого объекта? Официально Microsoft отвечает на этот 
+вопрос так: «Алгоритм действует честно" Что это за алгоритм, Micro soft не 
+говорит, потому что нс хочст связывать себя обязательствами всегда придер 
+живаться именно этого алгоритма. Она утверждает лишь одно- если объект ожидает 
+ся несколькими потоками, то всякий раз, когда этот объект переходит в свободное 
+состояние, каждый из них получает шанс на пробуждение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таким 
+образом, приоритет потока не имеет значения- поток с самым высоким приоритетом 
+не обязательно первым захватит объект. Не получает преимущества и поток, который 
+ждал дольше всех. Есть даже вероятность, что какой-то поток сумеет повторно 
+захватить объект. Конечно, это было бы нечестно по отношению к другим потокам, и 
+алгоритм пытается не допустить этого. Но никаких гарантий нет. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><B>На 
+</B>самом деле этот алгоритм просто использует популярную схему "первым во шел — 
+первым вышел" (FIFO). B принципе, объект захватывается потоком, ждавшим дольше 
+всех. Но в системе могут произойти какие-то события, которые повлияют на 
+окончательное решение, и ил-за этого алгоритм становится менее предсказуемым. 
+Вот почему Microsoft и не хочет говорить, как именно он работает. Одно из таких 
+собы тий — приостановка какого-либо потока. Если поток ждет объект и вдруг 
+приоста навливается, система просто забывает, что он ждал этот объект. А причина 
+в том, что нет смысла планировать приостановленный поток. Когда он в конце 
+концов возоб новляется, система считает, что он только что начал ждать данный 
+объект. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Учитывайте 
+это при отладке, поскольку в точках прерывания (breakpoints) все потоки внутри 
+отлаживаемого процесса приостанавливаются. Отладка делает алго ритм FIFO в 
+высшей степени непредсказуемым из-за частых приостановки и возоб новления 
+потоков процесса. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t3></A>События</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>События - 
+самая примитивная разновидность объектов ядра. Они содержат счетчик числа 
+пользователей (как и все объекты ядра) и две булевы переменные: одна сооб щает 
+тип данного объекта-события, другая — его состояние (свободен или занят). 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>События 
+просто уведомляют об окончании какой-либо операции. Объекты-собы тия бывают двух 
+типов: со сбросом вручную (manual-reset events) и с автосбросом (auto-reset 
+events). Первые позволяют возобновлять выполнение сразу нескольких ждущих 
+потоков, вторые — только одного. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Объекты-события обычно используют в том случае, когда какой-то поток 
+выпол няет инициализацию, а затем сигнализирует другому потоку, что тот может 
+продол жить работу. Инициализирующий поток переводит объект "событие» в занятое 
+состо яние и приступает к своим операциям. Закончив, он сбрасывает событие в 
+свободное состояние. Тогда другой поток, который ждал перехода события в 
+свободное состоя ние, пробуждается и вновь становится планируемым. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объект ядра 
+«событие" создается функцией <I>CreateEvent:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateEvent( <BR>PSECURITY_ATTRIBUTES psa, BOOL fManualReset, BOOL 
+  fInitialState, PCTSTR pszName);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В главе 3 мы 
+обсуждали общие концепции, связанные с объектами ядра, — защи ту, учет числа 
+пользователей объектов, наследование их описателей и совместное использование 
+объектов за счет присвоения им одинаковых имен. Поскольку всс это Вы теперь 
+знаете, я не буду рассматривать первый и последний параметры данной функции. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пареметр 
+<I>fManualReset </I>(булева переменная) сообщает системе, хотите Вы создать 
+событие со сбросом вручную (TRUE) или с автосбросом (FALSE). Параметру 
+<I>fInitialState</I> определяет начальное состояние события — свободное (TRUE) 
+или занятое (FALSE). После того как система создает объект событие, 
+<I>CreateEvent </I>возвращает описатель события, специфичный для конкретного 
+процесса. Потоки из других процессов мо гут получить доступ к этому объекту: 1) 
+вызовом <I>CreateEvent </I>с тем же параметром <I>pszName;, 2) </I>наследованием 
+описателя; 3) применением функции <I>DuplicateHandle;, </I>и 4) вызовом 
+<I>OpenEvent </I>c<I> </I>передачей в параметре <I>pszName</I> имени, 
+совпадающего с ука занным в аналогичном параметре функции <I>CreateEvent. 
+</I>Вот что представляет собой функция <I>OpenEvent.</I> </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenEvent( DWORD fdwAccess, BOOL fInhent, PCTSTR pszName); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ненужный 
+объект ядра "событие» следует, как всегда, закрыть вызовом <I>CloseHandle 
+</I>Создав собьпис, Вы можете напрямую управлять его состоянием. Чтобы перевес 
+ти его в свободное состояние, Вы вызываете:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetEvenT(HANDLE hEvenеt); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А чтобы 
+поменять его на занятое</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  ResetEvent(HANDLE hEvent); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот так все 
+просто </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для событий с 
+автосбросом действует следующее правило Когда его ожидание потоком успешно 
+завершается, этот объект автоматически сбрасывается в занятое состояние. Отсюда 
+и произошло название таких<B> </B>объектов-событий Для этого объек та обычно не 
+требуется вызывать <I>ResetEvent, </I>поскольку система сама восстанавливает его 
+состояние А для событий со сбросом вручную никаких побочных эффектов ус пешного 
+ожидания не предусмотрено. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрим 
+небольшой пример тому, как на практике использовать объекты ядра «событие» для 
+синхронизации потоков Начнем с такого кода.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// глобальный 
+  описатель события со сбросом вручную (в занятом состоянии) </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  g_hEvent;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain( ) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  объект "событие со сбросом вручную (в занятом состоянии) <BR>g_hEvent = 
+  CreateEvent(NULL, TRUE, FALSE, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// порождаем 
+  три новых потока </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  hThread[3]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  dwThreadTD; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hThread[0] = 
+  _beginthreadex(NULL, 0, WordCount, NULL, 0, &amp;dwThreadlD); <BR>hThread[1] = 
+  _beginthreadex(NULL, 0, SpellCheck, NULL, 0, &amp;dwThreadID); <BR>hTbread[2] 
+  = _beginthreadex(NULL, 0, GrarrmarCheck, NULL, 0, &amp;dwThreadID); 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>OpenFileAndReadContentsIntoMemory( ); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// разрешаем 
+  всем грем потокам обращаться к памяти <BR>SetEvent(g__hEvent), </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  WINAPI<B> </B>WordCount(PVOID pvParam) <BR>{ <BR>// ждем, когда в память будут 
+  загружены данные из файла <BR>WaitForSingleObject(g_hEvent, iNeiNITE); <BR>// 
+  обращаемся к блоку памяти <BR>return(0); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD<B> 
+  </B>WINAPI SpellCheck(PVOID pvParam) <BR>{ </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ждем, когда 
+  в память будут загружены данные из файла <BR>WaitForSingleObject(g_hFvent, 
+  INFINITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обращаемся 
+  к блоку пэмяти </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(0}; 
+  <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD WINAPI 
+  GrammarCheck(PVOID pvParam) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ждем, когда 
+  в память будут загружены данные из файла <BR>WaitForSingleObject(g_hFvent, 
+  INFINITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обращаемся 
+  к блоку памяти </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(0); 
+  <BR>}</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При запуске 
+этот процесс создает занятое событие со сбросом вручную и запи сывает его 
+описатель в глобальную переменную. Это упрощает другим потокам про цесса доступ 
+к тому жс объекту-событию Затем порождается три потока. Они ждут,<B> </B>когда в 
+память будут загружены данные (текст) из некоего файла, и потом обращают ся к 
+этим данным, один поток подсчитывает количество слов, другой проверяет ор 
+фографические ошибки, третий — грамматические Все три функции потоков начи нают 
+работать одинаково каждый поток вызывает <I>WaitForSingleObject, </I>которая при 
+останавливает его до гех пор, пока первичный поток не считает в память содержи 
+мое файла </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Загрузив 
+нужные данные, первичный поток вызывает <I>SetEvent, </I>которая переводит 
+событие в свободное состояние. В этот момент система пробуждает три вторичных 
+потока, и они, вновь получив процессорное время, обращаются к блоку памяти За 
+метьте, что они получают доступ к памяти в режиме только для чтения. Это 
+единствен ная причина, по которой все три потока могут выполняться одновременно 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если событие 
+со сбросом вручную заменить на событие с автосбросом, програм ма будет вести 
+себя совершенно иначе После вызова первичным потоком функции <I>SetEvent 
+</I>система возобновит выполнение только одного из вторичных потоков. Ка кого 
+именно — сказать заранее нельзя. Остальные два потока продолжат ждать. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток, вновь 
+ставший планируемым, получает монопольный доступ к блоку па мяги, где хранятся 
+данные, считанные из файла Давайте перепишем функции пото ков так, чтобы перед 
+самым возвратом управления они (подобно функции <I>WinMain) </I>вызывали 
+<I>SetFvent </I>Теперь функции потоков выглядят следующим образом:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD WINAPI 
+  WordCount(PVOID pvParam) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ждем, когда 
+  в память будут загружены данные из файла <BR>WaitForSingleObject(a_hEvent, 
+  INFINITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обращаемся 
+  к блоку памяти <BR>SetEvent(g_hEvent); <BR>return(0); <BR>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD WINAPI 
+  SpellCneck(PVOID pvParam) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ждем, когда 
+  в память будут загружены данные из файла </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>WaitForSingleObject(g htvent, INFINITE); <BR>// обращаемся к блоку 
+  памяти </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetEvent(g_hEvent); <BR>return(0);<BR>}</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD WINAPI 
+  GrammarCheck(PVOID pvParam) <BR>{ <BR>// ждем, когда в память будут загружены 
+  данные из файла <BR>WaitForSingleObject(g_hEvent, INFINITF); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обращаемся 
+  к блоку памяти <BR>SetEvent(g_hEvent); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(0); 
+  <BR>}</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив свою 
+работу с данными, поток вызывает <I>SetEvent, </I>которая разрешает системе 
+возобновить выполнение следующего из двух ждущих потоков. И опять мы не знаем, 
+какой поток выберет система, но так или иначе кто-то из них получит мо нопольный 
+доступ к тому же блоку памяти. Когда и этот поток закончит свою работу, он тоже 
+вызовет <I>SetEvent, </I>после чего с блоком памяти сможет монопольно опериро 
+вать третий, последний поток Обратите внимание, что использование события с ав 
+тосбросом снимает проблему с доступом вторичных потоков к памяти как для чте 
+ния, так и для записи; Вам больше не нужно ограничивать их доступ только 
+чтением. Этот пример четко иллюстрирует различия в применении событий со сбросом 
+вруч ную и с автосбросом. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для полноты 
+картины упомяну о еще одной функции, которую можно использо вать с 
+объектами-событиями</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  PulseEvent(HANDLE hEvent); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>PuteeEvent 
+</I>освобождает событие и тут жс переводит его обратно в занятое состо яние; ее 
+вызов равнозначен последовательному вызову <I>SelEvent </I>и <I>ResetEvent. 
+</I>Если Вы вызываете <I>PulseEvent </I>для события со сбросом вручную, любые 
+потоки, ждущие этот объект; становятся планируемыми. При вызове этой функции 
+применительно к со бытию с автосбросом пробуждается только одип из ждущих 
+потоков. А если ни один из потоков не ждет объект-событие, вызов функции не дает 
+никакого эффекта </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Особой пользы 
+от <I>PulseEuent </I>я не вижу В сущности, я никогда не пользовался ею на 
+практике, потому что абсолютно неясно, какой из потоков заметит этот импульс и 
+станет планируемым Наверное, в каких-то сценариях <I>PulseEuent</I> можст 
+пригодиться, но ничего такого мне в голову не приходит Когда мы перейдем к 
+рассмотрению фун кции <I>SignalObjectAndWait, я </I>расскажу о <I>PulseEvent 
+</I>чуть подробнее.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t3p1></A>Программа-пример Handshake </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этa 
+программа, «09 Handshakeexe" (см листинг на рис 9-1), демонстрирует приме нение 
+событий с автосбросом. Файлы исходного кода и ресурсов этой программы находятся 
+в каталоге 09-Handshake" на компакт-диске, прилагаемом к книге. После запуска 
+Handshake открывается окно, показанное ниже. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=159 alt=h9-3.jpg src="images/h9-3.jpg" width=389> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Handshake 
+принимает строку запроса, меняет в ней порядок всех символов и по казывает 
+результат в поле Result. Самое интересное в программе Handshake — то, как она 
+выполняет эту героическую задачу </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Программа 
+решает типичную проблему программирования У Вас есть клиент и сервер, которые 
+должны как-то общаться друг с другом. Изначально серверу делать нечего, и он 
+переходит в состояние ожидания Когда клиент готов передать ему зап рос, он 
+помещает этот запрос в разделяемый блок памяти и переводит объект-собы тие в 
+свободное состояние, чтобы поток сервера считал этот блок памяти и обрабо тал 
+клиентский запрос Пока серверный поток занят обработкой запроса, клиентский 
+должен ждать, когда будет готов результат Поэтому клиент переходит в состояние 
+ожидания и остается в нем до тех пор, пока сервер не освободитдругой объект-со 
+бытие, указав тем самым, что результат готов Вновь пробудившись, клиент узнает, 
+что результат находится в разделяемом блоке памяти, и выводит готовые данные 
+пользо вателю. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При запуске 
+программа немедленно создает два объекта-события с автосбросом в занятом 
+состоянии Один ит них, <I>g_hevtRequestSubmitted, </I>используется как индика 
+тор готовности запроса к серверу. Этo собьпие ожидается серверным потоком и ос 
+вобождается клиентским. Второй обьект-событие,<I> g_hevtRequestSubmitted, 
+</I>служит инди катором готовности данных для клиента. Это событие ожидается 
+клиентским пото ком, а освобождается серверным. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+создания событий программа порождает серверный поток и выполняет функцию 
+<I>ServerThread </I>Эта функция немедленно заставляет серверный поток ждать 
+запроса от клиента. Тем временем первичный поток, который одновременно являет ся 
+и клиентским, вызывает функцию <I>DialogBox, </I>отвечающую за отображение 
+пользо вательского интерфейса программы Вы вводите какой-нибудь текст в поле 
+Request и, щелкнув кнопку Subrnit Request To Server, заставляете программу 
+поместить строку запроса в буфер памяти, разделяемый между клиентским и 
+серверным потоками, а также перевести событие<I> g_hevtRequestSubmitted </I>в<I> 
+</I>свободное состояние Далее клиен тский поток ждет результат от сервера, 
+используя объект-событие <I>g_hevtResultReturned</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+пробуждается серверный поток, обращает строку в блоке разделяемой па мяти, 
+освобождает событие <I>g_hevtResultReturned </I>и вновь засыпает, ожидая 
+очередно го запроса от клиента. Заметьте, что программа никогда не вызывает 
+<I>ResetEvent, </I>так как в этом нет необходимости; события с автосбросом 
+автоматически восстанавли вают свое исходное (занятое) состояние в результате 
+успешного ожидания Клиентс кий поток обнаруживает, что событие 
+<I>g_hevtResultReturned </I>освободилось, пробужда ется и копирует строку из 
+общего буфера памяти в поле Result. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последнее, 
+что заслуживает внимания в этой программе, — то, как она заверша ется Вы 
+закрываете ее окно, и это приводит к тому, что <I>DialogBox </I>в функции 
+<I>_tWinMain </I>возвращает управление. Тогда первичный поток копирует в общий 
+буфер специаль ную строку и пробуждает серверный поток, чтобы тот ее обработал 
+Далсс первич ный поток ждет от сервера подтверждения о приеме этого специального 
+запроса и </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>завершения 
+его потока Серверный поток, получив от клиента специальный запрос, выходит из 
+своего цикла и сразу же завершается </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я предпочел 
+сделать так, чтобы первичный поток ждал завершения серверного вызовом 
+<I>WаittForMultipleObjects, - </I>просто из желания продемонстрировать, как 
+исполь зуется эта функция На самом делс я мог бы вызвать и 
+<I>WaitForStngleObject, </I>передав ей описатель серверного потока, и все 
+работало бы точно так же </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как только 
+первичный поток узнает о завершении серверного, он трижды вызы вает 
+<I>CloseHandle </I>для корректного закрытия всех объектов ядра, которые 
+использова лись программой Конечно, система могла бы закрыть их за меня, но 
+как-то спокой нее, когда делаешь это сам Я предпочитаю полностью контролировать 
+все, что про исходит в моих программах </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/09-Handshake.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>Handshake</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t4></A>Ожидаемые таймеры</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ожидаемые 
+таймеры (waitahle timers) ~ это объекты ядра, которые самостоятельно переходят в 
+свободное состояние в определенное время или через регулярные про межутки 
+времени. Чтобы создать ожидаемый таймер, достаточно вызвать функцию 
+<I>CreateWaitableTimer.</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateWaitableTimer( PSECURITY_ATTRIBUTES psa, BOOL fManualReset, PCTSTR 
+  pszName); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О параметрахр 
+<I>psa </I>и <I>pszName </I>я уже рассказывал в главе 3. Разумеется, любой про 
+цесс может получить свой («процессо-зависимый») описатель существующего объек та 
+"ожидаемый таймер", вызвав <I>OpenWaitableTimer.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenWaitableTirrer( DWORD dwDesiredAccess, BOOL bInheritHandle, PCTSTR 
+  pszName); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По аналогии с 
+событиями параметр <I>fManualReset </I>определяет тип ожидаемого тай мера: со 
+сбросом вручную или с автосбросом. Когда освобождается таймер со сбро сом 
+вручную, возобновляется выполнение всех потоков, ожидавших этот объект, а когда 
+в свободное состояние переходит таймер с автосбросом — лишь одного из потоков. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты 
+«ожидаемый таймер» всегда создаются в занятом состоянии. Чтобы со общить 
+таймеру, в какой момент он должен перейти в свободное состояние, вызови те 
+функцию <I>SetWaitableTimer.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetWaitableTimer( HANDLE hTimer, const LARGE_INTEGER *pDueTime, LONG lPeriod, 
+  PTIMERAPCROUTINE pfnCompletionRoutine, PVOID pvArgToCotnpletionRoutine, BOOI 
+  fResume);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+принимает несколько параметров, в которых легко запутаться Оче видно, что 
+<I>hTimer </I>определяет нужный таймер. Следующие два параметра (<I>pDиеТiте 
+</I>и <I>lPeriod) </I>используются совместно, первый из них задает, когда таймер 
+должен сра ботать в первый раз, второй определяет, насколько часто это должно 
+происходить в дальнейшем. Попробуем для примера установить таймер так, чтобы в 
+первый раз он сработал 1 января 2002 года в 1:00 PM, а потом срабатывал каждые 6 
+часов. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// объявляем 
+  свои локальные переменные </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hTimer; 
+  <BR>SYSTEMTIME st; <BR>FILETIME ftLocal, ftUTC; <BR>LARGE_INTEGER 
+  liUTC;</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  таймер с автосбросом <BR>hTimer = CreateWaitableTimer(NULL, FALSE, 
+  NULL);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// таймер 
+  должен сработать в первый раз 1 января 2002 года в 1:00 PM <BR>// но местному 
+  времени </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>st.wYear = 
+  2002; // год <BR>st.wMonth = 1; // январь <BR>st.wOayOfWeek = 0; // 
+  игнорируется <BR>st.wDay = 1, // первое число месяца <BR>st.wHour = 13; // 1 
+  PM <BR>st.wMinute = 0; // 0 минут<BR>st.wSecond = 0, // 0 секунд 
+  <BR>st.wMilliseconds = 0; // 0 миллисекунд</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SystemTimeToFileTime(&amp;st, &amp;ftLocal);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  местное время в UTC-время <BR>LocalFileTimeToFilelime(&amp;ttLocal, 
+  &amp;ftUTC); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  FILETIME в LARGE_INTEGER из-за различий в выравнивании данных 
+  <BR>liUTC.LowPart = ftUTC dwLowDateTime; <BR>liUTC.HighPart = ftUTC 
+  dwHighDateTime; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  устанавливаем таймер <BR>SetWaitablcTimer(hTimer, &amp;liUTC, 6 * 60 * 60 * 
+  1000, NULL, NULL, FALSE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот фрагмент 
+кода сначала инициализирует структуру SYSTEMTIME, определяя время первого 
+срабатывания таймера (его перехода в свободное состояние). Я уста новил это 
+время как местное. Второй параметр представляется как <I>const </I>LARGE_IN 
+TEGER * и поэтому нс позволяет напрямую использовать структуру SYSTEMTIME. Од 
+нако двоичные форматы структур FILETIME и LARGE_INTEGER идентичны: обе содер жат 
+по два 32-битных значения. Таким образом, мы можем преобразовать структуру 
+SYSTEMTIME в FILETIME. Другая проблема заключается в том, что функция 
+<I>SetWaitable Timer </I>ждет передачи времени в формате UTC (Coordinated 
+Universal Time). Нужное преобразование легко исуществляется вызовом 
+<I>LocalFileTimeToFileTime</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+двоичные форматы структур FILETIMF, и IARGE_INTEGER идентичны, у Вас может 
+появиться искушение передать в <I>SetWaitableTimer </I>адрес структуры FILETIME 
+напрямую;</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  устанавливаем таймер <BR>SetWaitableTimer(hTirner, (PLARGE^INTEGER) 
+  &amp;ftUTC, 6 * 60 * 60 * 1000, NULL, NULL, FALSE);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В сущности, 
+разбираясь с этой функцией, я так и поступил. По это большая ошиб ка! Хотя 
+двоичные форматы структур FILETIME и LARGE_INTEGER совпадают, вырав нивание этих 
+структур осуществляется по-разному. Адрес любой структуры FILETIME должен 
+начинаться на 32-битной границе, а адрес любой структуры IARGE_INTEGER — на 
+64-битной. Вызов <I>SetWaitableTimer с </I>передачей ей структуры FILETIME может 
+cpa </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ботать 
+корректно, но может и не сработать — все зависит от того, попадет ли начало 
+структуры FlLETIME на 64-битную границу. В то же время компилятор гарантирует, 
+что структура LARGE_INTEGER всегда будет начинаться на 64-битной границе, и по 
+этому правильнее скопировать элементы FILETIME в элементы LARGE_INTEGER, а за 
+тем передать в <I>SetWaitableTtmer </I>адрес именно структуры 
+LARGE_INTEGER.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Процессоры x86 всегда «молча» обрабатываю 
+  ссылки на невыровненные дан ные. Поэтому передача в <I>SetWaitableTimer 
+  </I>адреса структуры FILETIME будет сра батывать, если приложение выполняется 
+  на машине с процессором <I>x86 </I>Од нако другие процессоры (например, Alpha) 
+  в таких случаях, как правило, ге нерируют исключение 
+  EXCEPTION_DATATYPE_MISALIGNMENT, которое приво дит к завершению Вашего 
+  процесса Ошибки, связанные с выравниванием дан ных, — самый серьезный источник 
+  проблем при переносе на другие процес сорные платформы программного кода, 
+  корректно работавшего на процессо рах <I>x86 </I>Так что, обратив внимание на 
+  проблемы выравнивания данных сей час, Вы сэкономите себе месяцы труда при 
+  переносе программы на другие платформы в будущем! Подробнее о выравнивании 
+  данных см. главу 13. </FONT></P><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+разобраться в том, как заставить таймер срабатывать каждые 6 часов (на чиная с 
+1:00 PM 1 января 2002 года), рассмотрим параметр <I>lPeriod</I> функции<I> 
+SetWaitable Timer. </I>Этот параметр определяет последующую частоту срабатывания 
+таймера (в мс). Чтобы установить 6 часов, я передаю значение, равное 21 600 000 
+мс (т e. 6 часов * 60 минут • 60 секунд • 1000 миллисекунд). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О последних 
+трех параметрах функции <I>SetWaitableTimer </I>мы поговорим ближе к концу этого 
+раздела, а сейчас продолжим обсуждение второго и третьего парамет ров Вместо 
+того чтобы устанавливать время первого срабатывания таймера в абсо лютных 
+единицах, Вы можете задать его в относительных единицах (в интервалах по 100 
+нс), при этом число должно быть отрицательным. (Одна секунда равна десяти 
+миллионам интервалов по 100 нс.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующий код 
+демонстрирует, как установить таймер на первое срабатывание через 5 секунд после 
+вызова <I>SetWaitableTimer.</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>//объявляем 
+  свои локальные переменные <BR>HANDLF hTimer; <BR>LARGE_INTEGER li; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  таймер с автосбросом <BR>hTimer = CreateWaitableTimer(NULL, FALSE, NULL); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// таймер 
+  должен сработать через 5 секунд после вызова SetWaitableTimer; <BR>// задаем 
+  время в интервалах по 100 нс <BR>const int nTimerUnitsPerSecond = 10000000; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// делаем 
+  полученное значение отрицательным, чтобы SetWaitableTimer <BR>// знала: нам 
+  нужно относительное, а не абсолютное время li.<BR>QuadPart = -(5 * 
+  nTimerUnitsPerSecond); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  устанавливаем таймер (он срабатывает сначала через 5 секунд, <BR>// а потом 
+  через каждые 6 часов) <BR>SetWaitableTimer(hTimer, &amp;li, 6 * 60 * 60 * 
+  1000, NULL, NULL, FALSE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>...</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно нужно, 
+чтобы таймер сработал только раз — через определенное (абсо лютное или 
+относительное) время перешел в свободное состояние и уже больше никогда не 
+срабатывал Для этого достаточно передать 0 в параметре <I>lPeriod </I>Затем 
+можно либо вызвать <I>CloseHandle, </I>чтобы закрыть таймер, либо перенастроить 
+таймер повторным вызовом <I>SetWattableTimer с </I>другими параметрами 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И о последнем 
+параметре функции <I>SetWaitableTimer — lResume. </I>Он полезен на компьютерах с 
+поддержкой режима сна. Обычно в нем передают FALSE, и в приведен ных ранее 
+фрагментах кода я тоже делал так. Но если Вы, скажем, пишете програм 
+му-планировщик, которая позволяет устанавливать таймеры для напоминания о зап 
+ланированных встречах, то должны передавать в этом параметре TRUE Когда таймер 
+сработает, машина выйдет из режима сна (если она находилась в нем), и пробудятся 
+потоки, ожидавшие этот таймер. Далее программа сможет проиграть какой-нибудь 
+WAV-файл и вывести окно с напоминанием о предстоящей встрече. Если же Вы пере 
+дадите FALSE в параметре <I>fResume</I>, объект-таЙмер перейдет в свободное 
+состояние, но ожидавшие его потоки не получат процессорное время, пока компьютер 
+не выйдет из режима сна </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрение 
+ожидаемых таймеров было бы неполным, пропусти мы функцию <I>CancelWaitable 
+Timer.</I></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  CancelWaitableTimer(HANDLE hTimer); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта очень 
+простая функция принимает описатель таймера и отменяет его (тай мер), после чего 
+тот уже никогда не сработает, — если только Вы не переустановите его повторным 
+вызовом <I>SetWaitableTimer. </I>Кстати, если Вам понадобится перенастро ить 
+таймер, то вызывать <I>CancelWattableTimer </I>перед повторным обращением к 
+<I>SetWai tableTimer </I>не требуется; каждый вызов <I>SetWaitableTimer 
+</I>автоматически отменяет пре дыдущие настройки перед установкой новых 
+</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t4p1></A>Ожидаемые таймеры и АРС-очередь</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь Вы 
+знаете, как создавать и настраивать таймер. Вы также научились приоста навливать 
+потоки на таймере, передавая его описатель в <I>WaitForSingleObjects </I>или 
+<I>Wait ForMultipleObjects. </I>Однако у Вас есть возможность создать очередь 
+асинхронных вы зовов процедур (asynchronous procedure call, APC) для потока, 
+вызывающего <I>SetWai tableTimer </I>в<I> </I>момент, когда таймер свободен. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно при 
+обращении к функции <I>SetWaitableTtmer </I>Вы передаете NULL в пара метрах 
+<I>pfnCompletionRoutine </I>и<I> pvArgToCompletionRoutine. </I>В этом случае 
+объект-таймер переходит в свободное состояние в заданное время. Чтобы таймер в 
+этот момент поместил в очередь вызов АРС-функции, нужно реализовать данную 
+функцию и пе редать ее адрес в <I>SetWaitableTimer. </I>АРС-функция должна 
+выглядеть примерно так</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID APIENTRY 
+  TimerAPCRoutine(PVOID pvArgToCompleUonRoutine, DWORD dwTimerLowValue, DWORD 
+  dwTimerHighValue) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+  делаем то, что нужно <BR>}</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я назвал эту 
+функцию <I>TimerAPCRoutine, </I>по Вы можете назвать ее как угодно. Она 
+вызывается из того потока, который обратился к <I>SetWaitableTimer </I>в момент 
+срабаты вания таймера, — но только если вызывающий поток находится в «тревожном» 
+(aler table) состоянии, т. e. ожидает этого в вызове одной из функций 
+<I>SleepEx, WaitForSingle ObjectEx, 
+WaitForMultipleObjectsEx,MsgWaitForMultipleObjectsEx </I>или 
+<I>SignalObjectAndWait </I>Если же поток этого не ожидает в любой из 
+перечисленных функций, система не </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>поставит в 
+очередь АРС-функцию таймера. Тем самым система не даст АРС-очереди потока 
+переполниться уведомлениями от таймера, которые могли бы впустую израс ходовать 
+колоссальный объем памяти. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если в<B> 
+</B>момент срабатывания таймера Ваш поток находится в одной из перечис ленных 
+ранее функций, система заставляет его вызвать процедуру обратного вызова Первый 
+ее параметр совпадает с параметром <I>pvArgToCompletionRoutine, </I>передаваемым 
+в функцию <I>SetWaitableTimer, </I>Это позволяет передавать в <I>TimerAPCRoutine 
+</I>какие-либо данные (обычно указатель на определенную Вами структуру) 
+Остальные два парамет ра, <I>dwTimerLowValue </I>и <I>dwTimerHighValue, 
+</I>задают время срабатывания таймера. Код, приведенный ниже, демонстрирует, как 
+принять эту информацию и показать ее поль зователю.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID APIENTRY 
+  TimerAPCRoutine(PVOID pvArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD 
+  dwT:merHighValue) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>FILETIME 
+  ftUTC, ftLocal; <BR>SYSTEMTIME st; <BR>TCHAR szBuf[256]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// записываем 
+  время в структуру <BR>FILETIME ftUTC.dwlowDateTime = dwTimerLowValue; 
+  <BR>ftUTC.dwHighDateFime = dwTimerHighValue; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  UTC-время в местное <BR>FileTimeToLocalFileTime(&amp;ftUTC, &amp;ftLocal); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  структуру FILETIME в структуру SYSTEMTIME, <BR>// как того требуют функции 
+  GetDateFormat и GetTimeFormat <BR>FileTimetoSystemTime(&amp;ftLocal, &amp;st); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// формируем 
+  строку с датой и временем, в которой <BR>// сработал таймер 
+  <BR>GetDateFormat(LOCALE_USER_DEFAULT, DATE_LONGDATE, &amp;st, NULL, szBuf, 
+  sizeof(szBuf) / sizeof(TCHAR)); <BR>_tcscat(szBuf, __TEXT(' ')); 
+  <BR>GetTimeFormat(LOCALE_USER_DEFAULT, 0, &amp;st, NULL, _tcschr(szBuf, 0), 
+  si/eof(szBuf) / sizeor(TCHAR) - _tcslen(sz8uf)); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// показываем 
+  время пользователю <BR>MessageBox(NULL, szBuf, "Timer went off at ... ", 
+  MB_OK); }</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+«тревожного ожидания" возвращает управление только после обработ ки вссх 
+элементов АРС-очереди. Поэтому Вы должны позаботиться о том, чтобы Ваша функция 
+<I>TimerAPCRoutine </I>заканчивала свою работу до того, как таймер вновь подаeт 
+сигнал (перейдет в свободное состояние). Иначе говоря, элементы не должны 
+ставить ся в АРС-очередь быстрее, чем они могут быть обработаны. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующий 
+фрагмент кода показывает, как правильно пользоваться таймерами и 
+APC:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  SomeFunc() { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>//создаем 
+  таймер (его тип не имеет значения) <BR>HANDLE hTimer = 
+  CreateWaitableTimer(NULL, TRUE, NULL); </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// настраиваем 
+  таймер на срабатывание через 5 секунд <BR>LARGE_INTEGER li = { 0 }; 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetWaitableTimer(hTimer, &amp;li, 5000, TimerAPCRoutine, NULL, FALSE); 
+  <BR>// ждем срабатывания таймура в "тревожном" состоянии <BR>SleepEx(INFINITE, 
+  TRUE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hTimer); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последнее. 
+Взгляните ни эют фрагмент кода:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE<B> 
+  </B>hTimer - CreateWaitableTimer(NULL, FAISE, NULL); 
+  <BR>SetWaitableTimer(hTimer, ..., TimerAPCRoutine, ); 
+  <BR>WaitForSingleObjectEx(hTimer, INFINITE, TRUE);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Никогда ие 
+пнигите такой код, потому что вызов <I>WaitForSingleObjectEx </I>на деле за 
+ставляет дважды ожидать таймер — по описателю h<I>Timer </I>и в «тревожном" 
+состоянии Когда таймер перейдет в свободное состояние, поток пробудится, что 
+выведет eго из «тревожного» состояния, и вызова АРС-функции не последует. 
+Правда, АРС-функции редко используются совместно с ожидаемыми таймерами, так как 
+всегда можно дож даться перехода таймера в свободное состояние, а затем сделать 
+то, что нужно.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t4p2></A>И еще кое-что о таймерах </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таймеры часто 
+применяются в коммуникационных протоколах. Например, ссли кли ент делает запрос 
+серверу и тот не отвечает в течение определенного времени, кли ент считает, что 
+сервер не доступен. Сегодня клиентские машины взаимодействуют, как правило, со 
+множеством серверов одновременно. Если бы объект ядра «таймер» создавался для 
+каждого запроса, производительность системы снизилась бы весьма заметно. В 
+большинстве приложений можно создавать единственный объект-таймер и по мере 
+необходимости просто изменять время его срабатывания. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Постоянное 
+отслеживание параметров таймера и его перенастройка довольно утомительны, из-за 
+чего реализованы лишь в немногих приложениях. Однако в чис ле новых функций для 
+операций с пулами потоков (о них — в главе 11) появилась 
+<I>CreateTimerQueueTimer — </I>она как раз и берет на себя всю эту рутинную 
+работу. При смотритесь к ней, если в Вашей программе приходится создавать 
+несколько объек тов-таймеров и управлять ими. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, 
+очень мило, что таймеры поддерживают АРС-очереди, но большинство современных 
+приложений использует не APC, а порты завершения ввода-вывода. Как то раз мне 
+понадобилось, чтобы один из потоков в пуле (управляемом через порт завершения 
+ввода-вывода) пробуждался по таймеру через определенные интервалы времени К 
+сожалению, такую функциональность ожидаемые таймеры yе поддержи вают. Для 
+решения этой задачи мнс пришлось создать отдельный поток, который все го-то и 
+делал, что настраивал ожидаемый таймер и ждал его освобождения Когда таймер 
+переходил в свободное состояние, этот поток вызывал <I>PostQueuedComplction 
+Status, </I>передавая соответствующее уведомление потоку в пуле. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Любой, 
+мало-мальски опытный Windows-программист непременно поинтересу ется различиями 
+ожидаемых таймеров и таймеров User (настраиваемых через функ цию <I>SetTimer). 
+</I>Так вот, главное отличие в том, что ожидаемые таймеры реализованы в ядре, а 
+значит, не столь тяжеловесны, как таймеры User. Кроме того, это означает, что 
+ожидаемые таймеры — объекты защищенные. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таймеры User 
+генерируют сообщения WM_TIMER, посылаемые тому потоку, кото рый вызвал 
+<I>SetTimer </I>(в случае таймеров с обратной связью) или создал определенное 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>окно (в 
+случае оконных таймеров). Таким образом, о срабатывании таймера User уве 
+домляется только один поток А ожидаемый таймер позволяет ждять любому числу 
+потоков, и, если это таймер со сбросом вручную, при его освобождении может про 
+буждаться сразу несколько потоков. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если в ответ 
+на срабатывание таймера Вы собираетесь выполнять какие-то опе рации, связанные с 
+пользовательским интерфейсом, то, по-видимому, будет легче структурировать код 
+под таймеры User, поскольку применение ожидаемых таймеров требует от потоков 
+ожидания не только сообщений, но и объектов ядра (Если у Вас есть желание 
+переделать свой код, используйте функцию <I>MsgWaitForMultipleObjects, 
+</I>которая как раз и рассчитана на такие ситуации.) Наконец, в случае ожидаемых 
+тай меров Вы с большей вероятностью будете получать уведомления именно no истече 
+нии заданного интервала. Как поясняется в главе <I>26, </I>сообщения WM_TIMER 
+всегда имеют наименьший приоритет и принимаются, только когда в очереди потока 
+нет других сообщений Но ожидаемый таймср обрабатывястся так же, как и любой дру 
+гой объект ядра, если он сработал, ждущий поток немедленно пробуждается 
+</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t5></A>Семафоры </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты ядра 
+«семафор» используются для учета ресурсов Как и все объекты ядра, они содержат 
+счетчик числа пользователей, но, кроме того, поддерживают два 32 битных значения 
+со знаком: одно определяет максимальное число ресурсов (контро лируемое 
+семафором), другое используется как счетчик текущего числа ресурсов </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Попробуем 
+разобраться, зачем нужны все эти счетчики, и для примера рассмот рим программу, 
+которая могла бы использовать семафоры. Допустим, я разрабатываю серверный 
+процесс, в адресном пространстве которого выделяется буфер для хране ния 
+клиентских запросов. Размер этого буфера «зашит» в код программы и рассчи тан на 
+хранение максимум пяти клиентских запросов. Если новый клиент пытается связаться 
+с сервером, когда эти пять запросов еще не обработаны, генерируется ошиб ка, 
+которая сообщает клиенту, что сервер занят и нужно повторить попытку позже При 
+инициализации мой серверный процесс создает пул из пяти потоков, каждый из 
+которых готов обрабатывать клиентские запросы по мере их поступления. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Изначально, 
+когда запросов от клиентов еще нет, сервер не разрешает выделять процессорное 
+время каким-либо потокам в пуле. Но как только серверу поступает, скажем, три 
+клиентских запроса одновременно, три потока в пуле становятся плани руемыми, и 
+система начинает выделять им процессорное время Для слежения за ре сурсами и 
+планированием потоков семафор очень удобен. Максимальное число ре сурсов 
+задается равным 5, что соответствует размеру буфера. Счетчик текущего чис ла 
+ресурсов первоначально получает нулевое значение, так как клиенты еще не выда ли 
+ни одного запроса. Этот счетчик увеличивается на 1 в момент приема очередного 
+клиентского запроса и на столько же уменьшается, когда запрос передается на обра 
+ботку одному из серверных потоков в пуле. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для семафоров 
+определены следующие правила: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>когда 
+  счетчик текущего числа ресурсов становится больше 0, семафор пере ходит в 
+  свободное состояние, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>если этот 
+  счетчик равен 0, семафор занят, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>система не 
+  допускает присвоения отрицательных значений счетчику текуще го числа ресурсов; 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>счетчик 
+  текущего числа ресурсов не может быть больше максимального чис ла ресурсов 
+  </FONT></LI></UL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Не путайте 
+счетчик текущего числа ресурсов со счетчиком числа пользователей 
+объекта-семафора </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объект ядра 
+«семафор» создается вызовом <I>CreateSemapbore</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateSemaphore( PSECURITY_ATTRIBUTE psa, LONG lInitialCount, LONG 
+  lMaximumCount, PCTRTR pszName) </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О параметрах 
+<I>psa </I>и <I>pszName </I>я рассказывал в главе 3 Разумеется, любой процесс 
+может получить свой («процессо-зависимый») описатель существующего объекта «се 
+мафор», вызвав <I>OpenSemaphore</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenSemaphore( DWORD fdwAccess, BOOL bInhentHandle, PCTSTR pszName); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>lMaximumCount </I>сообщает системе максимальное число ресурсов, обра 
+батываемое Вашим приложением Поскольку это 32-битное значение со знаком, пре 
+дельное число ресурсов можетдостигать 2 147 483 647 Параметр <I>lInitiа1Соипt 
+</I>указы<I> </I>вает, сколько из этих ресурсов доступно изначально (на данный 
+момент) При ини циализяции моего серверного процесса клиентских запросов нет, 
+поэтому я вызы ваю <I>CreateSemaphore </I>так</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hSem = 
+  CreateSemaphore(NULL, 0, 5, NULL); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это приводит 
+к созданию семафора со счетчиком максимального числа ресурсов равным 5, при этом 
+изначально ни один ресурс не доступен (Кстати, счетчик числа пользователей 
+данного объекта ядра равен 1, так как я только что создал этот объект, не 
+запутайтесь в счетчиках) Поскольку счетчику текущего числа ресурсов присвоен 0 
+семафор находится в занятом состоянии А это значит, что любой поток, ждущий се 
+мафор, просто засыпает </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток 
+получаст доступ к ресурсу, вызывая одну из <I>Wait</I>-функций и передавая ей 
+описатель семафора, который охраняет этот ресурс <I>Wait-</I>функция проверяет у 
+сема фора счетчик гекущего числа ресурсов если его значение больше 0 (семафор 
+свобо ден), уменьшает значение этого счетчика на 1, и вызывающий поток остается 
+плани руемым Очень важно, что семафоры выполняют эту операцию проверки и присвое 
+ния на уровне атомдрного доступа; иначе говоря, когда Вы запрашиваете у семафора 
+какой-либо ресурс, операционная система проверяет, доступен ли этот ресурс, и, 
+если да, уменьшает счетчик текущего числа ресурсов, не позволяя вмешиваться в 
+эту опе рацию другому потоку Только после того как счетчик ресурсов будет 
+уменьшен на 1, доступ к ресурсу сможет запросить другой поток </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+<I>Wait-</I>функция определяет, что счетчик текущего числа ресурсов равен 0 (се 
+мафор занят), система переводит вызывающий поток в состояние ожидания Когда 
+другой поток увеличит значение этого счетчика, система вспомнит о ждущем потоке 
+и снова начнет выделять ему процессорное время (а он, захватив ресурс, уменьшит 
+значение счетчика на 1). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток 
+увеличивает значение счетчика текущего числа ресурсов, вызывая функцию 
+<I>ReleaseSemaphore</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  ReleaseSemaphore( HANDLE<B> </B>hSem, </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  lReleaseCount, PLONG p]PreviousCount);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она просто 
+складывает величину <I>lReleaseCount </I>со значением счетчика текущего числа 
+ресурсов. Обычно в параметре <I>lReleaseCount </I>передают 1, но это вовсе не 
+обяза тельно: я часто передаю в нем значения, равные или большие 2. Функция 
+возвращает исходное значение счетчика ресурсов в <I>*plPreviousCount </I>Если 
+Вас не интересует это значение (а в большинстве программ так оно и есть), 
+передайте в параметре <I>plPre viousCount </I>значение NULL. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Было бы 
+удобнее определять состояние счетчика текущего числа ресурсов, не меняя его 
+значение, но такой функции в Windows нет. Поначалу я думал, что вызовом 
+<I>ReleaseSemapbore </I>с передачей ей во втором параметре нуля можно узнать 
+истинное значение счетчика в переменной типа LONG, на которую указывает параметр 
+<I>plPre viousCount. </I>Но не вышло: функция занесла туда пуль. Я передал во 
+втором параметре заведомо большее число, и — тот же результат. Тогда мне стало 
+ясно: получить значе ние этого счетчика, не изменив его, невозможно.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t6></A>Мьютексы</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты ядра 
+«мьютексы» гарантируют потокам взаимоисключающий доступ к един ственному 
+ресурсу. Отсюда и произошло название этих объектов (mutual exclusion, mutex). 
+Они содержат счетчик числа пользователей, счетчик рекурсии и переменную, в 
+которой запоминается идентификатор потока. Мьютексы ведут себя точно так же, как 
+и критические секции. Однако, если последние являются объектами пользователь 
+ского режима, то мьютексы — объектами ядра. Кроме того, единственный объект-мью 
+текс позволяет синхронизировать доступ к ресурсу нескольких потоков из разных 
+процессов; при этом можно задать максимальное время ожидания доступа к ресурсу. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Идентификатор 
+потока определяет, какой поток захватил мьютекс, а счетчик ре курсий — сколько 
+раз. У мьютексов много применений, и это наиболее часто исполь зуемые объекты 
+ядра. Как правило, с их помощью защищают блок памяти, к которо му обращается 
+множество потоков Если бы потоки одновременно использовали ка кой-то блок 
+памяти, данные в нем были бы повреждены. Мьютексы гарантируют, что любой поток 
+получает монопольный доступ к блоку памяти, и тем самым обеспечи вают 
+целостность данных. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для мьютексов 
+определены следующие правила: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>если его 
+  идентификатор потока равен 0 (у самого потока не может быть та кой 
+  идентификатор), мьютекс не захвачен ни одним из потоков и находится в 
+  свободном состоянии; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>если его 
+  идентификатор потока не равен 0, мьютекс захвачен одним из пото ков и 
+  находится в занятом состоянии; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>в отличис 
+  от других объектов ядра мьютексы могут нарушать обычные прави ла, действующие 
+  в операционной системе (об этом — чуть позже) </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+использования объекта-мьютекса один из процессов должен сначала создать его 
+вызовом <I>CreateMutex:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateMutex( PSECURITY_ATTRIBUTES psa, BOOL fIniLialOwner, PCTSTR 
+  pszName);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>O параметрах 
+<I>psa</I> и <I>pszName я </I>рассказывал в главе 3. Разумеется, любой процесс 
+может получить свой («процессо-зависимый») описатель существующего объекта 
+«мьютекс», вызвав <I>OpenMutex:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenMutex( DWORD fdwAccess, 800L bInheritHandle, PCTSTR pszName); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>fInitialOwner</I> опрсдсляст начальное состояние мъютекса. Если в нем пе 
+редается FALSE (что обычно и бывает), объект-мьютекс не принадлежит ни одному из 
+потоков и поэтому находится в свободном состоянии. При этом его идентифика тор 
+потока и счетчик рекурсии равны 0 Если же в нем передается TRUE, идентифи катор 
+потока, принадлежащий мьютексу, приравнивается идентификатору вызываю щего 
+потока, а счетчик рекурсии получает значение 1. Поскольку теперь идентифи катор 
+потока отличен от 0, мьютекс изначально находится в занятом состоянии. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток 
+получаст доступ к разделяемому ресурсу, вызывая одну из <I>Wait</I>-функций и 
+передавая ей описатель мьютекса, который охраняет этот ресурс. <I>Wait-функция 
+</I>про веряет у мьютекса идентификатор потока, если сго значение не равно 0, 
+мьютекс сво боден, в ином случае оно принимает значение идентификатора 
+вызывающего пото ка, и этот поток остается планируемым. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+<I>Wait</I>-функция определяет, что у мьютекса идентификатор потока не равен 0 
+(мьютекс занят), вызывающий поток переходит в состояние ожидания. Система за 
+поминает это и, когда идентификатор обнуляется, записывает в него идентификатор 
+ждущего потока, а<I> </I>счетчику рекурсии присваивает значение 1, после чего 
+ждущий поток вновь становится планируемым. Все проверки и изменения состояния 
+объек та-мьютекса выполняются на уровне атомарного доступа. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для мьютексов 
+сделано одно исключение в правилах перехода объектов ядра из одного состояния в 
+другое Допустим, поток ждет освобождения занятого объекта мьютекса В этом случае 
+поток обычно засыпает (переходит в состояние ожидания). Однако система 
+проверяет, не совпадает ли идентификатор потока, пытающегося захватить мьютекс, 
+с аналогичным идентификатором у мьютекса Если они совпада ют, система 
+по-прежнему выделяет потоку процессорное время, хотя мьютскс все ещс занят. 
+Подобных особенностей в поведении нет ни у каких других объектов ядря в системе. 
+Всякий раз, когда поток захватывает объект-мьютекс, счетчик рекурсии в этом 
+объекте увеличивается на 1 Единственная ситуация, в которой значение счет чика 
+рекурсии может быть больше 1, — поток захватывает один и тот же мьютскс 
+несколько раз, пользуясь упомянутым исключением из общих правил. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+ожидание мьютекса потоком успешно завершается, последний получает монопольный 
+доступ к защищенному ресурсу. Все остальные потоки, пытающиеся обратиться к 
+этому ресурсу, переходят в состояние ожидания Когда поток, занимаю щий ресурс, 
+заканчивает с ним работать, он должен освободить мьютекс вызовом функции 
+<I>ReleaseMutex</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  ReleaseMutex(HANDLE hMutex); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+уменьшает счстчик рекурсии в объекте-мьютексе на 1. Если данный объект 
+передавался во владение потоку неоднократно, поток обязан вызвать <I>Release 
+Mutex </I>столько раз, сколько необходимо для обнуления счстчика рекурсии Как 
+толь ко счетчик станет равен 0, псрсмснная, хранящая идентификатор потока, тоже 
+обну лится, и объект-мьютекс освободится. После этого система проверит, ожидают 
+ли </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>освобождения 
+мьютекса какие-нибудь другие потоки. Если да, система «по-честному» выберет один 
+из ждущих потоков и передаст ему во владение объект-мьютекс.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Отказ от 
+объекта-мьютекса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Объект-мьютекс отличается от остальных объектов ядра тем, что занявшему 
+его по току передаются права на владение им. Прочие объекты могут быть либо 
+свободны, либо заняты — вот, собственно, и все. А объекты-мьютексы способны еще 
+и запоми нать, какому потоку они принадлежат. Если какой-то посторонний поток 
+попытается освободить мьютекс вызовом функции <I>ReleaseMutex, </I>то она, 
+проверив идентифика торы потоков и обнаружив их несовпадение, ничего делать не 
+станет, а просто вер нет FALSE. Тут же вызвав <I>GetLastError, </I>Вы получите 
+значение ERROR_NOT_OWNER. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Отсюда 
+возникает вопрос а что будет, если поток, которому принадлежит мью текс, 
+завершится, не успев его освободить? В таком случае система считает, что про 
+изошел отказ от мьютекса, и автоматически переводит его в свободное состояние 
+(сбрасывая при этом все его счетчики в исходное состояние). Если этот мьютекс 
+ждут другие потоки, система, как обычно, «по-честному" выбирает один из потоков 
+и по зволяет ему захватить мьютекс. Тогда <I>Wait</I>-функция возвращает потоку 
+WAIT_ABANDO NED вместо WAIT_OBJECT_0, и тот узнает, что мьютскс освобожден 
+некорректно. Дан ная ситуация, конечно, не самая лучшая. Выяснить, что сделал с 
+защищенными дан ными завершенный поток — бывший владелец объекта-мьютекса, увы. 
+невозможно. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В реальности 
+программы никогда специально не проверяют возвращаемое зна чение на 
+WAIT_ABANDONED, потому что такое завершение потоков происходит очень редко. 
+(Вот, кстати, еще один яркий пример, доказывающий, что Вы не должны пользо 
+ваться функцией <I>TerminateThread.</I>)</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t6p1></A>Мьютексы и критические секции</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Мьютексы и 
+критические секции одинаковы в том, как они влияют на планирование ждущих 
+потоков, но различны по некоторым другим характеристикам. Эти объекты 
+сравниваются в следующей таблице. </FONT></P>
+<TABLE height=275 cellSpacing=0 cellPadding=0 rules=all width=720 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Характеристики </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Объект-мьютекс </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Обьект 
+      — критическая секция </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Быстродействие </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Малое 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Высокое 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Возможность использования </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>за границами 
+      процесса </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Да</FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Нет</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Объявление </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>HANDLE hmfx;</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>CRITICAL_SECTION cs;</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Инициализация </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2><I>hmtx 
+      = CreateMutex (NULL, FALSE, NULL);</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>InitializeCriticalSection(&amp;cs);</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Очистка 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>CloseHandle(hmtx);</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>DeleteCriticalSection(&amp;cs);</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Бесконечное ожидание </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>WaitForSingleObject (hmtx, INFINITE);</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>EnterCrittcalSection(&amp;cs);</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Ожидание в течение 0 мс </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>WaitForSingleObject</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>(hmtx, 
+      0);</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>TryEnterCriticalSection (&amp;cs);</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Ожидание в течение произвольного периода времени </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>WaitForSingleObject (hmtx, dwMilliseconds);</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Невозможно </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Освобождение </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>ReleaseMutex(hmtx);</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>LeaveCriticalSecliun(&amp;cs);</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=238 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Возможность параллельного ожидания других объектов ядра 
+    </FONT></P></TD>
+    <TD vAlign=top align=left width=236 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Да (с 
+      помощью <I>WaitForMultipleObjects </I>или аналогичной функции) 
+    </FONT></P></TD>
+    <TD vAlign=top align=left width=218 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Нет 
+      </FONT></P></TD></TR></TBODY></TABLE>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t6p2></A>Программа-пример Queue </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «09 Queue.exe» (см. листинг па рис. 9-2), управляет очередью обраба 
+тываемых элементов данных, используя мьютекс и семафор. Файлы исходного кода и 
+ресурсов этой программы находятся в каталоге 09-Queue на компакт-диске, прилд 
+гасмом к книге. После запуска Queue открывается окно, показанное ниже. 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=295 alt=h9-4.jpg src="images/h9-4.jpg" width=338> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+инициализации Queue создает четыре клиентских и два серверных потока. Каждый 
+клиентский поток засыпает на определенный период времени, а затем поме щает в 
+очередь элемент данных. Когда в очередь ставится новый элемент, содержи мое 
+списка Client Threads обновляется Каждый элемент данных состоит из номера 
+клиентского потока и порядкового номера запроса, выданного этим потоком. Напри 
+мер, первая запись в списке сообщает, что клиентский поток 0 поставил в очередь 
+свой первый запрос. Следующие записи свидетельствуют, что далее свои первые зап 
+росы выдают потоки 1-3, потом поток 0 помещает второй запрос, то же самое дела 
+ют остальные потоки, и все повторяется. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Серверные 
+потоки ничего не делают, пока в очереди не появится хотя бы один элемент данных. 
+Как только он появляется, для его обработки пробуждается один из серверных 
+потоков. Состояние серверных потоков отражается в списке Server Threads Первая 
+запись говорит о том, что первый запрос от клиентского потока 0 обрабаты вается 
+серверным потоком 0, вторая запись — что первый запрос от клиентского потока 1 
+обрабатывается серверным потоком 1, и т. д. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом 
+примере серверные потоки не успевают обрабатывать клиентские запро сы и очередь 
+в конечном счете заполняется до максимума. Я установил максималь ную длину 
+очереди равной 10 элементам, что приводит к быстрому заполнению этой очереди. 
+Кроме того, на четыре клиентских потока приходится лишь два серверных. В итоге 
+очередь полностью заполняется к тому моменту, когда клиентский поток 3 пытается 
+выдать свой пятый запрос. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, что 
+делает программа, Вы поняли-, теперь посмотрим — как она это делает (что гораздо 
+интереснее). Очередью управляет С++-класс CQueue:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>class CQueue 
+  <BR>{ <BR>public:</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>Struct ELEMENT 
+  <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  m_nThreadNum, m_nRequestNum;</FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// другие 
+  элементы данных должны быть определены здесь <BR>}; <BR>typedef ELEMENT* 
+  PELEMENT; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>private: 
+  <BR>PELEMENT m_pElements; // массив элементе, подлежащих обработке <BR>int 
+  m_nMaxElements; // количество элементов в массиве <BR>HANDLE m_h[2]; // 
+  описатели мьютекса и семафора <BR>HANDLE &amp;m_hmtxQ; // ссылка на m_h[0] 
+  <BR>HANDLE &amp;rn_hsemNumElemenls; // ссылка на rc_h[1] </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>public: 
+  <BR>COueue(int nMaxElements); <BR>~CQueue(); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  Append(PELtMLNT pElement, DWORD dwMilHseconds); <BR>BOOL Remove(PELEMENT 
+  pElement, DWORD dwMilliseconds); <BR>}; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Открытая 
+структура ELEMENT внутри этого класса определяет, что представляет собой элемент 
+данных, помещаемый в очередь. Его реальное содержимое в данном случае не имеет 
+значения. В этой программе-примере клиентские потоки записыва ют в элемент 
+данных собственный номер и порядковый номер своего очередного запроса, а 
+серверные потоки, обрабатывая запросы, показывают эту информацию в списке. В 
+реальном приложении такая информация вряд ли бы понадобилась. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Что касается 
+закрытых элементов класса, мы имеем <I>т_pElements, </I>который указы вает на 
+массив (фиксированного размера) структур ELEMENT. Эти данные как раз и нужно 
+защищать от одновременного доступа к ним со стороны клиентских и сервер ных 
+потоков. Элемент <I>m_nMaxElements </I>определяет размер массива при создании 
+объекта CQueue. Следующий элемент, <I>m_h, — </I>это массив из двух описателей 
+объек тов ядра. Для корректной защиты элементов данных в очереди нам нужно два 
+объек та ядра: мьютекс и семафор. Эти дня объекта создаются в конструкторе 
+CQueuc; в нем же их описатели помещаются в массив <I>m_h.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как Вы вскоре 
+увидите, программа периодически вызывает <I>WaitForMultipleObjectS, 
+</I>передавая этой функции адрес массива описателей. Вы также убедитесь, что 
+програм ме время от времени приходится ссылаться только на один из этих 
+описателей. Что бы облегчить чтение кода и его модификацию, я объявил два 
+элемента, каждый из которых содержит ссылку на один из описателей, — <I>m_bmtxQ 
+</I>и <I>m_hsemNumElements. </I>Конструктор CQueue инициализирует эти элементы 
+содержимым <I>m_h[0] </I>и <I>m_h[l] </I>соответственно. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь Вы и 
+сами без труда разберетесь в методах конструктора и деструктора CQueue, поэтому 
+я перейду сразу к методу <I>Append. </I>Этот метод пытается добавить ELEMENT в 
+очередь. Но сначала он должен убедиться, что вызывающему потоку раз решен 
+монопольный доступ к очереди. Для этого метод <I>Append </I>вызывает <I>WaitFor~ 
+SingleObject, </I>передавая ей описатель объекта-мьютекса, <I>m_hmlxQ. </I>Если 
+функция воз вращает WAIT_OBJECT_0, значит, поток получил монопольный доступ к 
+очереди. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее метод 
+<I>Append </I>должен попытаться увеличить число элементов в очереди, вызвав 
+функцию <I>ReleaseSemaphore </I>и передав ей счетчик числа освобождений (release 
+count), равный 1. Если вызов <I>ReleaseSemaphore </I>проходит успешно, в очереди 
+еще есть место, и в нее можно поместить новый элемент. К счастью, 
+<I>ReleaseSemapbore </I>возвра щает в переменной <I>lPreviousCount 
+</I>предыдущее количество элементов в очереди. Бла годаря этому Вы точно знаете, 
+в какой элемент массива следует записать новый эле </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>мент данных. 
+Скопировав элемент в массив очсрсди, функция возвращает управле ние. По 
+окончании этой операции <I>Append </I>вызывает <I>ReleaseMutex, </I>чтобы и 
+другие потоки могли получить доступ к очереди. Остальной код в методе <I>Append 
+</I>отвечает за обработку ошибок и неудачных вызовов. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+посмотрим, как серверный поток вызывает метод <I>Remove </I>для выборки эле 
+мента из очереди. Сначала этот метод должен убедиться, что вызывающий поток по 
+лучил монопольный доступ к очереди и что в ней есть хотя бы один элемент. Разуме 
+ется, серверному потоку нст смысла пробуждаться, если очередь пуста. Поэтому ме- 
+i тод <I>Remove </I>предварительно обращается к <I>WaitForMultipleObjects, 
+</I>передавая ей описа тели мьютекса и семафора. И только после освобождения 
+обоих объектов серверный поток может пробудиться. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+возвращается WAIT_OBJECT_0, значит, поток получил-монопольный доступ<SUP> 
+</SUP>к очереди и в ней есть хотя бы один элемент. В этот момент программа 
+извлекает из массива элемент с индексом 0, а остяльные элементы сдвигает вниз на 
+одну позицию. Это, конечно, не самый эффективный способ реализации очереди, так 
+как требует слишком большого количества операций копирования в памяти, но наша 
+цсль зак лючается лишь в том, чтобы продемонстрировать синхронизацию потоков. По 
+окон чании этих операций вызывается <I>ReleaseMutex, </I>и очередь становится 
+доступной дру гим потокам. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+объект-семафор отслеживает, сколько элементов находится в оче реди. Вы, 
+наверное, сразу же поняли, что это значение увеличивается, когда метод <I>Append 
+</I>вызывает <I>ReleaseSemaphore </I>после добавления нового элемента к очереди. 
+Но как оно уменьшается после удаления элемента из очереди, уже не столь 
+очевидно. Эта операция выполняется вызовом <I>WaitForMultipleObjects </I>из 
+метода <I>Remove. </I>Тут надо вспомнить, что побочный эффект успешного ожидания 
+семафора заключается в уменьшении его счетчика на 1. Очень удобно для нас. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь, когда 
+Вы понимаете, как работает класс CQueue, Вы легко разберетесь в остальном коде 
+этой программы. </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/09-Queue.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>Queue</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t7></A>Сводная таблица объектов, используемых для синхронизации 
+потоков</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В следующей 
+таблице суммируются сведения о различных объектах ядра примени тельно к 
+синхрониаации потоков. </FONT></P>
+<TABLE height=125 cellSpacing=0 cellPadding=0 rules=all width=733 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Объект 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Находится в занятом состоянии, когда </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Переходит в свободное состояние, когда </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Побочный эффект успешного ожидания </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=70>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Процесс 
+      </FONT><BR><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Поток </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=70>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>процесс 
+      еще активен поток еще активен </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=70>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>процесс 
+      завершается <I>(ExitProcess, TerminateProcess)</I> </FONT><BR><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>поток 
+      завершается <I>(ExitThread, TerminateThread)</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=70>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Нет 
+      <BR>Нет </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Объект 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Находится в занятом состоянии, когда: </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Переходит в свободное состояние, когда: </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Побочный эффект успешного ожидания </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Задание</FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>время, 
+      выделенное </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>заданию, еще не истекло </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>время, 
+      выделенное заданию, </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>истекло </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Нет</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Файл</FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>выдан 
+      запрос </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>на ввод-вывод </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>завершено выполнение </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>запроса на 
+      ввод-вывод </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Нет</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Консольный </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ВВОД </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>ввода 
+      нет</FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>ввод 
+      есть</FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Нет</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Уведомление </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>об изменении </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>файла 
+    </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>в 
+      файловой системе </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>нет изменений</FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>файловая система </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>обнаруживает изменения</FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сбрасывается </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>в исходное </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>состояние 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Событие 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=2>с 
+      автосбросом</FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вызывается <I>ResetEvent,</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>PulseEvent 
+      </I>или ожидание </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>успешно завершилось </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вызывается <I>SetEvent</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>или 
+      <I>PulseEvent</I></FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сбрасывается </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>в исходное </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>состояние 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Событие 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=2>со 
+      сбросом </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вручную </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вызывается <I>ResetEvent</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>или 
+      <I>PulseEvent</I></FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вызывается <I>SetEvent</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>или 
+      <I>PulseEvent</I></FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Нет</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Ожидаемый </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>таймер </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>с автосбросом 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вызывается <I>CancelWaitable-</I> </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>Тiтеr </I>или 
+      ожидание </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>успешно завершилось </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>наступает время </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>срабатывания </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>(SetWaitableTimer)</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=49>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сбрасывается </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>в исходное </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>состояние 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Ожидаемый </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>таймер </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>со сбросом 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вручную </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>вызывается <I>CancelWaitable</I></FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2><I>Timer</I> 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>наступает время </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>срабатывания </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>(SetWaitableTimef)</I></FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Нет 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Семафор</FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ожидание успешно </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>завершилось </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>счетчик 
+      &gt; 0 </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>(ReleaseSemaphore)</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Счетчик 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>уменьшается на 1 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Мьютекс</FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ожидание успешно </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>завершилось </FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>поток 
+      освобождает мьютекс </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2><I>(ReleaseMutex)</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=35>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Передается пото </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>ку во владение </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=107 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Критическая </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>секция (поль </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>зовательского 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>режима) </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ожидание успешно </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>завершилось </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>( 
+      <I>(Try)EnterCriticalSection</I>)</FONT></P></TD>
+    <TD vAlign=top align=left width=239 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>поток 
+      освобождает </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>критическую секцию </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>(LeaveCriticalSection)</I></FONT></P></TD>
+    <TD vAlign=top align=left width=144 height=64>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Передается потоку </FONT><FONT face="Times New Roman, Times, serif" 
+      color=#000000 size=2>во владение </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>Interlocked</I>-функции (пользовательского режима) никогда не приводят 
+к исключе нию потока из числа планируемых; они лишь изменяют какое-то значение и 
+тут же возвращают управление.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h9t8></A>Другие функции, применяемые в синхронизации потоков</B> 
+</FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+синхронизации потоков чащс всего используются функции <I>WaitForSingleObject 
+</I>и <I>WaitForMultipleObjects.</I> OднaкoвWindows ecть и дpyгиe, нecкoлькo 
+oтличaющиecя фyнк ции, которые можно применять с той же целью. Если Вы 
+понимаете, как работают <I>Wait ForSingleObject </I>и <I>WaitForMultipleQbjects, 
+</I>Вы без труда разберетесь и в этих функциях.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t8p1></A>Асинхронный ввод-вывод на устройствах </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+асинхронном вводе-выводе поток начинает операцию чтения или записи и не ждет ее 
+окончания. Например, если потоку нужно загрузить в память большой файл, он может 
+сообщить системе сделать это за него. И пока система грузит файл в па мять, 
+поток спокойно занимается другими задачами — создает окна, инициализирует 
+внутренние структуры данных и т. д. Закончив, поток приостанавливает себя и ждет 
+уведомления от системы о том, что загрузка файла завершена. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты 
+устройств являютсн синхронизируемыми объектами ядра, а это означа ет, что Вы 
+можете вызывать <I>WaitForSingleObject </I>и передавать ей описатель какого-либо 
+файла, сокета, коммуникационного порта и т. д. Пока система выполняет асинхрон 
+ный ввод-вывод, объект устройства пребывает в занятом состоянии. Как только опе 
+рация заканчивается, система переводит объект в свободное состояние, и поток уз 
+нает о завершении операции. С этого момента поток возобновляет 
+выполнение.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t8p2></A>Функция WaitForlnputldle </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток может 
+приостановить себя и вызовом <I>WaitForlnputIdle:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  WaitForInputIdle( HANDLE hProcess, DWORD dwMilliseconds); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+ждет, пока у процесса, идентифицируемого описателем <I>bProcess, </I>не опустеет 
+очередь ввода в потоке, создавшем первое окно приложения. <I>WaitForlnputldle 
+</I>полезна для применения, например, в родительском процессе, который порождает 
+дочерний для выполнения какой-либо нужной ему работы. Когда один из потоков 
+родительского процесса вызывает <I>CreateProcess, </I>он продолжает выполнение и 
+в то время, пока дочерний процесс инициализируется. Этому потоку может 
+понадобить ся описатель окна, создаваемого дочерним процессом. Единственная 
+возможность узнать о моменте окончания инициализации дочернего процесса — 
+дождаться, когда тот прекратит обработку любого ввода Поэтому после вызова 
+<I>CreateProcess </I>поток родительского процесса должен вызвать 
+<I>WaitForInputIdle.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эту функцию 
+можно применить и в том случае, когда Вы хотите имитировать в программе нажатие 
+каких-либо клавиш. Допустим, Вы асинхронно отправили в глав ное окно приложения 
+следующие сообщения: </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>WM_KEYDOWN с 
+виртуальной клавишей VK_MENU </FONT><BR><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>WM_KEYDOWN с 
+виртуальной клавишей VK_F </FONT><BR><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3>WM_KEYUP с вирчуальной клавишей VK_F </FONT><BR><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>WM_KEYUP с виртуальной 
+клавишей VK_MENU </FONT><BR><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3>WM_KEYDOWN с виртуальной клавишей VK_O </FONT><BR><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>WM_KEYUP с виртуальной 
+клавишей VK_O </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+последовательность дает тот же эффект, что и нажатие клавиш Alt+F, О, — в 
+большинстве англоязычных приложений это вызывает команду Open из меню File. 
+Выбор данной команды открывает диалоговое окно; но, прежде чем оно появится на 
+экране, Windows должна загрузить шаблон диалогового окна из файла и «пройтись» 
+по всем элементам управления в шаблоне, вызывая для каждого из них функцию 
+<I>CreateWindow. </I>Разумеется, на это уходит какое-то время. Поэтому 
+приложение, асин хронно отправившее сообщения типа WM_KEY*, теперь может вызвать 
+<I>WaitForlnput ldle </I>и таким образом перейти в режим ожидания до того 
+момента, как Windows за кончит создание диалогового окна и оно будет готово к 
+приему данных от пользова теля. Далее программа может передать диалоговому окну 
+и сго элементам управле ния сообщения о еще каких-то клавишах, что заставит 
+диалоговое окно проделать те илииныеоперации. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С этой 
+проблемой, кстати, сталкивались многие разработчики приложений для 16 разрядной 
+Windows Программам нужно было асинхронно передавать сообщения в окно, но 
+получить точной информации о том, создано ли это окно и готово ли к работе, они 
+не могли. Функция <I>WaitForlnputldle </I>решает эту проблему </FONT></P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t8p3></A>Функция MsgWaitForMultipleObjects(Ex) </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+<I>MsgWaitForMultipleObjects </I>или <I>MsgWaitForMultipleObjectsEx </I>поток 
+переходит в ожидание своих (предназначенных этому потоку) сообщений:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  MsgWaitForMultipleObjects( DWORD dwCount, PHANDLE phObjects, BOOL fWaitAll, 
+  DWORD dwMilliseconds, DWORD<B> </B>dwWakeMask); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  MsgWaitForMultipleObjectsEx( DWORD dwCount, PHANDLE phObjects, DWORD 
+  dwMillisGConds, DWORD dwWakeMask DWORD dwFlags);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти функции 
+аналогичны <I>WaitForMultipleObjects. </I>Единственное различие заключа ется в 
+том, что они пробуждают поток, когда освобождается некий объект ядра или когда 
+определенное оконное сообщение требует перенаправления в окно, созданное 
+вызывающим потоком. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток, 
+который создает окна и выполняетдругие операции, относящиеся к пользо 
+вательскому интерфейсу, должен работать с функцией 
+<I>MsgWaitForMultipleObjectsEx, </I>а не с <I>WaitForMultipleObjects, </I>так 
+как последняя не дает возможности реагировать на действия пользователя Подробнее 
+эти функции рассматриваются в главе 26</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t8p4></A>Функция WaitForDebugEvent </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+встроены богатейшие отладочные средства Начиная исполнение, отлад чик подключает 
+себя к отлаживаемой программе, а потом просто ждет, когда опера ционная система 
+уведомит его о каком-нибудь событии отладки, связанном с этой программой 
+Ожидание таких событий осуществляется через вызов</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  WaitForDebugEvent( PDEBLIG_F_VENT pde, DWORD dwMimseconds); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+отладчик вызывает <I>WaitForDebugEvent, </I>его поток приостанавливается Сис 
+тема уведомит поток о событии отладки, разрешив функции <I>WaitForDebugEvent 
+</I>вер нуть управление. Структура, на которую указывает параметр <I>pdе,</I> 
+заполняется систе мой перед пробуждением потока отладчика В ней содержится 
+информация, касаю щаяся только что произошедшего события отладки.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h9t8p5></A>Функция SignalObjectAndWait </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>SignalObjectAndWait </I>переводит в свободное состояние один объект 
+ядра и ждет дру гой объеют ядра, выполняя все это как одну операцию на уровне 
+атомарного доступа:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  SignalObjectAndWait( HANDLE hObjectToSignal, HANDLE hObjectToWaitOn, DWORD 
+  dwMilliseconds, BOOL fAlertable);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hObjectToSignal </I>должен<I> </I>идентифицировать мьютекс, семафор или собы 
+тие; объекты любого другого типа заставят <I>SignalObjectAndWait </I>вернуть 
+WAIT_FAILED, а функцию <I>GetLastError — </I>ERROR_INVALIDHANDLE. Функция 
+<I>SignalObjectAndWait </I>про веряет тип объекта и выполняет действия, 
+аналогичные тем, которые предпринима ют функции <I>ReleaseMutex, 
+ReleaseSemaphore </I>(со счетчиком, равным 1) или <I>ResetEvent.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hObjectToWaitOn </I>идентифицирует любой из следующих объектов ядра: мьютекс, 
+семафор, событие, таймер, процесс, поток, задание, уведомление об изме нении 
+файла или консольный ввод. Параметр <I>dwMilliseconds, </I>как обычно, 
+определяет, сколько времени функция будет ждать освобождения объекта, a флаг 
+<I>fAlertable </I>указы вает, сможет ли поток в процессе ожидания обрабатывать 
+посылаемые ему АРС-вы зовы. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+возвращает одно из следующих значений: WAIT_OBJECT_0, WAIT_TIME OUT, 
+WAIT_FAILED, WATT_ABANDONED (см. раздел о мьютексах) или WAIT_IO_COMP LETION. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>SignalObjectAndWait — </I>удачное добавление к Windows AFI по двум 
+причинам. Bo псрвых, освобождение одного объекта и ожидание другого — задача 
+весьма распро страненная, а значит, объединение двух операций в одной функции 
+экономит про цессорное время. Каждый вызов функции, заставляющей поток 
+переходить из кода, который работает в пользовательском режиме, в код, 
+работающий в режиме ядра, требует примерно 1000 процессорных тактов (на 
+платформах x86), и поэтому для выполнения, например, такого кода:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>ReleaseMutex(hMutex); WaitForSingleObject{hEvent, INFINITE); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>понадобится 
+около 2000 тактов. В высокопроизводительных серверных приложени ях 
+<I>SignalObjectAndWait </I>дает заметную экономию процессорного времени. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-вторых, 
+без функции <I>SignalObjectAndWait </I>ни у одного потока не было бы воз 
+можности узнать, что другой поток перешел в состояние ожидания. Знание таких 
+вещей очень полеяно для функций типа <I>PulseEvent. </I>Как я уже говорил в этой 
+главе, <I>PulseEvenl </I>переводит событие в свободное состояние и тут же 
+сбрасывает его. Если ни один из потоков не ждет данный объект, событие не 
+зафиксирует этот импульс (pulse). Я встречал программистов, которые пишут вот 
+такой код:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// выполняем 
+  какие-то операции </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetEvent(hEventWorkerThreadDone); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>WaitForSingleObject(hEventMoreWorkToBeDone, INFINITE); <BR>// выполняем 
+  еще какие-то операции </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>...</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот фрагмент 
+кода выполняется рабочим потоком, который проделывает какие то операции, а затем 
+вызывает <I>SetEvent, </I>чтобы сообщить (другому потоку) об оконча нии своих 
+операций. В то же время в другом потоке имеется код:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>WaitForSingleObject(hEventWorkerTnreadDone); 
+  PulseEvent(hEventMoreWorkToBeDone); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Приведенный 
+ранее фрагмент кода рабочего потока порочен по самой своей сути, так как будет 
+работать ненадежно. Ведь вполне вероятно, что после того, как рабо чий поток 
+обратится к <I>SetEvent, </I>немедленно пробудится другой поток и вызовет 
+<I>Pulse Event. </I>Проблема здесь в том, что рабочий поток уже вытеснен и пока 
+еще не получил шанса на возврат из вызова <I>SetEvent, </I>не говоря уж о вызове 
+<I>WaitForSingleObject. </I>В ито </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ге рабочий 
+поток не сможет своевременно освободить событие <I>bEventMoreWork ToBeDone</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но если Вы 
+перепишете код рабочего потока с использованием функции <I>Signal 
+ObjectAndWait</I></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// выполняем 
+  какие-то операции </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SignalObjectAndWait(hEventWorkerThreadDone, hEventMoreWorkToBflDonc, 
+  INFINITE, FALSE); <BR>// выполняем еще какие-то операции</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>то код будет 
+работать надежно, поскольку освобождение и ожидание реализуются на уровне 
+атомарного доступа. И когда пробудичся другой поток, Вы сможете быть аб солютно 
+уверены, что рабочий поток ждет события <I>hEventMoreWorkToBeDone, </I>а зна 
+чит, он обязательно заметит импульс, «приложенный" к событию.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>В Windows 98 функция 
+  <I>SignalObjectAndWait </I>определена, но не реализована. 
+</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P>
+<A href="head08.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head10.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

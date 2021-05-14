@@ -1,0 +1,795 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h14></A>ГЛАВА 14</FONT> <FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>Исследование виртуальной памяти </FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В предыдущей 
+главе мы выяснили, как система управляет виртуальной памятью, как </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>процесс 
+получает свое адресное пространство и что оно собой представляет А сей час мы 
+перейдем от теории к практике и рассмотрим некоторые Windows-функции, сообщающие 
+о состоянии системной памяти и виртуального адресного пространства в том или 
+ином процессе </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h14t1></A>Системная информация</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Многие 
+параметры операционной системы (размер страницы, гранулярность выде ления памяти 
+и др) зависят от используемого в компьютере процессора Поэтому нельзя жестко 
+«зашивать» их значения в исходный код пpoгpaмм Эту информацию надо считывать в 
+момент инициализации процесса с помощью функции <I>GetSystemfnfo</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  GetSystemInfo(LPSYSTEM_INFO psinf); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы должны 
+передать в <I>GetSystemInfo </I>адрес структуры SYSTEM_INFO, и функция 
+инициализирует элементы этой структуры</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _SYSTEM_INFO <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>union <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+      dwOemIdж <BR>// не используйте этот элемент он устарел </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>struct 
+      <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>WORD 
+        wProcessorArchitecture;<SUB> </SUB><BR>WORD wRescrved; 
+      </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}; 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwPageSize; <BR>LPVOID lpMinimurnApplirationAddress; <BR>LPVOID 
+    lpMaximumApplicationAddress; <BR>DWORD_PTR dwActiveProcessorMask; <BR>DWORD 
+    dwNumberOfProcessors; <BR>DWORD dwProcessorType; <BR>DWORD 
+    dwAllocationGranularity; <BR>WORD wProcessorLevel; <BR>WORD 
+    wProcessorRpvi4inn; </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} SYSTEM INFO 
+  *LPSYSlEM_INFO; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При загрузке 
+система определяет значения элементов этой структуры, для кон </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>кретной 
+системы их значения постоянны Функция <I>GetSystemInfo </I>предусмотрена спе 
+циально для того, чтобы и приложения могли получать эту информацию Из всех 
+элементов структуры лишь четыре имеют отношение к памяти Они описаны в сле 
+дующей таблице. </FONT></P>
+<TABLE height=207 cellSpacing=0 cellPadding=0 rules=all width=712 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=535 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwPageStze</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=535 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Размер 
+      страницы памяти. На процессорах x86 это значение ра но 4096, а на 
+      процессорах Alpha — 8192 байтам. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=69>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>IpMinimumApplicationAddress</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=535 height=69>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Минимальный адрес памяти доступного адресного пространен для 
+      каждого процесса. В Windows 98 это значение равно 4 194 304, или 
+      0x00400000, поскольку нижние 4 Мб адресного пространства каждого процесса 
+      недоступны. В Windows 2000 это значение равно 65 536, или 0x00010000, так 
+      как в этой сие теме резервируются лишь первые 64 Кб адресного пространст 
+      каждого процесса </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=84>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>lpMaximwnApplicationAddress</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=535 height=84>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Максимальный адрес памяти доступного адресного простран ства, 
+      отведенного в "личное пользование" каждому процессу. В Windows 98 этот 
+      адрес равен 2 147 483 647, или 0x7FFFFFFF, так как верхние 2 Гб занимают 
+      общие файлы, проецируемые в память, и разделяемый код операционной 
+      системы. В Windows 2000 этот адрес соответствует началу раздела для кода и 
+      данных режима ядра за вычетом 64 Кб. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwAllocationGranularity</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=535 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Гранулярность резервирования регионов адресного простран ства На 
+      момент написания книги это значение составляет 64 для всех платформ 
+      Windows </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Остальные 
+элементы этой структуры показаны в таблице ниже. </FONT></P>
+<TABLE height=41 cellSpacing=0 cellPadding=0 rules=all width=709 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwOemld</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Устарел, больше не используется </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wReserved</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован на будущее; пока не используется </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwNumberOfProcessors</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Число 
+      процессоров в компьютере </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwActiveProcessorMask</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Битовая 
+      маска, которая сообщает, какие процессоры активны (выполняют потоки) 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwProcessorType</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Используется только в Windows 98; сообщает тип процессора, например 
+      Intel 386, 486 или Pentium </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wProcessorArchitecture</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Используется только в Windows 2000; сообщает тип архитектуры 
+      процессора, например Intel, Alpha, 64-разрядный Intel или 64-разрядный 
+      Alpha </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wProcessorLevel</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=32>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Используется только в Windows 2000; сообщает дополнительные 
+      подробности об архитектуре процессора, например Intel Pentium Pro или 
+      Pentium II </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=154 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>wProcessorRevision</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=576 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Используется только в Windows 2000; сообщает дополнительные 
+      подробности об уровне данной архитектуры процессора 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h14t1p1></A>Программа-пример Syslnfo </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «14 SysInfo.exe» (см. листинг на рис. 14-1), весьма проста; она 
+вызыва ет функцию <I>GetSystemInfo </I>и выводит на экран информацию, 
+возвращенную в струк туре SYSTEM_INFO. Файлы исходного кода и ресурсов этой 
+программы находятся в каталоге 14-SysInfo на компакт-диске, прилагаемом к книге 
+Диалоговые окна с ре зультатами выполнения программы SysInfo на разных 
+процессорных платформах показаны ниже. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=182 alt=rihter14-1.jpg src="images/rihter14-1.jpg" 
+width=605> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Windows 98 на процессоре x86 32-разрядная Windows 2000 на процессоре x86 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=177 alt=rihter14-2.jpg src="images/rihter14-2.jpg" 
+width=599> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>32-разрядная Windows2000 64 разрядная Windows 2000 на процессореА1рhа на 
+процессоре Alpha </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/14-SysInfo.zip"><IMG 
+height=16 src="images/" width=16>Syslnfo</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h14t2></A>Статус виртуальной памяти</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Windows-функция G<I>lobalMemoryStatus </I>позволяет отслеживать текущее 
+состояние па мяти</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  GlobalMemoryStatus(LPMEMORYSTATUS pmst);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На мой 
+взгляд, она названа крайне неудачно, имя <I>GlobalMemorySlatus </I>подразуме 
+вает, что функция каким-то образом связана с глобальными кучами в 16-разрядной 
+Windows Мне кажется, что лучше было бы назвать функцию <I>GlobalMemoryStatus 
+</I>по другому — скажем, <I>VirtualMemoryStatus.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+функции <I>GlobaUdemoryStatus </I>Вы должны передать адрес структуры 
+MEMORYSTATUS. Вот эта структура:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _MEMORYSTATUS <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwLength; <BR>DWORD dwMemoryLoad; <BR>SIZE_T dwTotalPhys; <BR>SIZE_T<B> 
+    </B>dwAvailPhys; <BR>SIZE_T<B> </B>dwTotalPageFile; <BR>SIZE_T 
+    dwAvailPageFile; <BR>SIZE_T dwTotalVirtual; <BR>SIZE_T dwAvailVirtual; 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  MEMORYSTATUS, *LPMEMORYSTATUS;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перед вызовом 
+<I>GlobalMemoryStatus </I>надо записать в элемент <I>dwLength </I>размер струк 
+туры в байтах. Такой принцип вызова функции дает возможность Microsoft расширять 
+эту структуру в будущих версиях Windows, не нарушая работу существующих прило 
+жений После вызова <I>GlobalMemoryStatus </I>инициализирует остальные элементы 
+струк туры и возвращает управление. Назначение элементов этой структуры Вы 
+узнаете из следующего раздела, в котором рассматривается программа-пример 
+VMStat. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+полагаете, что Ваше приложение будет работать на машинах с объемом оперативной 
+памяти более 4 Гб или файлом подкачки более 4 Гб, используйте новую функцию 
+<I>GlobalMemoryStatusEx:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GlobalHemoryStatusEx(LPMEHORYSTATUSEX pmst); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы должны 
+передать ей адрес новой структуры MEMORYSTATUSEX:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _MEMORYSTATUSEX <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwLength; <BR>DWORD dwMemoryLoad; <BR>DWORDLONG ullTotalPhys; <BR>DWORDLONG 
+    ullAvailPhys; <BR>DWORDLONG ullTotalPageFile; <BR>DWORDLONG 
+    ullAvaiIPageFile; <BR>DWORDLONG ullTotalVirtual; <BR>DWORDLONfi 
+    uUAvailVirtual; <BR>DWOHDLONG ullAvailExtendedVirtual; 
+</FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  MEMORYSTATUSEX, *LPMEMORYSTATUSEX;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта структура 
+идентична первоначальной структуре MEMORYSTATUS с одним ис ключением все ее 
+элементы имеют размер по 64 бита, что позволяет оперировать со значениями, 
+превышающими 4 Гб. Последний элемент, <I>ullAvailExtendedVirtual, </I>указы вает 
+размер незарезервированной памяти в самой большой области памячи виртуаль ного 
+адресного пространства вызывающего процесса. Этот элемент имеет смысл толь ко 
+для процессоров определенных архитектур при определенных 
+конфигурациях,</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h14t2p1></A>Программа-пример VMStat</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «14 VMStat.exe» (см. листинг на рис. 14-2), выводит на экран окно с 
+результатами вызова <I>GlobalMemoryStatus </I>Информация в окне обновляется 
+каждую </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>секунду, так 
+что VMStat вполне пригодна для мониторинга памяти в системе. Файлы </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>исходного 
+кода и ресурсов этой программы находятся в каталоге 14-VMStat на ком пакт-диске, 
+прилагаемом к книге. Окно этой программы после запуска в Windows 2000 на машине 
+с процессором Intel Pentium II и 128 Мб оперативной памяти показано ниже. 
+</FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=127 alt=rihter14-3.jpg src="images/rihter14-3.jpg" 
+width=202> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элемент 
+<I>dwMemoryLoad </I>(показываемый как Memory Load) позволяет оценить, на сколько 
+занята подсистема управления памятью. Это число может быть любым в ди апазоне от 
+0 до 100 В Windows 98 и Windows 2000 алгоритмы, используемые для его подсчета, 
+различны. Кроме того, в будущих версиях операционных систем этот алго ритм почти 
+наверняка придется модифицировать. Но, честно говоря, на практике от значения 
+этого элемента толку немного </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элемент 
+<I>dwTotalPhys </I>(показываемый как TotalPhys) отражает общий объем физи ческой 
+(оперативной) памяти в байтах. На данной машине с Pentium II и 128 Мб опе 
+ративной памяти его значение составляет 133 677 056, что на 540 672 байта меньше 
+128 Мб. Причина, по которой <I>GlobalMemoryStatus </I>не сообщает о полных 128 
+Мб, кро ется в том, что система при загрузке резервирует небольшой участок 
+оперативной памяти, недоступный даже ядру. Этот участок никогда не сбрасывается 
+на диск А эле мент <I>dwAvailPhys </I>(показываемый как AvailPhys) дает число 
+байтов свободной физи ческой памяти. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элемент 
+<I>dwTotalPageFile </I>(показываемый как TotalPagcFile) сообщает максимальное 
+количество байтов, которое может содержаться в страничном файле (файлах) на 
+жестком диске (дисках). Хотя VMStat показывает, что текущий размер страничного 
+файла составляет 318 574 592 байта, система может варьировать его по своему 
+усмот рению Элемент <I>dwAvailPageFile </I>(покапываемый как AvailPageFile) 
+подсказывает, что в данный момент 233 046 0l6 байтов в страничном файле свободно 
+и может быть пе редано любому процессу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элемент 
+<I>dwTotalVirtual </I>(показываемый как TotalVirtual) отражает общее количе ство 
+байтов, отведенных под закрытое адресное пространство процесса. Значение 2 147 
+352 576 ровно на 128 Кб меньше 2 Гб. Два раздела недоступного адресного про 
+странства — от 0x00000000 до 0x0000FFFF и от 0x7FFF0000 до 0x7FFFFFFF — как раз 
+и составляют эту разницу в 128 Кб. Запустив VMStat в Windows 98, Вы увидите, что 
+значение этого элемента поменялось на 2 143 289 344 (2 Гб за вычетом 4 Мб). 
+Разница в 4 Мб возникает из-за того, что Windows 98 блокирует нижний раздел от 
+0x00000000 до 0x003FFFFF (размером в 4 Мб). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, 
+<I>dwAvailVirtual </I>(показываемый как AvailVirtual) — единственный элемент 
+структуры, специфичный для конкретного процесса, вызывающего 
+<I>GlobalMemoryStatus </I>(остальные элементы относятся исключительно к самой 
+системе и не зависят от того, какой именно процесс вызывает эту функцию). При 
+подсчете значения <I>dwAvaiWirtual </I>функция суммирует размеры вссх свободных 
+регионов в адресном пространстве вы зывающего процесса. В данном случае его 
+значение говорит о том, что в распоряже нии программы VMStat имеется 2 136 846 
+336 байтов свободного адресного простран ства. Вычтя из значения 
+<I>dwTotalVirtual </I>величину <I>dwAvailVirtual, </I>Вы получите 10 506 240 
+байтов — такой объем памяти VMStat зарезервировала в своем виртуальном адресном 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>пространстве 
+Отдельного элемента, который сообщал бы количество физической памяти, 
+используемой процессом в данный момент, не предусмотрено </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/14-VMStat.zip"><IMG 
+height=16 src="images/" width=16>VMStat</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h14t3></A>Определение состояния адресного пространства</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+имеется функция, позволяющая запрашивать определенную информацию об участке 
+памяти по заданному адресу (в пределах адресного пространства вызыва ющего 
+процесса): размер, тип памяти и атрибуты защиты. В частности, с ее помощью 
+программа VMMap (ее листинг см. на рис. 14-4) выводит карты виртуальной памяти, 
+с которыми мы познакомились в главе 13- Вот эта функция:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  VirtualQuery( LPCVOID pvAddress, PMEMORY_BASIC_INFORMATION pmbi, DWORD 
+  dwLength); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Парная ей 
+функция, <I>VirtualQueryEx, </I>сообщает ту же информацию о памяти, но в другом 
+процессе:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  VirtualQueryEx( HANDLE hProcess, LPCVOID pvAddress, PMEMORY_BASIC_INFORMATION 
+  pmbi, DWORD dwLength); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти функции 
+идентичны с тем исключением, что <I>VirtualQueryEx </I>принимает опи сатель 
+процесса, об адресном пространстве которого Вы хотите получить информа цию Чаще 
+всего функцией <I>VirtualQueryEx </I>пользуются отладчики и системные утили ты — 
+остальные приложения обращаются к <I>VirtitalQuery. </I>При вызове 
+<I>VirtualQitery(Ex) </I>параметр <I>pvAddress </I>должен содержать адрес 
+виртуальной памяти, о которой Вы хо тите получить информацию Параметр <I>ртbi 
+</I>— это адрес структуры MEMORY_BA SIC_INFORMATION, которую надо создать перед 
+вызовом функции. Данная структура определена в файле WinNT.h так </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _MFMORY_BASIC_INFORMATION <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+    BaseAddress;<BR>PVOID AllocationBase; <BR>DWORD AllocationProtect; 
+    <BR>SIZE_T RegionSize; <BR>DWORO State; <BR>DWORD Protect;<BR>DWORD Type; 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  MEMORY_BASIC_INFORMATION, PMEMORY_BASIC_INFORMATION;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>dwLength </I>задает размер структуры MEMORY_BASIC_INFORMATION. Фун кция 
+<I>VirtualQuery(Ex) </I>возвращает число байтов, скопированных в буфер. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Используя 
+адрес, указанный Вами в параметре <I>pvAddress, </I>функция <I>VirtualQuery(Ex) 
+</I>заполняет структуру информацией о диапазоне смежных страниц, имеющих одина 
+ковые состояние, атрибуты защиты и тип. Описание элементов структуры приведено в 
+таблице ниже </FONT></P>
+<TABLE height=8 cellSpacing=0 cellPadding=0 rules=all width=717 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=16>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=16>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>BaseAddress</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает то же значение, что и параметр<I> pvAddress, </I>но 
+      округленное до ближайшего меньшею адреса, кратного размеру страницы 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>AllocationBase</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует базовый адрес региона, включающего в себя адрес, 
+      </FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>указанный в параметре<I> pvAddress</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>AllocationProtect</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует атрибут защиты, присвоенный региону при его 
+      резервировании </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>RegionSize</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщаем суммарный размер (в байтах) группы страниц, которые на 
+      чинаются с базового адреса <I>BaseAddress </I>и имеют тс же атрибуты защи 
+      ты, состояние и тип, что и страница, расположенная по адресу, укачан ному 
+      в параметре <I>pvAddress</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=86>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>State</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=86>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает состояние (MEM_FRFF, MFM_RFSFRVE или MEM_COMMIT) всех 
+      смежных страниц, которые имеют те же атрибуты защиты, состо яние и тип, 
+      что и страница, расположенная по адресу, указанному в параметре 
+      <I>pvAddress.</I> </FONT></P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>При 
+      MEM_FREE элементы <I>AllocationBase, AllocationProtect, Protect </I>и 
+      <I>Туре </I>содержат неопределенные значения, а при MEM_RESERVE неопреде 
+      ленное значение содержит элемент <I>Protect.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>Protect</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=55>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует атрибут защиты (PAGE *) всех смежных страниц, ко 
+      торые имеют те же трибуты защиты, состояние и тип, что и страница, 
+      расположенная по адресу, указанному в параметре <I>pvAddress</I> 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=100 height=62>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>Type</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=611 height=62>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицируем тип физической памяти (MEM_IMAGE, MEM_MAPPED или MEM 
+      PRIVATE), связанной с группой смежных страниц, которые имеют те же 
+      атрибуты защиты, состояние и тип, что и страница, рас положенная по 
+      адресу, указанному в пара метре <I>pvAddress </I>В Windows 98 этот элемент 
+      всегда дает MFM_PRIVATE </FONT></P></TD></TR></TBODY></TABLE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h14t3p1></A>Функция VMQuery </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Начиная 
+изучать архитектуру памяти в Windows, я пользовался функцией <I>VirtualQuery 
+</I>как «поводырем». Если Вы читали первое издание моей книги, то заметите, что 
+про грамма VMMap была гораздо проще ее нынешней версии, представленной в следую 
+щем разделе. Прежняя была построена на очень простом цикле, из которого перио 
+дически вызывалась функция <I>VirtualQuery, </I>и для каждого вызова я 
+формировал одпу строку, содержавшую элементы структуры 
+MEMORY_BASIC__INFORMATION. Изучая полученные дампы и сверяясь с документацией из 
+SDK (в то время весьма неудачной), я пытался разобраться в архитектуре 
+подсистемы управления памятью. Что ж, с тех пор я многому научился и теперь 
+знаю, что функция <I>VirtualQuery </I>и структура MEMO RY_BASIC_INFORMATION не 
+дают полной картины </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проблема в 
+том, чю в MEMORY_BASIC_INFORMATION возвращается отнюдь не вся информация, 
+имеющаяся в распоряжении системы. Если Вам нужны простейшие дан ные о состоянии 
+памяти по конкретному адресу, <I>VirtualQuery </I>действительно незаме нима. Она 
+отлично работает, если Вас интересует, передана ли по этому адресу фи зическая 
+память и доступен ли он для операций чтения или записи. Но попробуйте e ее 
+помощью узнать общий размер зарезервированного региона и количество блоков в нем 
+или выяснить, не содержит ли этот регион стек потока, — ничего не выйдет 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+получать более полную информацию о памяти, я создал собственную фун кцию и 
+назвал ее <I>VMQuery.</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL VMQuery( 
+  HANDLE hProcess, PVOID pvAddress, PVMQUERY pVMQ);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По аналогии с 
+<I>VirtualQueryEx </I>она принимает в <I>hProcess </I>описатель процесса, в 
+<I>pvAddress — </I>адрес памяти, а в <I>pVMQ </I>— указатель на структуру, 
+заполняемую самой функцией. Структура VMQUERY (тоже определенная мной) 
+представляет собой вот что.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    информация о регионе <BR>PVOID pvRgnBaseAddress; <BR>DWORD dwRgnProtection; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// PAGE_* 
+    <BR>SIZE_T RgnSize; <BR>DWORD dwRgnStorage; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MEM_* 
+    Free. Irnage, Mapped, Private <BR>DWORD dwRgnBlocks; <BR>DWORD 
+    dwRgnGuardBlks; // если &gt; 0, регион содержит стек потока <BR>BOOL 
+    tRqnlsAStack; // TRUE, если регион содержит стек потока </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    информация о блоке <BR>PVOID pvBlkBaseAddress; <BR>DWORD dwBlkProtection; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// PAGE_* 
+    <BR>SIZE_T BlkSize; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwBlkStorage; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MEM_* 
+    Free, Reserve, Image, Mapped, Private </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} VMQUERY, 
+  *PVMQUERY;</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С первого 
+взгляда заметно, что моя структура VMQUERY содержит куда больше информации, чем 
+MEMORY_BASIC_INFORMATION Она разбита (условно, конечно) на две части: в одной — 
+информация и регионе, в другой — информация о блоке (адрес которого указан в 
+параметре <I>pvAddress). </I>Элементы этой структуры описываются в 
+следующейтаблице. </FONT></P>
+<TABLE height=12 cellSpacing=0 cellPadding=0 rules=all width=689 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=16>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Элемент 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=16>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>pvRgnBaseAddress</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует базовый адрес региона виртуального адресного про 
+      странства, включающего адрес, указанный в параметре <I>pvAddress</I> 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwRgnProtection</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает атрибут защиты, присвоенный региону при его резервиро 
+      вании. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>RgnSize</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указывает размер (в байтах) зарезернириванного о региона. 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwRgnStorage</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует тип физической памяти, используемой группой бло ков 
+      данного peгиона: MEM_FREE, MEM_IMAGE, MEM_MAPPED или MEM PRIVATE. 
+      Поскольку Windows 98 не различает типы памяти, в этой операционной системе 
+      данный элемент содержит либо MEM_FREE, либо MEM_PRIVATE </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwRgnBlocks</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержит значение — число блоков в указанном регионе 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=47>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwRgnGuardBlks</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=47>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указывает число блоков с установленным флагом атрибутов защиты PAGE 
+      GUARD. Обычно это значение либо 0, либо 1. Если оно равно 1, то регион 
+      скорее всего зарезервирован под стек потока В Windows 98 этот элемент 
+      всегда равен 0 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>fRgnIsAStack</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сообщает, есть ли в данном регионе стек потока Результат определя 
+      ется на основе взвешенной оценки, так как невозможно дать стопро центной 
+      гарантии тому, что в регионе содержится стек. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>pvBlkBaseAddress</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует базовый адрес блока, включающего адрес, указанный в 
+      параметре <I>pvAddress,</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwBlkProtection</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует атрибут защиты блока, включающего адрес, указан ный 
+      в параметре <I>pvAddress.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>BlkSize</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержит значение — размер блока (в байтах), включающего адрес, 
+      указанный в параметре <I>pvAddress.</I> </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=125 height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>dwBlkStorage</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=542 height=65>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентифицирует содержимое блока, включающего адрес, указанный в 
+      параметре <I>pvAddress. </I>Принимает одно из значений: MEM FREE, 
+      MEM_RESERVE, MEM_IMAGE, MEM_MAPPED или MEM_PRIVATE. В Windows 98 этот 
+      элемент никогда не содержит значения MEM IMAGE и MEM MAPPED 
+  </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+получить всю эту информацию, <I>VMQuery, </I>естественно, приходится выпол нять 
+гораздо болыше операций (в том числе многократно вызывать <I>VirtualQueryEx), 
+</I>а потому она работает значительно медленнее <I>VirtualQueryEx. </I>Так что 
+Вы должны все тщательно взвесить, прежде чем остановить свой выбор па одной из 
+этих функций Если Вам не нужна дополнительная информация, возвращаемая 
+<I>VMQuery, </I>используй те <I>VirtualQuery </I>или <I>VirtualQueryEx.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Листинг файла 
+VMQuerycpp (рис. 14-3) показывает, как я получаю и обрабатываю данные, 
+необходимые для инициализации элементов структуры VMQUERY. (Файлы VMQuery.cpp и 
+VMQueryh содержатся в каталоге 14-VMMap на компакт-диске, прила гаемом к книге.) 
+Чтобы не объяснять подробности обработки данных «на пальцах», я снабдил тексты 
+программ массой комментариев, вольно разбросанных но всему коду. </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/14-VMMap.zip"><IMG 
+height=16 src="images/" width=16>VMQuery</A></FONT></P>
+<P>&nbsp;</P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h14t3p2></A>Программа-пример VMMap </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «14 VMMap.exe» (см. листинг на рис 14-4), просматривает свое адрес 
+ное пространство и показывает содержащиеся в нем регионы и блоки, присутствую 
+щие в регионах Файлы исходного кода и ресурсов этой программы находятся в ка 
+талоге 14-VMMap па компакт-диске, прилагаемом к книге. После запуска VMMap на 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>экране 
+появляется следующее окно. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=456 alt=rihter14-4.jpg src="images/rihter14-4.jpg" 
+width=643> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Карты 
+виртуальной памяти, представленные в главе 13 в таблицах 13-2, 13-3 и 13-4, 
+созданы с помощью именно этой программы </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каждый 
+злемент в списке — результат вызова моей функции <I>VMQuery. </I>Основний цикл 
+программы VMMap (в функции <I>Refresb) </I>выглядит так:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL fOk =<I> 
+  </I>TRUE; <BR>PVOID pvAddress = NULL; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while (fOk) 
+  <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VMQUERY vmq; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>fOk = 
+    VMQuery(hProcess, pvAddress, &amp;vmq); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (fOk) 
+    <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      формируем строку для вывида на экран </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// и 
+      добавляем ее в окно списка </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR 
+      szLine[1024]; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>ConstructRgnInfoLine(hProcess. &amp;vmq, szLine, sizeof(szLine}); 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>LisTBox_AddString(hwndLB, szLine); </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+      (fExpandRegions) <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>for 
+        (DWORD dwBlock = 0; f0k &amp;&amp; (dwBlock &lt; vmq.dwRgnBlocks); 
+        dwBlock++) <BR>{ </FONT></P>
+        <BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+          size=2>ConstructBlkInfoLine(&amp;vmq, szLine, sizeof(szLine)); 
+          <BR>ListBox_AddString(hwndLB, szLine); </FONT></P>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+          получаем адрес следующего региона <BR>pvAddress = ((PBYTE) pvAddress + 
+          vmq BlkSize); </FONT></P>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+          (dwBlock &lt; vmq dwRgnBlocks - 1) <BR>{ </FONT></P>
+          <BLOCKQUOTE>
+            <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+            нельзя запрашивать информацию о памяти за последним блоком <BR>fOk = 
+            VMQuery(liProcess, pvAddress, &amp;vmq); </FONT></P></BLOCKQUOTE>
+          <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+          </FONT></P></BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+        </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      получаем адрес следующего региона </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>pvAddress 
+      = ((PBYTE) vmq pvRgnBaseAddress + vmq.RgnSize); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот цикл 
+начинает работу с виртуального адреса NULL и заканчивается, когда <I>VMQuery 
+</I>возвращает FALSE, что указывает на невозможность дальнейшего просмотра 
+адресного пространства процесса На каждой итерации цикла вызывается функция 
+<I>ConstructRgnlnfoLine; </I>она заполняет символьный буфер информацией о 
+регионе. По том эти данные вносятся в список. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В основной 
+цикл вложен еще один цикл — он позволяет получать информацию о каждом блоке 
+текущего региона. На каждой итерации из данного цикла вызывается функция 
+<I>ConstructBlklnfoLine, </I>заполняющая символьный буфер информацией о бло ках 
+региона. Эти данные тоже добавляются к списку. В общем, с помощью функции 
+<I>VMQuery </I>просматривить адресное пространство процесса очень легко. 
+</FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/14-VMMap.zip"><IMG 
+height=16 src="images/" width=16>VMMap</A></FONT></P>
+<P>&nbsp;</P>
+<HR>
+
+<P>
+<A href="head13.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head15.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

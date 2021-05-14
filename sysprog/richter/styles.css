@@ -1,0 +1,209 @@
+
+/********************************************************************
+*
+********************************************************************/
+
+body {
+	width:17cm;
+	background:#C8DCC8;
+	color:#003333;
+	margin-left: 0.2cm;
+}
+
+page {
+	size:portrait;
+	margin-left: 2cm;
+	margin-right: 1cm;
+	padding-left: 2cm;
+	padding-right: 1cm;
+}
+
+
+/********************************************************************
+* Chapters
+********************************************************************/
+
+div.chapter {
+	page-break-before:always;
+	width:17cm;
+}
+
+/********************************************************************
+* Links
+********************************************************************/
+
+a {
+	color:#FF0000;
+}
+a:link {
+	color:#FF0000;
+}
+
+a:visited {
+	color:#444444;
+}
+
+a:active {
+	color:#000000;
+}
+
+a:link {
+	color: #2456BE;
+}
+
+a:visited {
+	color: #2456BE;
+}
+
+a:hover {
+	color: #2464e8;
+	cursor:pointer;
+}
+
+a:active {
+	color: #2456BE;
+}
+
+
+/********************************************************************
+* Heads
+********************************************************************/
+
+h1 {
+	margin-top:12.0pt;
+	margin-bottom:4.0pt;
+	font-size:22pt;
+}
+
+h2 {
+	margin-top:6.0pt;
+	margin-bottom:4.0pt;
+	font-size:14pt;
+}
+
+p {
+	margin-top:2.0pt;
+	margin-right:0cm;
+	margin-bottom:2.0pt;
+	margin-left:0cm;
+	text-indent:1.0cm;
+	text-align:justify;
+	font-size:12pt;
+}
+
+p.docname {
+	text-indent:0cm;
+	text-align:center;
+	font-size:30pt;
+}
+
+/********************************************************************
+*
+********************************************************************/
+
+pre {
+	font-size:10pt;
+}
+
+li {
+	font-size:12pt;
+}
+
+tt {
+	font-size:14pt;
+}
+
+/*
+table {
+	border-collapse:collapse;
+	table-layout:fixed;
+	border:0.5pt solid windowtext;
+}
+*/
+
+th {
+	vertical-align: middle;
+	border:.5pt solid windowtext;
+	background:#33FF33;
+	font-size:10pt;
+	text-align:center;
+	text-decoration:none;
+}
+
+/*
+td {
+	padding-top:1px;
+	padding-right:1px;
+	padding-left:1px;
+	padding-bottom:1px;
+	color:windowtext;
+	font-size:8pt;
+	font-weight:400;
+	font-style:normal;
+	text-decoration:none;
+	text-align:center;
+	vertical-align:middle;
+	font-family:Arial, sans-serif;
+	white-space:nowrap;
+	border-collapse:collapse;
+	border:.5pt solid windowtext;
+	background:yellow;
+}
+*/
+
+td.tbl { 
+	text-align:left;
+	background:yellow;
+}
+
+/********************************************************************
+* POSTRISC ISA syntax
+********************************************************************/
+
+table.format {
+	width:588px;
+}
+
+td.tdo { background:#999999; }
+td.tdx { background:#CCCCCC; }
+td.tdg { background:#00FFFF; }
+td.tds { background:#99CCFF; }
+td.tdf { background:#33CCCC; }
+td.tdp { background:#33FF33; }
+td.tdq { background:#99CC00; }
+td.tdi { background:#FF99CC; }
+td.tdb { background:#FF9900; }
+td.tdd { background:#00CCFF; }
+td.tdm { background:#FFCC00; }
+td.tdu { background:#FF6699; }
+td.tdz { background:#FFFF00; }
+
+td.asm { 
+	color:#996633;
+	text-align:left;
+	background:yellow;
+}
+
+/********************************************************************
+* Menu
+********************************************************************/
+/*
+body.menu {
+	padding:0px;
+	margin:0px;
+}
+*/
+a.menu {
+	text-decoration:none;
+	font-variant:small-caps;
+	font-family:tahoma;
+	font-size:9pt;
+	color:#2456BE;
+}
+
+a.menu:hover {
+	padding-Left:4pt;
+}
+
+p.text {
+}

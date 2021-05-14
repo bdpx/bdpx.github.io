@@ -1,0 +1,1875 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+
+<P><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><B><A 
+name=h20></A>Г Л А В A 20 DLL: более сложные методы программирования 
+</B></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О предыдущей 
+главе мы говорили в основном о неявном связывании, поскольку это самый 
+популярный метод Представленной там информации вполне достаточно для создания 
+большинства приложений. Однако DLL открывают нам гораздо больше возможностей, и 
+в этой главе Вас ждет целый "букет" новых методов, относящихся к 
+программированию DLL. Во многих приложениях эти методы скорее всего не 
+понадобятся, тем не менее они очень полезны, и познакомиться с ними стоит Я бы 
+посоветовал, как минимум, прочесть разделы "Модификация базовых адресов модулей" 
+и "Связывание модулей", подходы, изложенные в них, помогут существенно повысить 
+быстродействие всей системы.</FONT> </P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t1></A>Явная загрузка DLL и связывание идентификаторов</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы поток 
+мог вызвать функцию из DLL-модуля, последний надо спроецировать на адресное 
+пространство процесса, которому принадлежит этот поток Делается это двумя 
+способами. Первый состоит в том, что код Вашего приложения просто ссылается на 
+идентификаторы, содержащиеся в DLL, и гем самым заставляет загрузчик неявно 
+загружать (и связывать) нужную DLL при запуске приложения</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй способ 
+— явная загрузка и связывание требуемой DLL в период выполнения приложения Иняче 
+говоря, его поток явно загружает DLL в адресное пространство процесса, получает 
+виртуальный адрес необходимой DLL-функции и вызывает ее по этому адресу. 
+Изящество такого подхода в том, что все происходит в уже выполняемом 
+приложении</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На рис 20-1 
+показано, как приложение явно загружает DLL и связывается с ней</FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t1p1></A>Явная загрузка DLL </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В любой 
+момент поток может спроецировать DLL на адресное пространство процес ca, вызвав 
+одну из двух функций:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>HINSTANCE 
+  LoadLibrary{PCTSTR pszDLLPathName);</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#9900ff size=2><BR>HINSTANCE 
+  LoadLibraryEx( PCTSTR pszDLLPathName, HANDLE hFile, DWORD dwFlags);</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обе функции 
+ищут образ DLL-файла (в каталогах, список которых приведен в предыдущей главе) и 
+пытаются спроецировать его на адресное пространство вызывающего процесса. 
+Значение типа HINSTANCE, возвращаемое этими функциями, со-</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>общает адрес 
+виртуальной памяти, но которому спроецирован образ файла. Если спроецировать DLL 
+на адресное пространство процесса не удалось, функции возвращают NULL 
+Дополнительную информацию об ошибке можно получить вызовом 
+<I>GetLastError</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Очевидно, Вы 
+обратили внимание на два дополнительных параметра функции <I>LoadLibraryEx, 
+hFile </I>и <I>dwFlags </I>Первый зарезервирован для использования в будущих 
+версиях и должен быть NULL Bo втором можно передать либо 0, либо комбинацию 
+флагов DONT_RESOLVE_DLL_REFERENCES, LOAD_LIBRARY_AS_DATAFILE и LOAD_WITH_ 
+ALTERED_SEARCH_PATH, о которых мы сейчас и поговорим.</FONT> </P>
+<TABLE height=73 width="93%" align=center border=1>
+  <TBODY>
+  <TR>
+    <TD width="48%">
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>СОЗДАНИЕ DLL</FONT> </P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>1 ) 
+      Заголовочный файл с экспортируемыми прототипами структурами и 
+      идентификаторами (символьными именами) 2) Исходные файлы С/С++ в которых 
+      реализованы экспортируемые функции и определены переменные 3) Компилятор 
+      создает OBJ-файл из каждого исходного файла С/С++ 4) Компоновщик собирает 
+      DLL из OBJ модулей 5) Если DLL экспортирует хотя бы одну переменную или 
+      функцию компоновщик создает и LIB-файл {при явном связывании этот файл не 
+      используется)</FONT> </P></TD>
+    <TD width="52%">
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>СОЗДАНИЕ ЕХЕ</FONT> </P>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>6) 
+      Заголовочный файл с импортируемыми прототипами, структурами и 
+      идентификаторами 7) Исходные файлы С/С++ в которых нет ссылок на 
+      импортируемые функции и переменные 8) Компилятор создает OBJ файл из 
+      каждого исходного файла С/С++ 9) Компоновщик собирает ЕХЕ-модуль из 
+      OBJ-модулей (LIB файл DLL не нужен, так как нет прямых ссылок на 
+      экспортируемые идентификаторы, раздел импорта в ЕХЕ-модуле 
+      отсутствует)</FONT> </P></TD></TR></TBODY></TABLE>
+<P>&nbsp;</P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=562 alt=rihter20-1.jpg src="images/rihter20-1.jpg" width=595> 
+</FONT></P></DIV>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 20-1. Так DLL создается и явно связывается с приложением</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>DONT_RESOLVE__DLL_REFERENCES</B></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот флаг 
+укапывает системе спроецировать DLL на адресное пространство вызывающего 
+процесса. Проецируя DLL, система обычно вызывает из нее специальную функцию 
+<I>DllMain (о </I>ней — чуть позже) и с ее помощью инициализирует библиотеку. 
+Так вот, данный флаг заставляет систему проецировать DLL, не обращаясь к 
+<I>DllMain.</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме того, 
+DLL может импортировать функции из других DLL При загрузке библиотеки система 
+проверяет, использует ли она другие DLL; если да, то загружает и их При 
+установке флага DONT_RESOLVE_DLL_REFERENCES дополнительные DLL автоматически не 
+загружаются.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>LOAD_LIBRARY_AS_DATAFILE</B></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот флаг 
+очень похож на предыдущий. DLL проецируется на адресное пространство процесса 
+так, будто это файл данных. При этом система не тратит дополнительное время на 
+подготовку к выполнению какого-либо кода из данного файла Например, когда DLL 
+проецируется на адресное пространство, система считывает информацию из DLL-файла 
+и на ее основе определяет, какие атрибуты защиты страниц следует присвоить 
+разным частям файла. Если флаг LOAD_LIBRARY_AS_DATAFILE нс указан, атрибуты 
+защиты устанавливаются такими, чтобы код из данного файла можно было 
+выполнять.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот флаг 
+может понадобиться по нескольким причинам Во-первых, его стоит указать, если DLL 
+содержит только ресурсы и никаких функций. Тогда DLL проецируется на адресное 
+пространство процесса, после чего при вызове функций, загружающих ресурсы, можно 
+использовать значение HINSTANCE, возвращенное функцией <I>LoadLibraryEx. 
+</I>Во-вторых, он пригодится, если Вам нужны ресурсы, содержащиеся в 
+каком-нибудь ЕХЕ-файле. Обычно загрузка такого файла приводит к запуску нового 
+процесса, но этого не произойдет, если его загрузить вызовом <I>LoadLibraryEx 
+</I>в адресное пространство Вашего процесса. Получив значение HINSTANCE для 
+спроецированного ЕХЕ-файла, Вы фактически получаете доступ к его ресурсам. Так 
+как в ЕХЕ-файле нет <I>DllMain, </I>при вызове <I>LoadLibraryEx </I>для загрузки 
+ЕХЕ-файла нужно указать флаг LOAD_LIBRARY_AS_DATAFILE.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>LOAD_WITH_ALTERED_SEARCH_PATH</B></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот флаг 
+изменяет алгоритм, используемый <I>LoadLibraryEx </I>при поиске DLL-файла. 
+Обычно поиск осуществляется так, как я рассказывал в главе 19 Однако, если 
+данный флаг установлен, функция ищет файл, просматривая каталоги в таком 
+порядке</FONT> </P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каталог, 
+  заданный в <I>napaмeтре pszDLLPathName.</I></FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Текущий 
+  каталог процесса.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Системный 
+  каталог Windows.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Основной 
+  каталог Windows.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каталоги, 
+  перечисленные в переменной окружения PATH</FONT> </LI></OL>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t1p2></A>Явная выгрузка DLL</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+необходимость в DLL отпадает, ее можно выгрузить из адресного пространства 
+процесса, вызвав функцию.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  FreeLibrary(HINSTANCE hinstDll);</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы должны 
+передать в <I>FreeLibrary </I>значение типа HINSTANCE, которое идентифицирует 
+выгружаемую DLL. Это значение Вы получаете после вызова 
+<I>LoadLibrary(Ex).</I></FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>DLL можно 
+выгрузить и с помощью другой функции:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  FreeLibraryAndExitThread( HlNSTANCE hinstDll, DWORD dwExitCode);</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+реализована в Kernel32.dll так:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  FreeLibraryAndExitThread(HINSTANCE hinstDll, DWORD dwExitCode) <BR>{</FONT> 
+  </P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>FreeLibrary(hinstDll);</FONT> <FONT face="Courier New, Courier, mono" 
+    color=#0000cc size=2><BR>ExitThread(dwExitCode); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На первый 
+взгляд, в ней нет ничего особенного, и Вы, наверное, удивляетесь, с чего это 
+Microsoft решила ее написать. Но представьте такой сценарий. Вы пишете DLL, 
+которая при первом отображении на адресное пространство процесса создает поток. 
+Последний, закончив свою работу, отключает DLL от адресного пространства 
+процесса и завершается, вызывая сначала <I>FreeLibrary, </I>а потом 
+<I>ExttThread.</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если поток 
+станет сам вызывать <I>FreeLibrary </I>и <I>ExitThread, </I>возникнет очень 
+серьезная проблема: <I>FreeI.ibrary </I>тут же отключит DLL от адресного 
+пространства процесса. После возврата из <I>FreeLibrary </I>код, содержащий 
+вызов <I>ExttThread, </I>окажется недоступен, и поток попытается выполнить не 
+известно что. Это приведет к нарушению доступа и завершению всего 
+процесса!</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С другой 
+стороны, если поток обратится к <I>FreeLibraryAndExitThread, </I>она вызовет 
+<I>FreeLibrary, </I>и та сразу же отключит DLL, Но следующая исполняемая 
+инструкция находится в KerneI32.dlI, а нс в только что отключенной DLL. Значит, 
+поток сможет продолжить выполнение и вызвать <I>ExitThread, </I>которая 
+корректно завершит его, не возвращая управления.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Впрочем, 
+<I>FreeLibraryAndExitThread </I>может и не понадобиться. Мне она пригодилась 
+лишь раз, когда я занимался весьма нетипичной задачей. Да и код я писал под 
+Windows NT 3-1, где этой функции не было. Наверное, поэтому я так обрадовался, 
+обнаружив ее в более новых версиях Windows.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На самом деле 
+<I>LoadLibrary </I>и <I>LoadLibraryEx </I>лишь увеличивают счетчик числа 
+пользователей указанной библиотеки, a <I>FreeLibrary </I>и 
+<I>FreeLibraryAndExitThread </I>его уменьшают Так, при первом вызове 
+<I>LoadLibrary </I>дум загрузки DLL система проецирует образ DLL-файла иа 
+адресное пространство вызывающего процесса и присваивает единицу счетчику числа 
+пользователей этой DLL Если поток того же процесса вызывает <I>LoadLibrary 
+</I>для той же DLL еще раз, DLL больше не проецируется; система просто 
+увеличивает счетчик числа ее пользователей — вот и все.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+выгрузить DLL из адресного пространства процесса, <I>FreeLibrary </I>придется 
+теперь вызывать дважды: первый вызов уменьшит счетчик до 1, второй — до 0. 
+Обнаружив, что счетчик числа пользователей DLL обнулен, система отключит ее. 
+После этого попытка вызова какой-либо функции из данной DLL приведет к нарушению 
+доступа, так как код по указанному адресу уже не отображается на адресное 
+пространство процесса.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+поддерживает в каждом процессе свой счетчик DLL, т. e. если поток процесса А 
+вызывает приведенную ниже функцию, а затем тот же вызов делает поток в процессе 
+В, то MyLib.dll проецируется на адресное пространство обоих процессов, а 
+счетчики числа пользователей DLL в каждом из них приравниваются 1.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HINSTANCE 
+  hinstDll = LoadLibrary("MyLib.dll"); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если же поток 
+процесса В вызовет далее:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>FreeLibrary(hinst011);</FONT> </P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>счетчик числа 
+пользователей DLL в процессе В обнулится, что приведет к отключению DLL oт 
+адресного пространства процесса В. Но проекция DLL на адресное пространство 
+процесса А нс затрагивается, и счетчик числа пользователей DLL в нем остается 
+прежним.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+определить, спроецирована ли DLL на адресное пространство процесса, поток может 
+вызывать функцию <I>GеtМоdu1еНапd1е:</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HINSTANCE 
+  GetModuleHandle(PCTSTR pszModuleName);</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Например, 
+следующий код загружает MyLib.dll, только если она еще не спроецирована на 
+адресное пространство процесса</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HINSTANCE 
+  hinstDll = GetHoduleHandle("MyLib"); <BR>// подразумевается расширение .dll if 
+  (hinstDll == NULL) <BR>{</FONT> </P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hinstDll = 
+    LoadLibrary("MyLib"); <BR>// подразумевается расширение .dll 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если у Вас 
+есть значение HINSTANCE для DLL, можно определить полное (вместе с путем) имя 
+DLL или EXE с помощью <I>GetModuleFileName</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetModuleFileName( HINSTANCE hinstModule, PTSTR pszPathName, DWORD 
+  cchPath);</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+параметр этой функции — значение типа HINSTANCE нужной DLL (или EXE). Второй 
+параметр, <I>pszPathName, </I>задает адрес буфера, в который она запишет полное 
+имя файла Третий, и последний, параметр <I>(cchPath) </I>определяет размер 
+буфера в символах.</FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t1p3></A>Явное подключение экспортируемого идентификатора</FONT> 
+</I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток 
+получает адрес экспортируемого идентификатора из явно загруженной DLL вызовом 
+<I>GetProcAddress:</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>FARPROC 
+  GetProcAddress( HINSTANCE hinstDll, PCSTR pszSymbolName);</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hinstDll — </I>описатель, возвращенный <I>LoadLibrary(Ex) </I>или 
+<I>GetModuleHandle </I>и относящийся к DLL, которая содержит нужный 
+идентификатор. Параметр <I>pszSymbolName </I>разрешается указывать в двух 
+формах. Во-первых, как адрес строки с нулевым символом в конце, содержащей имя 
+интересующей Вас функции:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>FARPROC pfn = 
+  GetProcAddress(hinstDll, "SomeFuncInDll");</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, тип 
+параметра <I>pszSymbolName </I>— PCSTR, а не PCTSTR. Это значит, что функция 
+<I>GetProcAddress </I>принимает только ANSI-строки — ей нельзя передать 
+Unicodeстроку А причина в том, что идентификаторы функций и переменных в разделе 
+экспорта DLL всегда хранятся как ANSI-строки.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вторая форма 
+пapaмeтpa<I> pszSymbolName </I>позволяет указывать порядковый номер нужной 
+функции.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>FARPROC pfn = 
+  GetProcAddress(hinstDll, MAKEINTRESOURCE(2));</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Здесь 
+подразумевается, что Вам известен порядковый номер (2) искомого идентификатора, 
+присвоенный ему автором данной DLL И вновь повторю, что Microsoft</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>настоятельно 
+не рекомендует пользоваться порядковыми номерами; поэтому Вы редко встретите 
+второй вариант вызова <I>GetProсAddress.</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При любом 
+способе Вы получаете адрес содержащегося в DLL идентификатора. Если 
+идентификатор не найден, <I>GetProcAddress </I>возвращает NULL.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Учтите, что 
+первый способ медленнее, так как системе приходится проводить поиск и сравнение 
+строк. При втором способе, если Вы передаете порядковый номер, не присвоенный ни 
+одной из экспортируемых функций, <I>GetProcAddress </I>может вернуть значение, 
+отличное от NULL В итоге Ваша программа, ничео не подозревая, получит 
+неправильный адрес. Попытка вызова функции по этому адресу почти наверняка 
+приведет к нарушению доступа Я и сам — когда только начинал программировать под 
+Windows и не очень четко понимал эти вещи — несколько раз попадал в эту ловушку. 
+Так что будьте внимательны. (Вот Вам, кстати, и еще одна причина, почему от 
+использования порядковых номеров следует отказаться в пользу символьных имен — 
+идентификаторов.)</FONT> </P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t2></A>Функция входа/выхода</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В DI,T, может 
+быть лишь одна функция входа/выхода Система вызывает ее в некоторых ситуациях (о 
+чем речь еще впереди) сугубо в информационных целях, и обычно она используется 
+ULL для инициализации и очистки ресурсов в конкретных процессах или потоках Если 
+Вашей DLL подобные уведомления не нужны, Вы не обязаны реализовывать эту 
+функцию. Пример — DLL, содержащая только ресурсы. Но если же уведомления 
+необходимы, функция должна выглядеть так:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL WINAPI 
+  DllMain(HINSTANCE hinstDll, DWORD fdwReason, PVOID fImpLoad) <BR>{</FONT> </P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+    (fdwReason) <BR>{</FONT> </P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_PROCESS_ATTACH:</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// DLL 
+        проецируется на адресное пространство процесса <BR>break;</FONT> 
+      </P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_THREAD_ATTACH: </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        создается поток <BR>break;</FONT> </P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_THREAD_DETACH:</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// поток 
+        корректно завершается <BR>break;</FONT> </P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case DLL 
+      PROCESS_DETACH</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// DLL 
+        отключается от адресного пространства процесса <BR>break;</FONT> 
+      </P></BLOCKQUOTE></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(TRUE); <BR>// используется только для 
+    DLL_PROCESS_ATTACH</FONT> </P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT></FONT> <FONT face="Arial, Helvetica, sans-serif" 
+  color=#006600 size=2><BR>При вызове <I>DllMain </I>надо учитывать регистр букв 
+  Многие случайно вызывают <I>DLLMain, </I>и это вполне объяснимо- термин <I>DLL 
+  </I>обычно пишется заглавными буквами. Если Вы назовете функцию входа/выхода 
+  не <I>DllMain, </I>а как-то иначе . (пусть даже только один символ будет 
+  набран в другом регистре), компиляция и компоновка Вашего кода пройдет без 
+  проблем, но система проигнорирует такую функцию входа/выхода, и Ваша DLL 
+  никогда не будет инициализирована.</FONT> </P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hinstDll </I>содержит описатель экземпляра DLL, Как и <I>hinstExe </I>функции 
+<I>(w)WinMain, </I>это значение — виртуальный адрес проекции файла DLL на 
+адресное пространство процесса. Обычно последнее значение сохраняется в 
+глобальной переменной, чтобы его можно было использовать и при вызовах функций, 
+загружающих ресурсы (типа <I>DialogBox </I>или <I>LoadString), </I>Последний 
+параметр, <I>fImpLoad,</I> отличен от 0, если DLL загружена неявно, и равен 0, 
+если она загружена явно.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>fdwReason</I> сообщает о причине, по которой система вызвала эту функцию. Он 
+принимает одно из четырех значений: DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, 
+DLL_THREAD_ATTACH или DLL_THREAD_DETACH. Мы рассмотрим их в следующих 
+разделах.</FONT> </P>
+<P></P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT></FONT> <FONT face="Arial, Helvetica, sans-serif" 
+  color=#006600 size=2><BR>Не забывайте, что DLL инициализируют себя, используя 
+  функции <I>DllMain. </I>К моменту выполнения Вашей <I>DllMain </I>другие DLL в 
+  том же адресном пространстве могут не успеть выполнить свои функции 
+  <I>DllMain, </I>т. e. они окажутся неинициализированными. Поэтому Вы должны 
+  избегать обращений из <I>DllMain </I>к функциям, импортируемым из других DLL. 
+  Кроме того, не вызывайте из <I>DllMain </I>функции <I>LoadLibrary(Ex) </I>и 
+  <I>FreeLibrary, </I>так как это может привести к взаимной блокировке.</FONT> 
+  </P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+документации Platform SDK утверждается, что <I>DllMain </I>должна выполнять лишь 
+простые виды инициализации — настройку локальной памяти потока (см. главу 21), 
+создание объектов ядра, открытие файлов и т. д. Избегайте обращений к функциям, 
+связанным с User, Shell, ODBC, COM, RPC и сокетами (а также к функциям, которые 
+их вызывают), потому что соответствующие DLL могут быть еще не инициализированы. 
+Кроме того, подобные функции могут вызывать <I>LoadLibrary(Ex) </I>и тем самым 
+приводить к взаимной блокировке.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Аналогичные 
+проблемы возможны и при создании глобальных или статических С++-объектов, 
+поскольку их конструктор или деструктор вызывается в то же время, что и Ваша 
+<I>DllMain.</I></FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t2p1></A>Уведомление DLL_PROCESS_ATTACH</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+вызывает <I>DllMain с </I>этим значением параметра <I>fdwReason </I>сразу после 
+того, как DLL спроецирована на адресное пространство процесса. А это происходит, 
+только когда образ DLL-файла проецируется в первый раз. Если затем поток вызовет 
+<I>LoadLibrary(Ex) </I>для уже спроецированной DLL, система просто увеличит 
+счетчик числа пользователей этой DLL; так что <I>DllMain </I>вызывается со 
+значением DLL_PROCESS_ATTACH лишь раз.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обрабатывая 
+DLL_PROCESS_ATTACH, библиотека должна выполнить в процессе инициализацию, 
+необходимую ее функциям. Например, в DLL могут быть функции, которым нужна своя 
+куча (создаваемая в адресном пространстве процесса). В этом случае <I>DllMain 
+</I>могла бы создать такую кучу, вызвав <I>HeapCreate </I>при обработке 
+уведомления DLL_PROCESS_ATTACH, а описатель созданной кучи сохранить в 
+глобальной переменной, доступной функциям DLL</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При обработке 
+уведомления DLL_PROCESSATTACH значение, возвращаемое функцией <I>DllMain, 
+</I>указывает, корректно ли прошла инициализация DLL. Например, если вызов 
+<I>HeapCreate </I>закончился благополучно, следует вернуть TRUE. А если кучу 
+создать не удалось — FALSE. Для любых других значений <I>fdwReason</I> — 
+DLL_PROCESS_DETACH, DLL_THREAD_ATTACH или DLL_THREAD_DETACH — значение, 
+возвращаемое <I>DllMain, </I>системой игнорируется.</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, 
+где-то в системе должен быть поток, отвечающий за выполнение кода <I>DllMain. 
+</I>При создании нового процесса система выделяет для него адресное 
+пространство, куда проецируется ЕХЕ-файл и всс необходимые ему DLL-модули Далее 
+создается первичный поток процесса, используемый системой для вызова <I>DllMain 
+</I>из каждой DLL со значением DLL_PROCESS_ATTACH. Когда все спроецированные DLL 
+ответят на это уведомление, система заставит первичный поток процесса выполнить 
+стартовый код из библиотеки С/С++, а потом — входную функцию ЕХЕ-файла <I>(main, 
+wmain, WinMain </I>или <I>wWinMain). </I>Если <I>DllMain </I>хотя бы одной из 
+DLL вернет FALSE, сообщая об ошибке при инициализации, система завершит процесс, 
+удалив из его адресного пространства образы всех файлов, после этого 
+пользователь увидит окно с сообщением о том, что процесс запустить не удалось. 
+Ниже показаны соответствующие окна для Windows 2000 и Windows 98,</FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=115 alt=rihter20-2.jpg src="images/rihter20-2.jpg" width=475> 
+<IMG height=115 alt=rihter20-3.jpg src="images/rihter20-3.jpg" 
+width=261> </FONT></P></DIV>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+посмотрим, что происходит при явной загрузке DLL Когда поток вызывает 
+<I>LoadLibrary(Ex), </I>система отыскивает указанную DLL и проецирует ее на 
+адресное иросчранство процесса Затем вызывает <I>DllMain</I> со значением 
+DLL_PROCESS_ATTACH, используя поток, вызвавший <I>LoadLibrary(Ex) </I>Как только 
+<I>DllMain </I>обработает унедомление, произойдет возврат из <I>LoadLibrary(Ex), 
+</I>и поток продолжит работу в обычном режиме. Если <I>DllMain </I>вернет FALSE 
+(неудачная инициализация), система автоматически отключит образ файла DLL от 
+адресного пространства процесса, а вызов <I>LoadI.ibrary(Ex) </I>даст 
+NULL.</FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t2p2></A>Уведомление DLL_PROCESS_DETACH</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+отключении DLL от адресного пространства процесса вызывается ее функция 
+<I>DllMain </I>со значением DLLPROCESS_DETACH в параметре <I>fdwReason. 
+</I>Обрабатывая это значение, DLL должна провести очистку в данном процессе 
+Например, вызвать <I>HeapDestroy, </I>чтобы разрушить кучу, созданную ею при 
+обработке уведомления DLL__PROCESS_ATTACH. Oбpaтите внимание: если функция 
+<I>DllMain </I>вернула FALSE, получив уведомление DLL_PROCESS_ATTACH, то ее 
+нельзя вызывать с уведомлением DLL_PROCESS_DETACH. Если<B> </B>DLL отключается 
+из-за завершения процесса, то за выполнение кода <I>DllMain </I>отвечает поток, 
+вызвавший <I>ExitProcess </I>(обычно эчо первичный поток приложения). Когда Ваша 
+входная функция возвращает управление стартовому коду из библиотеки С/С++, тот 
+явно вызывает <I>ExitProcess </I>и завершает процесс</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если DLL 
+отключается в результате вызова <I>FreeLibrary </I>или 
+<I>FreeLibraryAndExitThread, </I>код <I>DllMain </I>выполняется потоком, 
+вызвавшим одну из этих функций. D случае обращения к <I>FreeLibrary 
+</I>управление не возвращается, пока <I>DllMain </I>не закончит обработку 
+уведомления DLL_PROCESS_DETACH.</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Учтите также, 
+что DLL может помешать завершению процесса, если, например, ее <I>DllMain 
+</I>входит в бесконечный цикл, получив уведомление DLL_PROCESS_DETACH 
+Операционная система уничтожает процесс только после того, как все DLL-модули 
+обработают уведомление DLL_PROCESS_DETACH</FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=839 alt=rihter20-4.jpg src="images/rihter20-4.jpg" width=566> 
+</FONT></P></DIV>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 20-2. Операции, выполняемые системой при вызове потоком функции 
+LoadLibrary</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если процесс 
+завершается в результате вызова <I>TerminateProcess, </I>система <I>не 
+</I>вызывает <I>DllMain</I> со значением DLL_PROCESS_DETACH. А значит, ни одна 
+DLL, спроецированная на адресное пространство процесса, не получит шанса на 
+очистку до завершения процесса. Последствия могут быть плачевны ~ вплоть до 
+потери данных. Вызывайте <I>TerminateProcess </I>только в самом крайнем 
+случае!</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На рис. 20-2 
+показаны операции, выполняемые при вызове <I>LoadLibrary, </I>а на рис. 20-3 - 
+при вызове <I>FreeLibrary.</I></FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=633 alt=rihter20-5.jpg src="images/rihter20-5.jpg" width=382> 
+</FONT></P></DIV>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 20-3. Операции, выполняемые системой при вызове потоком функции 
+FreeLibrary</FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t2p3></A>Уведомление DLL_THREAD_ATTACH</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда в 
+процессе создается новый поток, система просматривает все DLL, спроецированные в 
+данный момент на адресное пространство этого процесса, и в каждой из таких DLL 
+вызывает <I>DllMain </I>со значением DLL_THREAD_ATTACH. Тем самым она уведомляет 
+DLL-модули о необходимости инициализации, связанной с данным потоком. Только что 
+созданный поток отвечает за выполнение кода в функциях <I>DllMain 
+</I>всех</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>DLL Работа 
+его собственной (стартовой) функции начинается лишь после того, как все 
+DLL-модули oбpaбoтaют уведомление DLL_THREAD_ATTACH.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если в момент 
+проецирования DLL на адресное пространство процесса в нем</FONT> <FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>выполняется несколько 
+потоков, система <I>не </I>вызывает <I>DllMain </I>со значением DLL_</FONT> 
+<FONT face="Times New Roman, Times, serif" color=#000000 size=3>THREAD_ATTACH ни 
+для одного из существующих потоков. Вызов <I>DllMain </I>c этим зна</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>чением осуществляется, 
+только если DLL проецируется на адресное пространство</FONT> <FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>процесса в момент 
+создания потока.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+также внимание, что система не вызывает функции <I>DllMain </I>co значением 
+DLL_THREAD_ATTACH и для первичного потока процесса. Любая DLL, проецируемая на 
+адресное пространство процесса в момент его создания, получает уведомление 
+DLL_PROCESS_ATTACH, а не DLL_THREAD_ATTACH</FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t2p4></A>Уведомление DLL_THREAD_DETACH</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Лучший способ 
+завершить поток — дождаться возврата из его стартовой функции, после чего 
+система вызовет <I>ExitThread </I>и закроет поток. Эта функция лишь сообщает 
+системе о том, что поток хочет завершиться, но система не уничтожает его 
+немедленно. Сначала она просматривает все проекции DLL, находящиеся в данный 
+момент в адресном пространстве процесса, и заставляет завершаемый поток вызвать 
+<I>DllMain </I>в каждой из этих DLL со значением DLL_THREAD_DETACH Тсм самым она 
+уведомляет DLL модули о необходимости очистки, связанной с данным потоком. 
+Например, DLLверсия библиотеки С/С++ освобождает блок данных, используемый для 
+управления многопоточными приложениями.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+DLL может не дать потоку завершиться. Например, такое возможно, когда функция 
+<I>DllMain, </I>получив уведомление DLL_THREAD_DETACH, входит в бесконечный 
+цикл. А операционная система закрывает поток только после того, как все DLL 
+заканчивают обработку этого уведомления.</FONT> </P>
+<P></P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT></FONT> <FONT face="Arial, Helvetica, sans-serif" 
+  color=#006600 size=2><BR>Если поток завершается из-за того, что другой поток 
+  вызвал для него <I>TerminateThread, </I>система <I>не </I>вызывает <I>DllMain 
+  </I>со значением DLL_THREAD_DETACH Следовательно, ни одна DLL, спроецированная 
+  на адресное пространство процесса, не получит шанса на выполнение очистки до 
+  завершения потока, что может привести к потере данных Поэтому 
+  <I>TetminateThread, </I>как и <I>TerminateProcess, </I>можно использовать лишь 
+  в самом крайнем случае!</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P></P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если при 
+отключении DLL еще выполняются какие-то потоки, то для них <I>DllMain </I>не 
+вызывается со значением DLL_THREAD_DETACH Вы можете проверить это при обработке 
+DLL_PROCESS_DETACH и провести необходимую очистку.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ввиду 
+упомянутых выше правил не исключена такая ситуация: поток вызывает 
+<I>LoadIibrary </I>для загрузки DLL, в результате чего система вызывает из этой 
+библиотеки <I>DllMain </I>со значением DLL_PROCESS_ATTACH. (В этом случае 
+уведомление DLL_ THREAD_ATTACH не посылается.) Затем поток, загрузивший DLL, 
+завершается, что приводит к новому вызову <I>DllMain — </I>на этот раз со 
+значением DLL_THREAD_DETACH Библиотека уведомляется о завершении потока, хотя 
+она не получала DLL_ THREAD_ATTACH, уведомляющего о его подключении. Поэтому 
+будьте крайне осторожны при выполнении любой очистки, связанной с конкретным 
+потоком К счастью, большинство программ пишется так, что <I>LoadLibrary </I>и 
+<I>FreeLibrary </I>вызываются одним потоком.</FONT> </P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t2p5></A>Как система упорядочивает вызовы DIIMain</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+упорядочивает вызовы функции <I>DllMain. </I>Чтобы понять, что я имею в виду, 
+рассмотрим следующий сценарий Процесс А имеет два потока: А и В. На его адресное 
+пространство проецируется DLL-модуль SomeDLL.dll. Оба потока собираются вызвать 
+<I>CreateThread, </I>чтобы создать еще два потока: С и D.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда поток А 
+вызывает для создания потока С функцию <I>CreateThread, </I>система обращается к 
+<I>DllMain </I>из SomeDLL.dll со значением DLL_THREAD_АТТАСН. Пока поток С 
+исполняет код <I>DllMain, </I>поток В вызывает <I>CreateThread </I>для<I> 
+</I>создания потока D. Системе нужно вновь обратиться к <I>DllMain </I>со 
+значением DLL_THREAD_ATTACH, и на этот раз код функции должен выполнять поток D. 
+Но система упорядочивает вызовы <I>DllMain. </I>и поэтому приостановит 
+выполнение потока D, пока поток С не завершит обработку кода <I>DllMain </I>и не 
+выйдет из этой функции.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закончив 
+выполнение <I>DllMain, </I>поток С может начать выполнение своей функции потока. 
+Теперь система возобновляет поток D и позволяет ему выполнить код <I>DllMain, 
+</I>при возврате из которой он начнет обработку собственной функции 
+потока</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно никто 
+и не задумывается над тем, что вызовы <I>DllMain </I>упорядочиваются. Но я завел 
+об этом разговор потому, что один мой коллега как-то раз написал код, в котором 
+была ошибка, связанная именно с упорядочиванием вызовов <I>DllMain, </I>Его код 
+выглядел примерно так:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL WINAPI 
+  DllMain(HINSTANCE hinstDll, DWORD fdwReason, PVOID fImpLoad) <BR>{</FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+    hThread; DWORD dwThreadId;</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+    (fdwReason) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_PROCESS_ATTACH:</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// DLL 
+        проецируется на адресное пространство процесса</FONT> <FONT 
+        face="Courier New, Courier, mono" color=#0000cc size=2><BR>// создаем 
+        поток для выполнения какой-то работы</FONT> <FONT 
+        face="Courier New, Courier, mono" color=#0000cc size=2><BR>hThread = 
+        CreateThread(NULL, 0, SomeFunction, NULL, 0, 
+&amp;dwThreadId);</FONT></P>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        задерживаем наш поток до завершения нового потока 
+        <BR>WaitForSingleObject(hThread, INFINITE);</FONT></P>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        доступ к новому потоку больше не нужен</FONT> <FONT 
+        face="Courier New, Courier, mono" color=#0000cc 
+        size=2><BR>CloseHandle(hThread);</FONT> </P>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+        size=2>break;</FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_THREAD_ATTACH:</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        создается еще один поток <BR>break;</FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_THREAD_DETACH:</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// поток 
+        завершается корректно <BR>break;</FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+      DLL_PROCESS_DETACH:</FONT> </P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// DLL 
+        выгружается из адресного пространства процесса 
+      <BR>break;</FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(TRUE);</FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Нашли 
+«жучка»? Мы-то его искали несколько часов. Когда <I>DllMain </I>получаст 
+уведомление DLL_PROCESS_ATTACH, создается новый поток. Системе нужно вновь 
+вызвать эту же <I>DllMain </I>со значением DLL_THREAD_ATTACH Но выполнение 
+нового потока приостанавливается ведь поток, из-за которого в <I>DllMain 
+</I>было отправлено уведомление DLL_PROCFSS_ATTACH, свою работу еще не закончил. 
+Проблема кроется в вызове <I>WaitForSingleObject. </I>Она приостанавливает 
+выполнение текущего потока до тех пор, пока не завершится новый. Однако у нового 
+потока нет ни единою шанса не только на завершение, но и на выполнение хоть 
+какого-нибудь кода — он приостановлен в ожидании того, когда текущий поток 
+выйдет из <I>DllMain </I>Вот Вам и взаимная блокировка — выполнение обоих 
+потоков задержано навеки!</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Впервые начав 
+размышлять над этой проблемой, я обнаружил функцию 
+<I>DisableThreadLibraryCalls:</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOl 
+  DisableThreadLibraryCalls(HINSTANCE hinstDll);</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызывая ее, 
+Вы сообщаете системе, что уведомления DLL_THREAD_ATTACH и DLL_ THREAD_DETACH не 
+должны посылаться <I>DllMain </I>той библиотеки, которая указана в вызове Мне 
+показалось логичным, что взаимной блокировки не будет, если система не стаиет 
+посылать DLL уведомления. Но, проверив свое решение (см. ниже), я убедился, что 
+это не выход.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL WINAPI 
+  DllMain(HINSTANCE hinstDll, DWORD fdwReason, PVOID fImpLoad) <BR>{</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  hThread; DWORD dwThreadId;</FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+    (fdwReason) <BR>{ </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    DLL_PROCESS_ATTACH.</FONT> </P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// DLL 
+      проецируется на адресное пространство процесса</FONT> <FONT 
+      face="Courier New, Courier, mono" color=#0000cc size=2><BR>// 
+      предотвращаем вызов DllMain при создании <BR>// или завершении потока 
+      <BR>DisableThreadLibraryCalls(hinstDll);</FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+      поток для выполнения какой-то работы</FONT> <FONT 
+      face="Courier New, Courier, mono" color=#0000cc size=2><BR>hThread = 
+      CreateThread(NULL, 0, SomeFunction, NULL, 0, &amp;dwThreadId);</FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      задерживаем наш поток до завершения нового потока 
+      <BR>WaitForSingleObject(hThread, INFINITE);</FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// доступ 
+      к новому потоку больше не нужен</FONT> <FONT 
+      face="Courier New, Courier, mono" color=#0000cc 
+      size=2><BR>CloseHandle(hThread);</FONT> </P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>break;</FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>саsе 
+    DLL_THREAD_ATTACH:</FONT> </P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      создается сщс один поток <BR>break;</FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    DLL_THREAD_DETACH:</FONT> </P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// поток 
+      завершается корректно <BR>break; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    DLL_PROCESS_DETACH:<SUB> </SUB></FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// DLL 
+      выгружается из адресного пространства процесса<BR>break;</FONT> 
+    </P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+  </P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return TRUE; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Потом я 
+понял, в чем лело Создавая процесс, система создает и объект-мьютекс. У каждого 
+процесса свой объект-мьютекс — он не разделяется между несколькими процессами. 
+Его назначение — синхронизация всех потоков процесса при вызове ими функций 
+<I>DllMain </I>из DLL, спроецированных на адресное пространство данного 
+процесса.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+вызывается <I>CreateThread, </I>стстема создает сначала объект ядра "поток" и 
+стек потока, затем обращается к <I>WaitForSingleObject, </I>передавая ей 
+описатель объекта-мьютекса данного процесса. Как только поток захватит этот 
+мьютекс, система заставит его вызвать <I>DllMain </I>из каждой DLL со значением 
+DLL_THREAD_ATTACH. И лишь тогда система вызовет <I>ReleaseMutex, </I>чтобы 
+освободить объект-мьютекс Вот из-за того, что система работает именно так, 
+дополнительный вызов <I>DisableThreadLibraryCalls </I>и не предотвращает 
+взаимной блокировки потоков. Единственное, что я смог придумать, — переделать 
+эту часть исходного кода так, чтобы ни одна <I>DllMain </I>не вызывала 
+<I>WaitForSingleObject</I></FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t2p6></A>Функция DllMain и библиотека С/С++</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассматривая 
+функцию <I>DllMain</I> в предыдущих разделах, я подразумевал, чтодля сборки DLL 
+Вы используете компилятор Microsoft Visual C++. Весьма вероятно, что при 
+написании DLL Вам понадобится поддержка со стороны стартового кода из библиотеки 
+С/С++. Например, в DLL есть глобальная переменная — экземпляр какого-то 
+С++класса. Прежде чем DLL сможет безопасно ее использовать, для переменной нужно 
+вьзвать ее конструктор, а это работа стартового кода</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При сборке 
+DLL компоновщик встраивает в конечный файл адрес DLL-функции входа/выхода. Вы 
+задаете этот адрес компоновщику ключом /ENTRY. Если у Вас компоновщик Microsoft 
+и Вы указали ключ /DLL, то по умолчанию он считает, что функция входа/выхода 
+называется <I>_DllMainCRTStartup. </I>Эта функция содержится в библиотеке С/С++ 
+и при компоновке статически подключается к Вашей DLL - даже если Вы используете 
+DLL-версию библиотеки С/С++<I>.</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда DLL 
+проецируется на адресное пространство процесса, система па самом деле вызывает 
+именно <I>_DllMainCRTStartup, </I>а не Вашу функцию <I>DllMain. </I>Получив 
+уведомление DLL_PROCESS_ATTACH, функция <I>_DllMainCRTStartup </I>инициализирует 
+библиотеку С/С++ и конструирует все глобальные и статические С++-объекты 
+Закончив, <I>_DllMainCRTSlartup </I>вызывает Вашу <I>DllMain</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как только 
+DLL получает уведомление DLL_PROCESS_DETACH, система вновь вызывает 
+<I>_DllMainCRTStartup, </I>которая теперь обращаемся к Вашей функции <I>DllMain, 
+</I>и, когда та вернет управление, <I>_DllMainCRTStartup </I>вызовет деструкторы 
+для всех глобальных и статических С++-объекгов. Получив уведомление 
+DLL_THREAD_ATTACH, функция <I>_DllMainCRTStartup </I>не делает ничего 
+особенного. Но в случае уведомления DLL_THREAD_DETACH, она освобождает в потоке 
+блок памяти <I>tiddata, </I>если он к тому времени еще не удален. Обычно в 
+корректно написанной функции потока этот блок отсутствует, потому что она 
+возвращает управление <I>в _threadstartex </I>из библиотеки С/С++ (см. главу 6). 
+Функция <I>_threadstartex </I>сама вызывает <I>_endtbreadex, </I>которая 
+освобождает блок <I>tiddata </I>до того, как поток обращается к 
+<I>ExitThread</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но 
+представьте, что приложение, написанное на Паскале, вьзывяет функции из DLL, 
+написанной на С/С++. В этом случае оно создаст поток, нс прибегая к 
+<I>_begin-</I></FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>threadex, 
+</I>и такой поток никогда не узнает о библиотеке С/С++ Далее поток вызовет 
+функцию из DLL, которая в свою очередь обратится к библиотечной С-функции. Как 
+Вы помните, подобные функции "на лету" создают блок <I>tiddata </I>и 
+сопоставляют его с вызывающим потоком. Получается, что приложение, написанное на 
+Паскале, может создавать потоки, способные без проблем обращаться к функциям из 
+библиотеки C' Когда сго функция потока возвращает управление, вызывается 
+<I>ExitThread, </I>а библиотека С/С++ получает уведомление DI.I,_THREADDETACH и 
+освобождает блок памяти <I>tiddata, </I>так что никакой утечки памяти не 
+происходит. Здорово придумано, да?</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я уже 
+говорил, что реализовать в коде Вашей DLL функцию <I>DllMain </I>не обязательно. 
+Если у Вас нет этой функции, библиотека С/С++ использует свою реализацию 
+<I>DllMain, </I>которая выглядит примерно так (если Вы связываете DLL со 
+статической библиотекой С/С++):</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL WINAPI 
+  DllMain(HINSTANCE hinstDll, DWORD fdwReason, PVOID fImpLoad) <BR>{</FONT> </P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (fdwReason 
+  == DLL_PROCESS_ATTACH)</FONT> </P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>DisableThreadLibraryCalls(hinstDll); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(TRUE); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При сборке 
+DLL компоновщик, не найдя в Ваших OBJ-файлах функцию <I>DllMain, </I>подключит 
+<I>DllMain </I>из библиотеки С/С++ Если Вы не предоставили свою версию функции 
+<I>DllMain, </I>библиотека С/С++ вполне справедливо будет считать, что Вас не 
+интересуют уведомления DLL_THREAD_ATTACH и DLL_THREAD_DETACH. Функция 
+<I>DisableThreadLibraryCalls </I>вызывается для ускорения создания и разрушения 
+потоков.</FONT> </P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t3></A>Отложенная загрузка DLL</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+Visual С++ 60 поддерживает отложенную загрузку DLL — новую, просто 
+фантастическую функциональность, которая значительно упрощает работу с 
+библиотеками. DLL отложенной загрузки (delay-load DLL) — это неявно связываемая 
+DLL, которая нс загружается до тех пор, пока Ваш код не обратится к 
+какому-нибудь экспортируемому из нее идентификатору. Такие DLL могут быть 
+полезны в следующих ситуациях.</FONT> </P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Ваше 
+  приложение использует несколько DLL, его инициализация может занимать 
+  длительное время, потому что загрузчику приходится проецировать их па адресное 
+  пространство процесса. Один из способов снять остроту этой проблемы — 
+  распределить загрузку DLL в ходе выполнения приложения. DLL отложенной 
+  загрузки позволяют легко решить эту задачу.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+  приложение использует какую-то новую функцию и Вы пытаетесь запустить его в 
+  более старой версии операционной системы, в которой нет такой функции, 
+  загрузчик сообщает об ошибке и не дает запустить приложение. Вам нужно как-то 
+  обойти этот механизм и уже в период выполнения, выяснив, что приложение 
+  работает в старой версии системы, не вызывать новую функцию. Например, Baшa 
+  программа в Windows 2000 должна использовать функции PSAPI, я в Windows 98 — 
+  ToolHclp-функции (вроде <I>Process32Next) </I>При инициализации программа 
+  должна вызвать <I>GetVersionEx, </I>чтобы определить версию текущей 
+  операционной системы, и после этого обращаться к соответствующим функциям. 
+  Попытка запуска этой программы в Windows 98 приведет к тому, что загрузчик 
+  сообщит об ошибке, поскольку в этой системе нет модуля PSAPI.dll. Так вот, и 
+  эта проблема легко решается за счет DLL отложенной загрузки.</FONT> </LI></UL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я довольно 
+долго экспериментировал с DLL отложенной загрузки в Visual C++ 6.0 и должен 
+скязать, что Microsoft прекрасно справилась со своей задачей. DLL отложенной 
+загрузки открывают массу дополнительных возможностей и корректно работают как в 
+Windows 98, так и в Windows 2000.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Давайте 
+начнем с простого: попробуем воспользоваться механизмом поддержки DLL отложенной 
+загрузки. Для этого создайте, как обычно, свою DLL. Точно так же создайте и 
+ЕХЕ-модуль, по потом Вы должны поменять пару ключей компоновщика и повторить 
+сборку исполняемого файла. Вот эти ключи:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>/Lib:DelayImp.lib /DelayLoad:MyDll.dll</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый ключ 
+заставляет компоновщик внедрить в ЕХЕ-модуль специальную функцию, 
+_<I>delayLoadHelper, </I>а второй — выполнить следующие операции:</FONT> </P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>удалить 
+  MyDll.dll из раздела импорта исполняемого модуля, чтобы при инициализации 
+  процесса загрузчик операционной системы не пытался неявно связывать эту 
+  библиотеку с ЕХЕ-модулем;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>встроить в 
+  ЕХЕ-файл новый раздел отложенного импорта (.didat) со списком функций, 
+  импортируемых из MyDll.dll;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>привести 
+  вызовы функций из DLL отложенной загрузки к вызовам 
+  _<I>delayLoadHelper.</I></FONT> </LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+выполнении приложения вызов функции из DLL отложенной загрузки (далее для 
+краткости — DLL-функции) фактически переадресуется к _<I>delayLoadHelper. 
+</I>Последняя, просмотрев раздел отложенного импорта, знает, что нужно вызывать 
+<I>LoadLibrary, </I>а затем <I>GetProcAddress. </I>Получив адрес DLL-функции, 
+<I>delayLoadHelper </I>делает так, чтобы в дальнейшем эта DLL-функция вызывалась 
+напрямую. Обратите внимание, что каждая функция в DLL настраивается 
+индивидуально при первом ее вызове Ключ /DelayLoad компоновщика указывается для 
+каждой DLL, загрузку которой требуется отложить.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот 
+собственно, и все. Как видите, ничего сложного здесь нет. Однако следует учесть 
+некоторые тонкости. Загружая Ваш ЕХЕ-файл, загрузчик операционной системы обычно 
+пытается подключить требуемые DLL и при неудяче сообщает об ошибке. Но при 
+инициализации процесса наличие DLL отложенной загрузки не проверяется. И если 
+функция _<I>delayLoadHelper </I>уже<I> </I>в период выполнения не найдет нужную 
+DLL, она возбудит программное исключение. Вы можете перехватить его, используя 
+SEH, и как-то обработать. Если же Вы этого не сделаете, Ваш процесс будет 
+закрыт. (О структурной обработке исключений см. главы 23, 24 и 25.)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Еще одна 
+проблема может возникнуть, когда _<I>delayLoadHelper, </I>найдя Вашу DLL, не 
+обнаружит в ней вызываемую функцию (например, загрузчик нашел старую версию 
+DLL). В этом случае _<I>delayLoadHelper </I>так же<I> </I>возбудит программное 
+исключение, и все пойдет по уже описанной схеме В программе-примере, которая 
+представлена в следующем разделе, я покажу, как написать SEH-код, обрабатывающий 
+подобные ошибки. В ней же Вы увидите и массу другого кода, не имеющего никакого 
+отношения к SEH и обработке ошибок Он использует дополнительные возможности (о 
+них — чуть позже), предоставляемые механизмом поддержки DLL отложенной загрузки. 
+Если эта более «продвинутая» функциональность Вас не интересует, просто удалите 
+дополнительный код.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разработчики 
+Visual C++ определили два кода программных исключений: 
+<I>VcppException(ERROR_SEVERTY_ERROR, ERROR_MOD_NOT_FOUND) </I>и 
+<I>VcppException(ERROR_SEVE</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3><I>RTIY_ERKOR, ERROR_PROC NOT_FOUND) </I>Они уведомляют 
+соответственно об отсутствии DLL и DLL-фупкции. Моя функция фильтра исключений 
+<I>DelayLoadDllExceptionFilter </I>реагирует на оба кода. При возникновении 
+любого другого исключения она, как и положено корректно написанному фильтру, 
+возвращает EXCEPTION_CONTINUE_SEARCH. (Программа не должна «глотать» исключения, 
+которые не умеет обрабатывать.) Однако, если генерируется один из приведенных 
+выше кодов, функция <I>__delayLoadHelper </I>предоставляет указатель на 
+структуру DelayLoadInfo, содержащую некоторую дополнительную информацию. Она 
+определена в заголовочном файле DelayImp.h, поставляемом с Visual C++.</FONT> 
+</P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  DelayloadInfo <BR>{</FONT> </P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD cb; // 
+    размер структуры</FONT> <FONT face="Courier New, Courier, mono" 
+    color=#0000cc size=2><BR>PCImgDelayDescr pidd; // "сырые" данные (все, что 
+    пока не обработано)</FONT> <FONT face="Courier New, Courier, mono" 
+    color=#0000cc size=2><BR>FARPROC * ppfn; // указатель на адрес функции, 
+    которую надо загрузить</FONT> <FONT face="Courier New, Courier, mono" 
+    color=#0000cc size=2><BR>LPCSTR szDll; // имя DLL</FONT> <FONT 
+    face="Courier New, Courier, mono" color=#0000cc size=2><BR>DelayLoadProc 
+    dlp; // имя или порядковый номер процедуры</FONT> <FONT 
+    face="Courier New, Courier, mono" color=#0000cc size=2><BR>HMODULE hmodCur; 
+    // nInstance загруженной библислеки</FONT> <FONT 
+    face="Courier New, Courier, mono" color=#0000cc size=2><BR>FARPROC pfnCur; 
+    // функция, которая будет вызвана на самом деле</FONT> <FONT 
+    face="Courier New, Courier, mono" color=#0000cc size=2><BR>DWORD 
+    dwLastError;// код ошибки</FONT> </P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  DelayLoadInfo, * PDelayLoadInfo;</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Экземпляр 
+этой структуры данных создается и инициализируется функцией _<I>delayLoadHelper, 
+</I>а ее элементы заполняются по мере выполнения задачи, связанной с 
+динамической загрузкой DLL. Внутри Вашего SEH-фильтра элемет <I>szDll 
+</I>указывает на имя загружаемой DLL, а элемент <I>dlp </I>— на имя нужной 
+DLL-функции. Поскольку искать функцию можно как по порядковому номеру, так и по 
+имени, <I>dlp </I>представляет собой следующее</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  DelayLoadProc <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+    fImportByName; <BR>union<BR>{</FONT> </P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LPCSTR 
+      bzProcName; <BR>DWORD dwOrdinal;</FONT> </P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>};</FONT> 
+    </P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  DealyLoadProc;</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если DLL 
+загружается, но требуемой функции в ней нет, Вы можете проверить злемент 
+<I>hmodCur, </I>в котором содержится адрес проекции этой DLL, и элемент 
+<I>dwLastError, </I>в который помещается код ошибки, вызвавшей исключение. 
+Однако для фильтра исключения код ошибки, видимо, не понадобится, поскольку код 
+исключения и так информирует о том, что произошло. Элемент <I>pfnCur 
+</I>содержит адрес DLL-функции, и фильтр исключения устанавливает его в NULL, 
+так как само исключение говорит о том, что _<I>delayLoadHelper </I>нс смогла 
+найти этот адрес</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Что касается 
+остальных элементов, то <I>сЬ </I>служит для определения версии системы, <I>pidd 
+</I>указывает на раздел, встроенный в модуль и содержащий список DLL отложенной 
+загрузки, а <I>ppfh — </I>это адрес, по которому вызывается функция, если она 
+найдена в DLL. Последние два параметра используются внутри _<I>delayLoadHelper 
+</I>и рассчитаны на очень «продвинутое» применение — крайне маловероятно, что 
+они Вам когда-нибудь понадобятся.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, самое 
+главное о том, как использовать DLL отложенной загрузки, я рассказал Но это лишь 
+видимая часть айсберга — их возможности гораздо шире. В частности, Вы можете еще 
+и выгружать эти DLL Допустим, что для распечатки документа Вашему приложению 
+нужна специальная DLL. Такая DLL — подходящий кандидат на</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>отложенную 
+загрузку, поскольку она требуется только на время печати документа. Когда 
+пользователь выбирает команду Print, приложение обращается к соответствующей 
+функции Вашей DLL, и та автоматически загружается. Все отлично, но, напечатав 
+документ, пользователь вряд ли станет сразу же печатать что-то еще, а значит, Вы 
+можете выгрузить свою DI.I, и освободить системные ресурсы. Потом, когда 
+пользователь решит напечатать другой документ, DLL вновь будет загружена в 
+адресное пространство Вашего процесса.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы DLL 
+отложенной загрузки можно было выгружать, Вы должны сделать две вещи. Во-первых, 
+при сборке исполняемого файла задать ключ /Delay:unload компоновщика. А 
+во-вторых, немного изменить исходный код и поместить в точке выгрузки DLL вызов 
+функции _<I>FUnloadDelayLoadedDLL:</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  __FUnloadDelayLoadedDLL(PCSTR szDll);</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ключ 
+/Delay:unload заставляет компоновщик создать в файле дополнительный раздел В нем 
+хранится информация, необходимая для сброса ужe вызывавшихся DLLфункций, чтобы к 
+пим снова можно было обратиться чсрсз _<I>delayLoadHelper. </I>Вызывая 
+_<I>FUnloadDelayLoadedDLL, </I>Вы передаете имя выгружаемой DLL После зтого она 
+просматривает раздел выгрузки (unload section) и сбрасывает адреса всех 
+DLL-функций. И, наконец, <I>__FUnloadDelayLoadedDLL </I>вызывает <I>FreeLibrary, 
+</I>чтобы выгрузить эту DLL</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание на несколько важных моментов Во-первых, ни при каких условиях не 
+вызывайте сами <I>FreeLibrary </I>для выгрузки DLL, иначе сброса адреса 
+DLLфункции не произойдет, и впоследствии любое обращение к ней приведет к 
+нарушению доступа. Во-вторых, при вызове _<I>FUnloadDelayLoadedDLL </I>в имени 
+DLL нельзя указывать путь, а регистры всех букв должны бьть точно такими же, как 
+и при передаче компоновщику в ключе /DelayLoad, в ином случае вызов 
+<I>__FUnloadDelayLoadedDLL </I>закончится неудачно. В-третьих, если Вы вообще не 
+собираетесь выгружать DLL отложенной загрузки, не задавайте ключ 
+<I>/Delay:unload — </I>тогда Вы уменьшите размер своего исполняемого файла И, 
+наконец, если Вы вызовете __<I>FUnloadDelayLoadedDLL </I>из модуля, собранного 
+без ключа<I> /Delay:unload, </I>ничего страшного не случится: 
+<I>__FUnloadDelayLoadedDll, </I>проигнорирует<SUP>1</SUP> вьиов и просто вернет 
+FALSE.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Другая 
+особенность DLL отложенной загрузки в том, что вызываемые Вами функции по 
+умолчанию связываются с адресами памяти, по которым они, как считает система, 
+будут находиться в адресном пространстве процесса (О связывании мы поговорим 
+чуть позжс ) Поскольку связываемые разделы DLL отложенной загрузки увеличивают 
+размер исполняемого файла, Вы можете запретить их создание, указав ключ 
+/Delay:nobind компоновщика. Однако связывание, как правило, предпочтительно, 
+позтому при сборке большинства приложений этот ключ использовать не 
+следует.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последняя 
+особенность DLL отложенной загрузки. Она, кстати, наглядно демонстрирует 
+характерное для Microsoft внимание к деталям Функция _<I>delayLoadHelper 
+</I>может вызывать предоставленные Вами функции-ловушки (hook functions), и они 
+будут получать уведомления о том, как идет выполнение _<I>delayLoadHelper, </I>а 
+также уведомления об ошибках. Кроме того, они позволяют изменять порядок 
+загрузки DLL и формирования виртуального адреса DLL-функций.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+получать уведомления или изменить поведение _<I>delayLoadHelper, </I>нужно 
+внести два изменения в свой исходный код Во-первых, Вы должны написать 
+функцию-ловушку по образу и подобию <I>DliHook, </I>код которой показан на рис. 
+20-6 Моя функция <I>DliHook </I>не влияет на характер работы 
+_<I>delayLoadHelper. </I>Если Вы хотите изменить поведение _<I>delayLoadHelper, 
+</I>начните с <I>DliHook </I>и модифицируйте ее код так, как Вам требуется. 
+Потом передайте ее адрес функции _<I>delayLoadHelper.</I></FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В статически 
+подключаемой библиотеке DelayImp.lib определены двс глобальные переменные типа 
+<I>PfriDliHouk: __pfnDliNotifyHook </I>и __<I>pfnDliFailureHook:</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef 
+  FARPROC (WINAPI *pfnDliHook)( unsigned dliNotify, PDelayLoadInfo pdli);</FONT> 
+  </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+это тип данных, соответствующий функции, и он совпадает с прототипом моей 
+<I>DliHook. </I>В DelayImp.lib эти две переменные инициализируются значением 
+NULL, которое сообщает __<I>delayLoadHelper, </I>что никаких функций-ловушек 
+вызывать не требуется. Чтобы Ваша функция-ловушка все же вызывалась, Вы должны 
+присвоить ее адрес одной из этих переменных. В своей программе я пpocтo добавил 
+на глобальном уровне две строки:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PfnDliHook 
+  __pfnDliNotifyHook = DliHook; <BR>PfnDliHook __pfnDliFailureHook = 
+  DliHook;</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так что 
+__<I>delayLoadHelper </I>фактически работает с двумя функциями обратного вызова: 
+одна вызывается для уведомлений, другая — для сообщений об ошибках. Поскольку их 
+прототипы идентичны, а первый параметр, <I>dliNotify, </I>сообщает о причине 
+вызова функции, я всегда упрощаю себе жизнь, создавая одну функцию и настраивая 
+на нее обе переменные.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Механизм 
+отложенной загрузки DLL, введенный в Visual C++ 6.0, — вещь весьма интересная, и 
+я знаю многих разработчиков, которые давно мечтали о нсм. Он будет полезен в 
+очень большом числе приложений (особенно от Microsoft).</FONT> </P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h20t3з1></A>Программа-пример DelayLoadApp</FONT> </I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «20 DelayLoadApp.exe» (см. листинг на рис. 20-6), показывает, как 
+использовать все преимущества DLL отложенной загрузки. Для демонстрации нам 
+понадобится небольшой DLL-файл; он находится в каталоге 20-DclayLoadLib на 
+компактдиске, прилагаемом к книге.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так как 
+программа загружает модуль «20 DelayLoadLib» c задержкой, загрузчик не 
+проецирует его на адресное пространство процесса при запуске. Периодически 
+вызывая функцию <I>IsModuleLoaded, </I>программа выводит окно, которое 
+информирует, загружен ли модуль в адресное пространство процесса. При первом 
+запуске модуль «20 DelayLoadd.lib» не загружается, о чем и сообщается в окне 
+(рис. 20-4).</FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=72 alt=rihter20-6.jpg src="images/rihter20-6.jpg" width=372> 
+</FONT></P></DIV>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 20-4. DelayLoadApp сообщает, что модуль «20 DelayLoadLib» не 
+загружен</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далсс 
+программа вызывает функцию, импортируемую из Dl.L, и это заставляет 
+__<I>delayLoadHelper </I>автоматически загрузить нужную DLL. Когда функция 
+всрнст управление, программа выведет окно, показанное на рис. 20-5.</FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=72 alt=rihter20-7.jpg src="images/rihter20-7.jpg" width=376> 
+</FONT></P></DIV>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 20-5. DelayLoadApp сообщает, что модуль "20 DelayLoadLib» 
+загружен</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+пользователь закроет это окно, будет вызвана другая функция из той же DLL. В 
+этом случае DLL не перезагружается в адресное пространство, но перед вызовом 
+новой функции придется определять ее адрес.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее 
+вызывается <I>__FUnloadDelayLoadedDLL, </I>и модуль «20 DelayLoadLib» 
+выгружается из памяти. После очередного вьиова <I>IsModuleLoaded </I>на экране 
+появляется окно, показанное на рис. 20-4. Наконец, вновь вызывается 
+импортируемая функция, что приводит к повторной загрузке модуля «20 
+DelayLoadLib», a <I>IsModuleLoaded </I>открывает окно, как на рис. 20-5.</FONT> 
+</P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если все 
+нормально, то программа будет работать, как я только что рассказал. Однако, если 
+перед запуском программы Вы удалите модуль «20 DelayLoadLib» или если в этом 
+модуле не окажется одной из импортируемых функций, будет возбуждено исключение. 
+Из моего кода видно, как корректно выйти из такой ситуации.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наконец, эта 
+программа демонстрирует, как настроить функцию-ловушку из DLL отложенной 
+загрузки. Моя схематическая функция <I>DliHook </I>не делает ничего интересного. 
+Тем не менее она перехватывает различные уведомления и показывает их Вам.</FONT> 
+</P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/20-DelayLoadApp.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>DelayLoadApp</A></FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/20-DelayLoadLib.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>DelayLoadLib</A></FONT></P>
+<P>&nbsp;</P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t4></A>Переадресация вызовов функций</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Запись о 
+переадресации вызова функции (function forwarder) — это строка в разделе 
+экспорта DLL, которая перенаправляет вызов к другой функции, находящейся в 
+другой DLL Например, запустив утилиту DumpBin из Visual С++ для Kcrncl32dll в 
+Windows 2000, Вы среди прочей информации увидите и следующее</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С 
+\winnt\system32&gt;DumpBin -Exports Kernel32.dll <I>(часть вывода 
+опущена)</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>360 167 
+HeapAlloc (forwarded to NTDLL RtlAllocateHeap)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>361 168 
+HeapCompact (000128D9)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>362 1Ь9 
+HeapCreate (000126EF)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>363 16A 
+HeapCreateTagsW (0001279E)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>364 16B 
+HpapDpstroy (0001?750)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>365 16C 
+HeapExtend (00012773)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>366 16D 
+HeapFree (forwarded to NTDLL RtlFreeHeap)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>367 16E 
+HeapLock (000128ED)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>368 16F 
+HeapQueryTagW (000127B8)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>369 170 
+HeapReAlloc (forwarded to NTDLL RtlReAllocateHeap)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>370 171 
+HeapSize (forwarded to NTDLL RtlSizeHeap) <I>(остальное тоже опущено)</I></FONT> 
+</P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Здесь есть 
+четыре переадресованные функции Всякий раз, когда Ваше приложение вызывает 
+<I>HeapAlloc, HeapFree, HeapReAlloc </I>или <I>HeapSize, </I>его ЕХЕ-модуль 
+динамически связывается с Kernel32.dll При запуске ЕХЕ-модуля загрузчик 
+загружает Kernel32dll и, обнаружив, что переадресуемые функции на самом деле 
+находятся в NTDLLdll, загружаег и эту DLL Обращаясь к <I>HeapAlloc, 
+</I>программа фактически вызы васт функцию <I>Rltоса1еНеар </I>из NTULL.dll А 
+функции <I>HeapAlloc </I>вообще нет<SUP>1</SUP></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+<I>НеарАllос </I>(см ниже) функция <I>GetProcAddress </I>просмотрит раздел 
+экспорта Kernel32dll и, выяснив, чю <I>НеарАllос — </I>переадресуемая функция, 
+рекурсивно вызовет сама себя для поиска <I>RtlAllocateHeap </I>в разделе 
+экспорта NTDLL.dll.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>GetProcAddress(GetModuleHandle("Kernel32"), "НеарАllос" );</FONT> 
+</P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы тоже 
+можете применять переадресацию вызовов функций в своих DLL. Самый простой способ 
+— воспользоваться директивой <I>pragma:</I></FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  переадресация к функции из DllWork</FONT> </P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#pragma 
+  comment(linker, "/export:SomeFunc=DllWork.SomeOtherFunc")</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта директива 
+сообщает компоновщику, что DLL должна экспортировать функцию <I>SomeFunc, 
+</I>которая на самом деле реализована как функция <I>SomeOtherFunc </I>в модуле 
+DlIWork dll Такая запись нужна для каждой переадресуемой функции</FONT> </P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t5></A>Известные DLL</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Некоторые 
+DLL, поставляемые с операционной системой, обрабатываются по-особому. Они 
+называются <I>известными DLL </I>(known DLLs) и ведут себя точно так же, кяк и 
+любые другие DLL с тем исключением, что система всегда ищет их в одном и том же 
+каталоге. D реестре есть раздел:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>HKEY_LOCAL_MACHTNE\SYSTEM\CurrentControlSet\Control\Session 
+  Manager\KnownDLLs</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Содержимое 
+этого раздела может выглядеть примерно так, как показано ниже (при просмотре 
+реестра с помощью утилиты RegEdit.exe).</FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=388 alt=rihter20-8.jpg src="images/rihter20-8.jpg" width=542> 
+</FONT></P></DIV>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+здесь содержится набор параметров, имена которых совпадают с именами известных 
+DLL. Значения этих параметров представляют собой строки, идентичные именам 
+параметров, но дополненные расширением .dll. (Впрочем, это не всегда так, и Вы 
+сами убедитесь в этом на следующем примере) Когда Вы вызываете <I>LoadLibrary 
+</I>или <I>LoadLibraryEx, </I>каждая из них сначала проверяет, указано ли имя 
+DLL вместе с расширением .dll. Если нет, поиск DLL ведется по обычным 
+правилам.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если же 
+расширение .dll указано, функция его отбрасывает и ищет в разделе реестра 
+<I>KnownDLLs </I>параметр, имя которого совпадает с именем DLL. Если его нет, 
+вновь применяются обычные правила поиска А если он есть, система считывает 
+значение этого параметра и пытается загрузить заданную в нем DLL. При этом 
+система ищет</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>DLL в 
+каталоге, на который указывает значение, связанное с параметром реестра 
+<I>DllDirectory. </I>По умолчанию в Windows 2000 параметру<I> DllDirectory 
+</I>присваивается значение %SystemRoot%\System32</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь 
+допустим, что мы добавили в раздел реестра <I>KnownDLLs </I>такой 
+параметр</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>Имя параметра; 
+  SomeLib Значение параметра SomeOtherLib.dll</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда мы 
+вызовем следующую функцию, система будет искать файл по обычным правилам,</FONT> 
+</P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>LoadLibrary("SomeLib");</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но если мы 
+вызовем ее так, как показано ниже, система увидит, что в реестре есть параметр с 
+идентичным именем (не забудьте она отбрасывает расширение .dll).</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>LoadLibrary("SomeLib dll");</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таким 
+образом, система попытается загрузить SomeOtherLib.dll вместо SomcLib dll При 
+этом она будет сначала искать SomeOtherLib.dll в каталоге %SystemRoot%\System32. 
+Если нужный файл в этом каталоге есть, будет загружен именно он. Нет — 
+<I>LoadLibrary(Ex) </I>вернет NULL, a <I>GetLastError - </I>ERROR_FILE_NOT_FOUND 
+(2).</FONT> </P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t6></A>Перенаправление DLL</B></FONT> </H2>
+<P></P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT></FONT> <FONT 
+  face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>Windows 98 не 
+  поддерживает перенаправление DLL.</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+разрабатывались первые версии Windows, оперативная намять и дисковое 
+пространство были крайне дефицитным ресурсом, так что Windows была рассчитана на 
+предельно экономное их использование — с максимальным разделением между 
+потребителями. В связи с этим Microsoft рекомендовала размещать все модули, 
+используемые многими приложениями (например, библиотеку С/С++ и DLL, относящиеся 
+к MFC) в системном каталоге Windows, где их можно было легко найти.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Однако со 
+временем это вылилось в серьезную проблему: программы установки приложений то и 
+дело перезаписывали новые системные файлы старыми или не полностью совместимыми. 
+Из-за этого уже установленные приложения переставали работать. Но сегодня 
+жесткие диски стали очень емкими и недорогими, оперативная память тоже 
+значительно подешевела. Поэтому Microsoft сменила свою позицию на прямо 
+противоположную; теперь она настоятельно рекомендует размещать все фаЙлы 
+приложения в своем каталоге и ничего не трогать в системном каталоге Windows. 
+Тогда Вашс приложение не нарушит работу других программ, и наоборот.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С той же 
+целью Microsoft ввела в Windows 2000 поддержку перенаправления DLL (DLL 
+redirection). Она заставляет загрузчик операционной системы загружав модули 
+сначала из каталога Вашего приложения и, только если их там нет, искать в других 
+каталогах</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+загрузчик всегда проверял сначала каталог приложения, нужно всего лишь поместить 
+туда специальный файл Его содержимое не имеет значения и игнорируется — вяжно 
+только его имя: оно должно быть в виде AppName.local. Так, если исполняемый файл 
+Вашего приложения — SupcrAppexe, присвойте перенаправляющему файлу имя SuperApp 
+cxc local</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>LoadLibrary(Ex) </I>проверяет наличие этого файла и, ссли он есть, загружает 
+молуль из каталога приложения; в ином случае <I>LoadLibrary(Ex) </I>работает так 
+же, как и раньше.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Перенаправление DLL исключительно полезно для работы с 
+зарегистрированными СОМ-объектами. Оно позволяет приложению размещать DLL с 
+СОМ-объектами в своем каталоге, и другие программы, регистрирующие те же 
+объекты, не будут мешать его нормальной работе.</FONT> </P>
+<P></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t7></A>Модификация базовых адресов модулей</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>У каждого EXE 
+и DLL-модуля есть <I>предпочтительный базовый адрес </I>(preferred base address) 
+— идеальный адрес, по которому он должен проецироваться на адресное пространство 
+процесса. Для ЕХЕ-модуля компоновщик выбирает в качестве такого адреса значение 
+0x00400000, а для DLL-модуля — 0x10000000. Выяснить этот адрес позволяет утилита 
+DumpBin с ключом /Headers. Вот какую информацию сообщает DumpBin о самой 
+себе:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>С \&gt;DUMPBIN 
+  /headers dumpbin.exe</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft (R} 
+COFF Binary File Dumper Version 6 00.8168 Copyright (C) Microsoft Corp 
+1992-1998. All rights reserved</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Dump of file 
+dumpbin.exe</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>PE signature 
+found</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>File Type: 
+EXECUTABLE_IMAGE</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>File HEADER 
+VALUES</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>14C machine 
+(i386)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3 number of 
+sections</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3588004A time 
+date stamp Wed Jun 17 10'43-38 1998 0 file pointer to symbol table 0 number of 
+symbols E0 size of optional header 10F characteristics</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Relocations 
+stripped</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Executable</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Line numbers 
+stripped</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Symbols 
+stripped</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>32 bit word 
+machine</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>OPTIONAL 
+HEADER VALUES</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>108 magic 
+#</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>6.00 linker 
+version</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1000 size of 
+code</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>2000 size of 
+initialized data</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 size of 
+uninitialized data</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1320 RVA of 
+entry point</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1000 base of 
+code</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>2000 base of 
+data</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>400000 image 
+base &lt;-- предпочтительный базовый адрес модуля</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1000 section 
+alignment</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1000 file 
+alignment 4.00 operating system verbion 0.00 image version 4.00 subsystem 
+version</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 Win32 
+version 4000 size of image 1000 size of headers 127E2 checksum</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3 subsystem 
+(Windows CUI)</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>0 DLL 
+characteristics</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>100000 size 
+of stack reserve 1000 size of stack commit</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При запуске 
+исполняемого модуля загрузчик операционной системы создает виртуальное адресное 
+пространство нового процесса и проецирует этот модуль по адресу 0x00400000, а 
+DLL-модуль — по адресу 0x10000000. Почему так важен предпочтительный базовый 
+адрес? Взгляните на следующий фрагмент кода.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  g_x;</FONT> </P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  Func()<BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>g_x = 5; // 
+    нас интересует эта строка </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+обработки функции <I>Func </I>компилятором и компоновщиком полученный машинный 
+код будет выглядеть приблизительно так:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV 
+  [0x00414540], b</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иначе говоря, 
+компилятор и компоновщик "жестко зашили" в машинный код адpеc переменной 
+<I>g_x</I>: в адресном пространстве процесса (0x00414540). Но, конечно, этот 
+адрес корректен, только ссли исполняемый модуль будет загружен по базовому 
+адресу 0x00400000</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А что 
+получится, если тот же исходный код будет помещен в DLL? Тогда машинный код 
+будет иметь такой вид</FONT></P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV 
+  [0x10014b40], 5</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+и на этот paз виртуальный адрес переменной <I>g_x </I>"жестко зашит" в машинный 
+код. И опять жс этот адрес будет правилен только при том условии, что DLL 
+загрузится по своему базовому адресу.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, а 
+теперь представьте, что Вы создали приложение с двумя DLL. По умолчанию 
+компоновщик установит для ЕХЕ-модуля предпочтительный базовый адрес 0x00400000, 
+а для обеих DLL — 0x10000000. Если Вы затем попытаетесь запустить исполняемый 
+файл, загрузчик создаст виртуальное адресное пространство и спроецирует 
+ЕХЕ-модуль по адресу 0x00400000 Далее первая DLL будет спроецирована по адресу 
+0x10000000, но загрузить вторую DLL по предпочтительному базовому адресу не 
+удастся — ee придется проецировать по какому-то другому адресу.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Переадресация 
+(relocation) в EXE- или DLL-модуле операция просто ужасающая, и Вы должны 
+сделать все, чтобы избежать ее. Почему? Допустим, загрузчик переместил вторую 
+DLL по адресу 0x20000000. Тогда код, который присваивает переменной</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>g_x 
+</I>значение 5, должен измениться на:</FONT> </P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV 
+  [0x20014540], 5</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но в образе 
+файла код остался прежним:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV 
+  [0x10014540], 5</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если будет 
+выполнен именно этот кол, он перезапишет какое-то 4-байтовое значение в первой 
+DLL значением <I>5 </I>Но, по идее, такого не должно случиться. Загрузчик 
+исправит этот код. Дсло в том, что, создавая модуль, компоновщик встраивает в 
+конечный файл раздел переадресации (relocation section) co списком байтовых 
+смещений. Эти смещения идентифицируют адреса памяти, используемые инструкциями 
+машинного кода. Если загрузчику удастся спроецировать модуль по его 
+предпочтительному базовому адресу, раздел переадресации не понадобится Именно 
+этого мы и хотим.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С другой 
+стороны, если модуль не удастся спроецировать по базовому адресу, загрузчик 
+обратится к разделу переадресации и последовательно обработает все его записи. 
+Для каждой записи загрузчик обращается к странице памяти, где содержится 
+машинная команда, которую надо модифицировать, получает используемый ею на 
+данный момент адрес и добавляет к нему разницу между предпочтительным базовым 
+адресом модуля и сго фактическим адресом.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В предыдущем 
+примере вторая DLL была спроецирована по адресу 0x20000000, тогда как ее 
+предпочтительный базовый адрес — 0x10000000 Получаем разницу (0х 10000000), 
+добавляем ее к адресу в машинной команде и получаем.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV 
+  [0x20014540], 5</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь и 
+вторая DLL корректно ссылается на переменную <I>g_x. </I>Невозможность загрузить 
+модуль по предпочтительному базовому адресу создает две крупные проблемы</FONT> 
+</P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Загрузчику 
+  приходится обрабатывать все записи раздела переадресации и модифицировать уйму 
+  кода в модуле. Это сильнейшим образом сказывается на быстродействии и может 
+  резко увеличить время инициализации приложения.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Из-за того 
+  что загрузчик модифицирует в оперативной памяти страницы с кодом модуля, 
+  системный механизм копирования при записи создает их копии в страничном 
+  файле.</FONT> </LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вторая 
+проблема особенно неприятна, поскольку теперь страницы с кодом модуля больше 
+нельзя выгружать из памяти и перезагружать из его файла на диске Вместо этого 
+страницы будут постоянно сбрасываться в страничный файл и подгружаться из него. 
+Это тоже отрицательно скажется па производительности Но и это еще не все. 
+Поскольку все страницы с кодом модуля размещаются в страничном файле, в системе 
+сокращается объем общей памяти, доступной другим процессам, а это ограничивает 
+размер электронных таблиц, документов текстовых процессоров, чертежей CAD, 
+растровых изображений и т. д.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, Вы 
+можете создать EXE- или DLL-модуль без раздела переадресации, указав при сборке 
+ключ /FIXED компоновщика. Тогда у модуля будет меньший размер, но загрузить сго 
+по другому базовому адресу, кроме предпочтительного, уже не удастся. Если 
+загрузчику понадобится модифицировать адреса в модуле, в котором пет раздела 
+переадресации, он уничтожит весь процесс, и пользователь увидит сообщение 
+«Abnormal Process Termination» («аварийное завершение процесса")</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для DLL, 
+содержащей только ресурсы, это тоже проблема. Хотя в ней нет машинного кода, 
+отсутствие раздела переадресации не позволит загрузить ее по базовому</FONT> 
+</P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>адресу, 
+отличному от предпочтительного Просто нелепо. Но, к счастью, компонов щик может 
+встроить в заголовок модуля информацию о том, что в модуле нет раздела 
+переадресации, так как он вообще не нужен. А загрузчик Windows 2000, обнаружив 
+эту информацию, может пагрупить DLL, которая содержит только ресурсы, без 
+дополнительной нагрузки на страничный файл.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для создания 
+файла с немодифицируемыми адресами предназначен ключ /SUBSYSTEM:WINDOWS, 5 0 или 
+/SUBSYSTEM:CONSOLE, 5 0; ключ /FIXED при этом не нужен. Если компоновщик 
+определяет, что модификация адресов в модуле не понадобится, он опускает раздел 
+переадресации и сбрасывает в заголовке специальный флаг IMAGEFILERELOCS_STRIPPED 
+Тогда Windows 2000 увидит, что данный модуль можно загружать по базовому адресу, 
+отличному от предпочтительного, и что ему не требуется модификация адресов. Но 
+все, о чем я только что рассказал, поддерживается лишь в Windows 2000 (вот 
+почему в ключе /SUBSYSTEM указывается значение <I>50)</I></FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь Вы 
+понимаете, насколько важен предпочтительный базовый адрес. Загружая несколько 
+модулей в одно адресное пространство, для каждого из них приходится выбирать 
+свои базовые адреса. Диалоговое окно Project Settings в среде Microsoft Visual 
+Studio значительно упрощает решение этой задачи. Вам нужно лишь открыть вкладку 
+Link, в списке Category указать Output, а в поле Base Address ввести 
+предпочтительный адрес. Например, на следующей иллюстрации для DLL установлен 
+базовый адрес 0x20000000</FONT> </P>
+<DIV align=center>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><IMG 
+height=276 alt=rihter20-9.jpg src="images/rihter20-9.jpg" width=435> 
+</FONT></P></DIV>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, 
+всегда загружайте DLL, начиная со старших адресов; это позволяет уменьшить 
+фрагментацию адресного пространства.</FONT> </P>
+<P></P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE:</FONT> 
+  <FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Предпочтительные базовые адреса должны быть кратны гранулярности 
+  выделения памяти (64 Кб на всех современных платформах). В будущем эта цифра 
+  может измениться Подробнее о гранулярности выделения памяти см. главу 
+  13</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, все 
+это просто замечательно, но что делать, если понадобится загрузить кучу модулей 
+в одно адресное пространство? Было бы неплохо «одним махом» задать правильные 
+базовые адреса для всех модулей. К счастью, такой способ есть</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Visual 
+Studio есть утилита Rebase.exe. Запустив ее без ключей в командной строке, Вы 
+получите информацию о том, как ею пользоваться. Она описана в документации 
+Platform SDK, и я не буду ее здесь детально рассматривать Добавлю лишь, что в 
+ней нет ничего сверхъестественного: она просто вызывает функцию <I>ReBaselmage 
+</I>для каждого указанного файла. Вот что представляет собой эта функция:</FONT> 
+</P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  ReBaseImage(</FONT> <FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2><BR>PSIR CurrentImageName; // полное имя обрабатываемого файла</FONT> 
+  <FONT face="Courier New, Courier, mono" color=#0000cc size=2><BR>PSTR 
+  SymbolPath; // символьный путь к файлу (необходим для</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2>корректности отладочной 
+  информации) <BR>BOOL fRebase; // TRUE = выполнить реальную модификацию 
+  адреса;</FONT> <FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2><BR>// FALSE - имитировать такую модификацию</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>BOOL 
+  fRebasoSysFileOk; // FALSE = не модифицировать адреса системных файлов 
+  <BR>BOOL fGoingDown; // TRUE = модифицировать адрес модуля,</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>// продвигаясь в 
+  сторону уменьшения адресов</FONT> <FONT face="Courier New, Courier, mono" 
+  color=#0000cc size=2><BR>ULONG CheckImageSize; // ограничение на размер 
+  получаемого в итоге модуля <BR>ULONG* pOldImageSize; // исходный размер модуля 
+  <BR>ULONG* pOldImageBase; // исходный базовый адрес модуля <BR>ULONG* 
+  pNewIinageSize; // ноеый размер модуля <BR>ULONG* pNfiwImageRase; // новый 
+  базовый адрес модуля <BR>ULONG TirneStamp); // новая временная мегка 
+  модуля</FONT> </P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когдя Вы 
+запускаете утилиту Rebase, указывая ей несколько файлов, она выполняет следующие 
+операции.</FONT> </P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Моделирует 
+  создание адресного пространства процесса</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Открывает 
+  все модули, которые загружались бы в это адресное пространство, и получаст 
+  предпочтительный базовый адрес и размер каждого модуля.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Моделирует 
+  переадресацию модулей в адресном пространстве, добиваясь того, чтобы модули не 
+  перекрывались.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В каждом 
+  модуле анализирует раздел переадресации и соответственно изменяет код в фяйле 
+  модуля на диске.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Записывает 
+  новый базовый адрес в заголовок файла.</FONT> </LI></OL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Rebase — 
+отличная утилита, и я настоятельно рекомендую Вам пользоваться ею. Вы должны 
+запускать ее ближе к концу цикла сборки, когда уже созданы все модули 
+приложения. Кроме того, применяя утилиту Rebase, можно проигнорировать настройку 
+базового адреса в диалоговом окне Pro)cct Settings. Она<I> </I>автоматически 
+изменит базовый адрес 0x10000000 для DLL, задаваемый компоновщиком по 
+умолчанию</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но ни при 
+каких обстоятельствах не модифицируйте базовые адреса системных модулей. Их 
+адреса уже оптимизированы Microsoft, так что при загрузке в одно адресное 
+пространство системные модули не перекрываются</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я, кстати, 
+добавил специальный инструмент в свою программу ProcessInfoexe (см. главу 4) Он 
+показывает список всех модулей, находящихся в адресном пространстве процесса. В 
+колонке BaseAddr сообщается виртуальный адрес, по которому загружен модуль. 
+Справа от BaseAddr расположена колонка ImagAddr Обычно оиа пуста, указывая, что 
+соответствующий модуль загружен по его предпочтительному базовому адресу. Так и 
+должно быть для всех модулей Однако, ссли в этой колонке присутствует адрес в 
+скобках, значит, модуль загружен не по предпочтительному базовому адресу, и в 
+колонке ImagAddr показывается базовый адрес, взятый из заголовка его файла на 
+диске.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ниже 
+приведена информация о процессе Acrord32.exe, предоставленная моей программой 
+ProcessInfo Обратите внимдние, что часть модулей загружена по предпочтительным 
+базовым адресам, а часть — нет. Для последних сообщается один и тот же базовый 
+адрес, 0x10000000; значит, автор этих DLL не подумал о проблемах модификации 
+базовых адресов — пусть ему будет стыдно.</FONT> </P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=290 alt=rihter20-10.jpg src="images/rihter20-10.jpg" 
+width=382> </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h20t8></A>Связывание модулей</B></FONT> </H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Модификация 
+базовых адресов действительно очень важна и позволяет существенно повысить 
+производительность всей системы Но Вы можете сделать еще больше. Допустим, Вы 
+должным образом модифицировали базовые адреса всех модулей своего приложения. 
+Вспомните из главы 19, как загрузчик определяет адреса импортируемых 
+идентификаторов он записывает виртуальные адреса идентификаторов в раздел 
+импорта ЕХЕ-модуля. Это позволяет, ссылаясь на импортируемые идентификаторы, 
+адресоваться к нужным участкам в памяти</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Давайте 
+поразмыслим Сохраняя виртуальные адреса импортируемых идентификаторов в разделе 
+импорта ЕХЕ-модуля, загрузчик записывает их на те страницы памяти, где 
+содержится этот раздел Здесь включается в paбoтy механизм копирования при 
+записи, и их копии попадают в страничный файл. И у нас опять та же проблема, что 
+и при модификации базовых адресов: отдельные части проекции модуля периодически 
+сбрасываются в страничный файл и вновь подгружаются из него. Кроме того, 
+загрузчику приходится преобразовывать адреса всех импортируемых идентификаторов 
+(для каждого модуля), на что может понадобиться немалое время.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для ускорения 
+инициализации и сокращения объема памяти, занимаемого Вашим приложением, можно 
+применить связывание модулей (module binding) Суть этой операции в том, что в 
+раздел импорта модуля помещаются виртуальные адреса всех импортируемых 
+идентификаторов. Естественно, она имеет смысл, только если проводится до 
+загрузки модуля</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Visual 
+Studio есть еще одна утилита, Bind.exe. Информацию о том, как ею пользоваться, 
+Вы получите, запустив Bind.exe без ключей в командной строке. Она описана в 
+документации Platform SDK, и я не буду ее здесь детально рассматривать Добавлю 
+лишь, что в ней, как и в утилите Rebase, тоже нет ничего сверхъестественного: 
+она просто вызывает функцию <I>BindlmageEx </I>для каждого указанного файла. Вот 
+что представляет собой эта функция.</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  BindImageEx(</FONT> <FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2><BR>DWORD dwFlags, // управляющие флаги</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>PSTR pszImageName, 
+  // полное имя обрабатываемого файла</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>PSTR pszDllPath, // 
+  пугь для поиска образов файлов</FONT> <FONT face="Courier New, Courier, mono" 
+  color=#0000cc size=2><BR>PSTR pszSymbolPath, // путь для поиска О1ладочной 
+  информации</FONT> <FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2><BR>PIMAGEHLP_STATUS_ROUTINE StatusRoutine); // функция обратного 
+  вызова</FONT> </P></BLOCKQUOTE>
+<P></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+параметр, <I>StatusRoutine, </I>— адрес функции обратного вызова, к которой 
+периодически обращается <I>BindImageEx, </I>позволяя отслеживать процесс 
+связывания Прототип функции обратного вызова должен выглядеть так:</FONT> </P>
+<P></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL WINAPI 
+  StatusRoutine(</FONT> <FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2><BR>IMAGtHLP_STATUS_RLASON Reason, // причина неудачи</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>PSTR pszImageName, 
+  // полное имя обрабатываемою файла</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>PSTR pszDllName. // 
+  полное имя DLL</FONT> <FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2><BR>ULONG_PTR VA, // вычисленный виртуальный адрес</FONT> <FONT 
+  face="Courier New, Courier, mono" color=#0000cc size=2><BR>ULONG_PTR 
+  Parameter); // дополнительные сведения (зависят от значения Reason)</FONT> 
+</P></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вы 
+запускаете утилиту Bind, указывая ей нужный файл, она выполняет следующие 
+операции.</FONT> </P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Открывает 
+  раздел импорта указанного файла.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Открывает 
+  каждую DLL, указанную в разделе импорта, и просматривает ее заголовок, чтобы 
+  определить предпочтительный базовый адрес.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Отыскивает 
+  все импортируемые идентификаторы в разделе экспорта DLL</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Получает 
+  RVA (относительный виртуальный адрес) идентификатора, суммирует его с 
+  предпочтительным базовым адресом модуля и записывает полученное значение в 
+  раздел импорта обрабатываемого файла.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вносит в 
+  раздел импорта модуля некоторую дополнительную информацию, включая имена 
+  всех<B> </B>DLL, с которыми связывается файл, и их временные метки.</FONT> 
+  </LI></OL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В главе 19 мы 
+исследовали раздел импорта CaIc,exe с помощью утилиты DumpBln. В конце 
+выведенного ею текста можно заметить информацию о связывании, добавленную при 
+операции по п 5 Вот эти строки</FONT> </P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Header 
+contains the following bound import information: Bound to SHELL32 dll [36E449EO] 
+Mon Мяг 08 14:06:24 1999 Bound to MSVCRT dll [36BB8379] Fri Feb Ob 15:49:13 1999 
+Bound to ADVAPI32.dll [36E449E1] Mon Mar 08 14:06:25 1999 Bound to KERNEL32 dll 
+[36DDAD55] Wed Mar 03 13:44:53 1999 Bound to GDI32 dll [36E449EO] Mon Mar 08 
+14:06:24 1999 Bound to USER32 dll [36E449EO] Mon Mar 08 14:06:24 1999</FONT> 
+</P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Здесь видно, 
+с какими модулями связан файл Calc.exe, а номер в квадратных скобках 
+идентифицирует время создания каждого DLL-модуля Это 32-разрядное значение 
+расшифровывается и отображается за квадратными скобками в более привычном нам 
+виде</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Утилита Bind 
+использует два важных правила.</FONT> </P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+  инициализации процесса все необходимые DLL действительно загружаются по своим 
+  предпочтительным базовым адресам. Вы можете соблюсти это правило, применив 
+  утилиту Rebase.</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Адреса 
+  идентификаторов в разделе экспорта остаются неизменными со времени последнего 
+  связывания. Загрузчик проверяет это, сравнивая временную метку каждой DLL со 
+  значением, сохраненным при операции по п. 5.</FONT> </LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, если 
+загрузчик обнаружит, что нарушено хотя бы одно из правил, он решит, что Bind не 
+справилась со своей задачей, и самостоятельно модифицирует раздел импорта 
+исполняемого модуля (по обычной процедуре). Но если загрузчик увидит, что модуль 
+связан, нужные DLL загружены по предпочтительным базовым</FONT> </P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>адресам и 
+временные метки корректны, он фактически ничего делать не будет, и приложение 
+сможет немедленно начать свою работу'</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме того, 
+приложение не потребует лишнего места в страничном файле. И очень жаль, что 
+многие коммерческие приложения поставляются без должной модификации базовых 
+адресов и связывания.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, теперь 
+Вы знаете, что все модули приложения нужно связывать. Но вот вопрос когда? Если 
+Вы свяжете модули в своей системе, Вы привяжете их к системным DLL, 
+установленным на Вашем компьютере, а у пользователя могут быть установлены 
+другие версии DLL. Поскольку Вам заранее не известно, в какой операционной 
+системе (Windows 98, Windows NT или Windows 2000) будет запускаться Ваше 
+приложение и какие сервисные пакеты в ней установлены, связывание нужно 
+проводить в процессе установки приложения.</FONT> </P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Естественно, 
+если пользователь применяет конфигурацию с альтернативной загрузкой Windows 98 и 
+Windows 2000, то для одной из операционных систем модули будут связаны 
+неправильно. Тот же эффект даст и обновление операционной системы установкой в 
+ней сервисного пакета. Эту проблему ни Вам, ни тем более пользователю решить не 
+удастся. Microsoft следовало бы поставлять с операционной системой утилиту, 
+которая автоматически проводила бы повторное связывание всех модулей после 
+обновления системы. Но, увы, такой утилиты нет.</FONT> </P>
+<HR>
+
+<P>
+<A href="head19.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head21.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

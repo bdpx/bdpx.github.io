@@ -1,0 +1,1196 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<META content="MSHTML 6.00.3790.1039" name=GENERATOR></HEAD>
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><B><A 
+name=head2></A>ГЛАВА 2 Unicode</B></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+Windows становится все популярнее, и нам, разработчикам, надо больше 
+ориентироваться на международные рынки. Раньше считалось нормальным, что 
+локализованные версии программных продуктов выходят спустя полгода после их 
+появления в США. Но расширение поддержки в операционной системе множества самых 
+разных языков упрощает выпуск программ, рассчитанных на международные рынки, и 
+тем самым сокращает задержки с началом их дистрибуции.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+всегда были средства, помогающие разработчикам локализовать свои приложения. 
+Программа получает специфичную для конкретной страны информацию (региональные 
+стандарты), вызывая различные функции Windows, и узнает предпочтения 
+пользователя, анализируя параметры, заданные в Control Panel. Кроме того, 
+Windows поддерживает массу всевозможных шрифтов.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я решил 
+переместить эту главу в начало книги, потому что вопрос о поддержке Unicode стал 
+одним из основных при разработке любого приложения. Проблемы, связанные с 
+Unicode, обсуждаются почти в каждой главе; все программы-примеры в моей книге 
+«готовы к Unicode». Тот, кто пишет программы для Microsoft Windows 2000 или 
+Microsoft Windows CE, просто обязан использовать Unicode, и точка. Но если Вы 
+разрабатываете приложения для Microsoft Windows 98, у Вас еще есть выбор. В 
+этой<BR>главе мы поговорим и о применении Unicode в Windows 98.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top1></A>Наборы символов</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Настоящей 
+проблемой при локализации всегда были операции с различными наборами символов. 
+Годами, кодируя текстовые строки как последовательности однобайтовых символов с 
+нулем в конце, большинство программистов так к этому привыкло, что это стало 
+чуть ли не второй их натурой. Вызываемая нами функция strlen возвращает 
+количество символов в заканчивающемся нулем массиве однобайтовых символов. Но 
+существуют такие языки и системы письменности (классический пример — японские 
+иероглифы), в которых столько знаков, что одного байта, позволяющего кодировать 
+не более 256 символов, просто недостаточно. Для поддержки подобных языков были 
+созданы двухбайтовые наборы символов (double-byte character sets, 
+DBCS).</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top1p1></A>Одно- и двухбайтовые наборы символов</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+двухбайтовом наборе символ представляется либо одним, либо двумя байтами. Так, 
+для японской каны, если значение первого байта находится между 0x81 и 0x9F или 
+между 0xE0 и 0xFC, надо проверить значение следующего байта в строке, чтобы 
+определить полный символ. Работа с двухбайтовыми наборами символов — просто 
+кошмар для программиста, так как часть их состоит из одного байта, а часть — из 
+двух.</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Простой вызов 
+функции strlen не дает количества символов в строке — она возвращает только 
+число байтов. В ANSI-библиотске С нет функций, работающих с двухбайтовыми 
+наборами символов. Но в аналогичную библиотеку Visual C++ включено множество 
+функций (типа _mbslen), способных оперировать со строками мультибайтовых (как 
+одно-, так и двухбайтовых) символов.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для работы с 
+DBCS-строками в Windows предусмотрен целый набор вспомогательных 
+функций:</FONT></P>
+<TABLE height=137 cellSpacing=0 cellPadding=0 rules=all width=538 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=248 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Функция</FONT></P></TD>
+    <TD vAlign=top align=left width=284 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=248 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>PTSTR 
+      CharNext (PCTSTR pszCurrentChar);</FONT></P></TD>
+    <TD vAlign=top align=left width=284 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Возвращает адрес следующего символа в строке</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=248 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>PTSTR 
+      CharPrep(PCTSTR pszStart, PCTSTR pszCurrentChar);</FONT></P></TD>
+    <TD vAlign=top align=left width=284 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Возвращает адрес предыдущего символа в строке</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=248 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>BOOL 
+      IsDBCSLeadByte (BYTE bTestChar);</FONT></P></TD>
+    <TD vAlign=top align=left width=284 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Возвращает TRUE, если данный байт — первый в 
+    DBCS-символе</FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функции 
+CharNext и CharPrev появоляют «перемещаться» по двухбайтовой 
+строке<BR>единовременно на 1 символ вперед или назад, a IsDBCSLeadByte 
+возвращает TRUE, если<BR>переданный ей байт — первый в двухбайтовом 
+символе<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя эти 
+функции несколько облегчают работу с DBCS-строками, необходимость<BR>в ином 
+подходе очевидна. Перейдем к Unicode<BR></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top1p2></A>Unicode: набор широких символов</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Unicode — 
+стандарт, первоначально разработанный Apple и Xerox в 1988 г В 1991 г был создан 
+консорциум для совершенствования и внедрения Unicode В него вошли компании 
+Apple, Compaq, Hewlett-Packard, IBM, Microsoft, Oracle, Silicon Graphics, 
+Sybase, Unisys и Xcrox. (Полный список компаний — членов консорциума см на 
+www.Unicode.org.) Эта группа компаний наблюдает за соблюдением стандарта 
+Unicode, описание которого Вы найдете в книге Tbe Unicode Standard издательства 
+Addison-Wesley (ее электронный вариант можно получить на том же 
+www.Unicode.org).</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Строки в 
+Unicode просты и логичны. Все символы в них представлены 16-битными значениями 
+(по 2 байта на каждый). В них нет особых байтов, указывающих, чем является 
+следующий байт — частью того же символа или новым символом. Это значит, что 
+прохождение по строке реализуется простым увеличением или уменьшением значения 
+указателя. Функции CharNext, CharPrev и lsDBCSLeadByte больше не 
+нужны.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так как 
+каждый символ — 16-битное число, Unicode позволяет кодировать 65 536 символов, 
+что более чем достаточно для работы с любым языком. Разительное отличие от 256 
+знаков, доступных в однобайтовом наборе!</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В настоящее 
+время кодовые позиции определены для арабского, китайского, греческого, 
+еврейского, латинского (английского) алфавитов, а также для кириллицы 
+(русского), японской каны, корейского хантыль и некоторых других алфавитов, 
+Кроме того, в набор символов включено большое количество знаков препинания, 
+математических и технических символов, стрелок, диакритических и других знаков. 
+Все<BR>вместе они занимают около 35 000 кодовых позиций, оставляя простор для 
+будущих расширений</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти 65 536 
+символов разбиты на отдельные группы Некоторые группы, а также включенные в них 
+символы показаны в таблице</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><SUP>1</SUP> 
+Кодовая позиция (code point) — позиция знака в наборе символов.</FONT></P>
+<HR>
+
+<TABLE height=157 cellSpacing=0 cellPadding=0 rules=all width=493 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>16-битный код</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Символы</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>16-битный код</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Символы</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0000-007F</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ASCII</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0300-U36F</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Общие 
+      диакритические</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0080-00FF</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Символы 
+      Latin 1</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0400-04FF</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Кириллица</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0100-017F</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Европейские латинские</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0530-058F</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Армянский</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>01 
+      80-01FF</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Расширенные латинские</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0590-05FF</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Еврейский</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0250-02AF</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Стандартные фонетические</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0600-06FF</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Арабский</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=87 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>02BO-02FF</FONT></P></TD>
+    <TD vAlign=top align=left width=172 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Модифицированные литеры</FONT></P></TD>
+    <TD vAlign=top align=left width=86 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0900-097F</FONT></P></TD>
+    <TD vAlign=top align=left width=138 height=14>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Деванагари</FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Около 29 000 
+кодовых позиций пока не заняты, но зарезервированы на будущее. Примерно 6 000 
+позиций оставлено специально для программистов (на их усмотрение).</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top2></A>Почему Unicode?</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разрабатывая 
+приложение, Вы определенно должны использовать преимущества Unicode. Даже ссли 
+Вы пока не собираетесь локализовать программный продукт, разработка с прицелом 
+на Unicode упростит эту задачу в будущем. Unicode также позволяет:</FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>легко 
+  обмениваться данными на разных языках;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>распространять единственный двоичный EXE- или DLL-файл, поддерживающий 
+  все языки;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>увеличить 
+  эффективность приложений (об этом мы поговорим чуть позже).</FONT> </LI></UL>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top3></A>Windows 2000 и Unicode</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 2000 
+— операционная система, целиком и полностью построенная на Unicode. Все базовые 
+функции для создания окон, вывода текста, операций со строками и т. д. ожидают 
+передачи Unicode-строк. Если какой-то функции Windows передается ANSI-строка, 
+она сначала преобразуется в Unicode и лишь потом передается операционной 
+системе. Если Вы ждете результата функции в виде ANSI-строки, операционная 
+система преобразует строку — перед возвратом в приложение - из Unicode в ANSI. 
+Все эти преобразования протекают скрытно от Вас, но, конечно, на них тратятся и 
+лишнее время, и лишняя намять.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Например, 
+функция CreateWindowEx, вызываемая с ANSI-строками для имени класса и заголовка 
+окна, должна, выделив дополнительные блоки памяти (в стандартной куче Вашего 
+процесса), преобразовать эти строки в Unicode и, сохранив результат в выделенных 
+блоках памяти, вызвать Unicode-версию CreateWindowEx.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для функций, 
+заполняющих строками выделенные буферы, системе — прежде чем программа сможет их 
+обрабатывать — нужно преобразовать строки из Unicode в ANSI. Из-за этого Ваше 
+приложение потребует больше памяти и будет работать медленнее. Поэтому гораздо 
+эффективнее разрабатывать программу, с самого начала ориентируясь на 
+Unicode.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top4></A>Windows 98 и Unicode</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 98 — 
+не совсем новая операционная система. У нее «16-разрядное наследство, которое не 
+было рассчитано на Unicode. Введение поддержки Unicode в Windows 98 было бы 
+слишком трудоемкой задачей, и при разработке этой операционной системы от нее 
+отказались. По этой причине вся внутренняя обработка строк в Windows 98, как и у 
+ее предшественниц, построена на применении ANSI.</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>и все же 
+Windows 98 допускает работу с приложениями, обрабатывающими символы и строки в 
+Unicode, хотя вызов функций Windows при этом заметно усложняется. Например, если 
+Бы, обращаясь к CreateWindowEx, передаете ей ANSI-строки, вызов проходит очень 
+быстро — не требуется ни выделения буферов, ни преобразования строк. Но для 
+вызова CreateWindowEx с Unicode-строками Вам придется самому выделять буферы, 
+явно вызывать функции, преобразующие строки из Unicode в ANSI, обращаться к 
+CreateWindowEx, снова вызывать функции, преобразующие строки — на этот раз ил 
+ANSI в Unicode, и освобождать временные буферы. Так что в Windows 98 работать с 
+Unicode не столь удобно, как в Windows 2000. Подробнее о преобразованиях строк в 
+Windows 98 я расскажу в конце главы.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя 
+большинство Unicode-функций в Windows 98 ничего не делает, некоторые<BR>все же 
+реализованы Вот они:</FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>EnumResourceLanguagesW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>EnumResourceNamesW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>EnumResourceTypesW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>ExtTextOutW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>FindResourceW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>FindRcsourceExW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>GetCharWidthW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>GetCommandLineW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>GetTextExtentPoint32W</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>GetTexiExtentPolntW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>lstrlenW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>MessageBoxExW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>MessageBoxW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>TextOutW</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>WideCharToMultiByte</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>MuitiByteToWideChar</FONT> </LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К сожалению, 
+многие из этих функций в Windows 98 работают из рук вон плохо. Одни не 
+поддерживают определенные шрифты, другие повреждают область динамически 
+распределяемой памяти (кучу), третьи нарушают работу принтерных драйверов и т. 
+д. С этими функциями Вам придется здорово потрудиться при отладке программы. И 
+даже это еще не значит, что Вы сможете устранить все проблемы.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top5></A>Windows CE и Unicode</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Операционняя 
+система Windows CE создана для небольших вычислительных устройств — бездисковых 
+и с малым объемом памяти. Вы вполне могли бы подумать, что Microsoft, раз уж эту 
+систему нужно было сделать предельно компактной, в качестве «родного» набора 
+символов выберет ANSI. Но Microsoft поступила дальновиднее. Зная, что 
+вычислительные устройства с Windows CE будут продаваться по всему миру, там 
+решили сократить затраты на разработку программ, упростив их локализацию. 
+Поэтому Windows CE полностью поддерживает Unicode.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы не 
+увеличивать ядро Windows CE, Microsoft вообще отказалась от поддержки 
+ANSI-функций Windows. Так что, ссли Вы пишете для Windows CE, то просто обязаны 
+разбираться в Unicode и использовать его во всех частях своей 
+программы.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top6></A>В чью пользу счет?</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для тех, кто 
+ведет счет в борьбе Unicode против ANSI, я решил сделать краткий обзор История 
+Unicode в Microsoft:</FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 
+  2000 поддерживает Unicode и ANSI — Вы можете использовать любой 
+  стандарт;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 98 
+  поддерживает только ANSI — Вы обязаны программировать в расчете на 
+  ANSI;</FONT> </LI></UL>
+<HR>
+
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows CE 
+  поддерживает только Unicode — Вы обязаны программировать в расчете на 
+  Unicode.</FONT> </LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Несмотря на 
+то что Microsoft пытается облегчить написание программ, способных работать на 
+всех трех платформах, различия между Unicode и ANSI все равно создают проблемы, 
+и я сам не раз с ними сталкивался. Не поймите меня неправильно, но Microsoft 
+твердо поддерживает Unicode, поэтому я настоятельно рекомендую переходить именно 
+на этот стандарт. Только имейте в виду, что Вас ждут трудности, на преодоление 
+которых потребуется время. Я бы посоветовал применять Unicode и, если Вы 
+работаете в Windows 98, преобразовывать строки в ANSI лишь там, где без этого нс 
+обойтись.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Увы, есть еще 
+одна маленькая проблема, о которой Вы должны знать, — СОМ.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top7></A>Unicode и СОМ</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+Microsoft переносила СОМ из 16-разрядной Windows на платформу Win32, руководство 
+этой компании решило, что все методы СОМ-интсрфейсов, работающие со строками, 
+должны принимать их только в Unicode Это было удачное решение, так как СОМ 
+обычно используется для того, чтобы компоненты могли общаться друг с другом, a 
+Unicode позволяет легко локализовать строки.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Eсли Вы 
+разрабатываете программу для Windows 2000 или Windows СЕ и при этом используете 
+СОМ, то выбора у Вас просто нет. Применяя Unicode во всех частях программы, Вам 
+будет гораздо проще обращаться и к операционной системе, и к COM 
+объектам.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+пишете для Windows 98 и тоже используете СОМ, то попадаете в затруднительное 
+положение. СОМ требует строк в Unicode, а большинство функций операционной 
+системы — строк в ANSI. Это просто кошмар! Я работал над несколькими такими 
+проектами, и мне приходилось писать прорву кода только для того, чтобы гонять 
+строки из одного формата в другой.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top8></A>Как писать программу с использованием Unicode</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+разработала Windows API так, чтобы как можно меньше влиять на Ваш код. В самом 
+деле, у Вас появилась возможность создать единственный файл с исходным кодом, 
+компилируемый как с применением Unicode, так и без него, — достаточно определить 
+два макроса (UNICODE и _UNICODE), которые отвечают за нужные 
+изменения.</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top8p1></A>Unicode и библиотека С</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+использования Unicode-строк были введены некоторые новые типы данных. 
+Стандартный заголовочный файл String.h модифицирован в нем определен wchar_t — 
+тип данных для Unicode-символа</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef 
+  unsigned short wchar_t</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотите, скажем, создать буфер для хранения Unicode-строки длиной до 99 символов 
+с нулевым символом в конце, поставьте оператор:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>wchar_t 
+  szBuffer[100];</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Он создает 
+массив из ста 16-битных значений. Конечно, стандартные функции библиотеки С для 
+работы со строками вроде strcpy, strchr и strcat оперируют только с 
+ANSI-строками — они не способны корректно обрабатывать Unicode-строки. 
+Поэто</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>му в ANSI С 
+имеется дополнительный набор функций. На рис. 2-1 приведен список строковых 
+функций ANSI C и эквивалентных им Unicode-функций. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char * 
+  strcat(char *, const char *);<BR>wchar_t * wcscat(wchar_t *, const wchar t 
+  *);<BR>char * strchr(const char *, int);<BR>wchar_t * wcschr(const wchar_t *, 
+  wchar_t);<BR>int strcmp(const char *, const char *);<BR>int wcscmp(const 
+  wchar_t *, const wchar_t *);<BR>char * strcpy(char *, const char 
+  *);<BR>wchar_t * wcscpy(wchar_t *, const wchar_t *);<BR>size_t strlen(const 
+  char *);<BR>size_t wcslen(const wchar_t *);</FONT></P></BLOCKQUOTE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 2-1. Строковые функции ANSI C и их Unicode-аналоги</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что имена всех новых функций начинаются с wcs — это аббревиатура wide 
+character set (набор широких символов) Таким образом, имена Unicode-функций 
+образуются простой заменой префикса str соответствующих ANSI-функций на 
+wcs.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>NOTE:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Один очень важный момент, о котором многие забывают, заключается в 
+  том, что библиотека С, предоставляемая Microsoft, отвечает стандарту ANSI. A 
+  он требует, чтобы библиотека С поддерживала символы и строки в Unicode Это 
+  значит, что Вы можете вызывать функции С для работы с Unicode-символами и 
+  строками даже при работе в Windows 98. Иными словами, функции wcscat, wcslen, 
+  wcstok и т. д. прекрасно работают и в Windows 98; беспокоиться нужно за 
+  функции операционной системы.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Код, 
+содержащий явные вызовы str- или wcs-функций, просто так компилировать с 
+использованием и ANSI, и Unicode нельзя. Чтобы реализовать возможность 
+компиляции "двойного назначения", замените в своей программе заголовочный файл 
+String.h на TChar.h Он помогает создавать универсальный исходный код, способный 
+задействовать как ANSI, так и Unicode, — и это единственное, для чего нужен файл 
+TChar.h. Он состоит из макросов, заменяющих явные вызовы str- или wcs-функций. 
+Если при компиляции исходного кода Вы определяете _UNICODE, макросы ссылаются на 
+wcs-функции, а в его отсутствие — на str-фупкции</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Например, в 
+TChar.h есть макрос _tcscpy. Если Вы включили этот заголовочный файл, но UNlCODE 
+не определен, _tcscpy раскрывается в ANSI-функцию strcpy, а если _UNICODE 
+определен — в Unicode-функцию wcscpy, В файле TChar.h определены универсальные 
+макросы для всех стандартных строковых функций С. При использовании этих 
+макросов вместо конкретных имен ANSI- или Unicode-функций Ваш код можно будет 
+компилировать в расчете как на Unicode, так и на ANSI.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но, к 
+сожалению, это ещe не все. В файле TChar.h есть дополнительные 
+макросы.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+объявить символьный массив универсального назначения" (ANSI/Unicode), 
+применяется тип данных TCHAR. Если _UNICODE определен, TCHAR объявляется 
+так:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef 
+  wchar_L TCHAR;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А если 
+UNICODE не определен, то:</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef char 
+  TCHAR</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Используя 
+этот тип данных, можно объявить строку символов как:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR 
+  szString[100];</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Можно также 
+определять указатели на строки:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR *szError 
+  = "Error";</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Правда, в 
+этом операторе есть одна проблема. По умолчанию компилятор Microsoft С++ 
+транслирует строки как состоящие из символов ANSI, а не Unicode. B итоге этот 
+оператор нормально компилируется, если UNICODE не определен, но в ином случае 
+дает ошибку. Чтобы компилятор сгенерировал Unicode-, a не ANSI-строку, оператор 
+надо переписать так</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR *szFrror 
+  = L"Error";</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заглавная 
+буква L перед строковым литералом указывает компилятору, что его надо 
+обрабатывать как Unicode-строку. Тогда, размещая строку в области данных 
+программы, компилятор вставит между всеми символами нулевые байты. Но возникает 
+другая проблема — программа компилируется, только если _UNICODE определен 
+Следовательно, нужен макрос, способный избирательно ставить L перед строковым 
+литералом. Эту работу выполняет макрос _TEXT, также содержащийся в Tchar.h. Если 
+_UNICODE определен, _TEXT определяется как</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  _TEXT(x) L ## x</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В ином случае 
+_TEXT определяется следующим образом:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  _TEXT(x) x</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Используя 
+этот макрос, перепишем злополучный оператор так, чтобы его можно было корректно 
+компилировать независимо от того, определен _UNICODE или нет:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR *szError 
+  = _TEXT("Error");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Макрос _TEXT 
+применяется и для символьных литералов. Например, чтобы проверить, является ли 
+первый символ строки заглавной буквой J:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (szError[0] 
+  == _TEXT('J')) {<BR>// первый символ - J<BR>} else {<BR>// первый символ - не 
+  J<BR>}</FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top8p2></A>Типы данных, определенные в Windows для 
+Unicode</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+заголовочных файлах Windows определены следующие типы данных.<BR></FONT></P>
+<TABLE height=83 cellSpacing=0 cellPadding=0 rules=all width=360 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=91 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тип 
+      данных</FONT></P></TD>
+    <TD vAlign=top align=left width=263 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=91 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>WCHAR</FONT></P></TD>
+    <TD vAlign=top align=left width=263 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Unicode-символ</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=91 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>PWSTR</FONT></P></TD>
+    <TD vAlign=top align=left width=263 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на Unicode -строку</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=91 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>PCWSTR</FONT></P></TD>
+    <TD vAlign=top align=left width=263 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на стоковую константу в 
+Unicode</FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти типы 
+данных относятся исключительно к символам и строкам в кодировке Unicode. B 
+заголовочных файлах Windows определены также универсальные (ANSI)</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Unicode) типы 
+данных PTSTR и PCTSTR, указывающие — в зависимости от того, определен ли при 
+компиляции макрос UNICODE, — на ANSI или на Unicode-строку</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, на 
+этот раз имя макроса UNICODE не предваряется знаком подчеркивания Дело в том, 
+что макрос _UNICODE используется в заголовочных файлах библиотеки С, а макрос 
+UNICODE — в заголовочных файлах Windows Для компиляции модулей исходного кода 
+обычно приходится определять оба макроса</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top8p3></A>Unicode- и ANSI-функции в Windows</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я уже 
+говорил, что существует две функции CreateWindowEx одна принимает строки в 
+Umcode, другая — в ANSI Все так, но в действительности прототипы этих функций 
+чуть чуть отличаются</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HWND WINAPI 
+  CreateWindowExW(<BR>DWORD dwExStyle,<BR>PCWSTR pClassName,<BR>PCWSTR 
+  pWindowName,<BR>DWORD dwStyle,<BR>int X,<BR>int Y,<BR>int nWidth,<BR>int 
+  nHeight,<BR>HWND hWndParent,<BR>HMENU hHenu,<BR>HINSTANCE hInstance,<BR>PVOID 
+  pParam);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HWND WINAPI 
+  CreatcWindowExA(<BR>DWORD dwExStyle,<BR>PCSTR pClassName,<BR>PCSTR 
+  pWindowName,<BR>DWORD dwStyle,<BR>int X<BR>int Y,<BR>int nWidth,<BR>inT 
+  nHeight,<BR>HWND hWndParent,<BR>HMENU hMenu,<BR>HINSTANCF hInstance,<BR>PVOID 
+  pParam);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>CteateWindowExW — это Unicode-версия Буква W в конце имени функции — 
+аббpевиатуpa слова wide (широкий) Символы Unicode занимают по 16 битов каждый, 
+поэтому их иногда называют широкими символами (wide characters) Буква А в конце 
+имени CreateWindoivExA указывает, что данная версия функции 
+принимаетАNSI-строки</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но обычно 
+CreateWmdowExW или CreateWindowExA напрямую не вызывают А обращаются к 
+CreateWindowEx — макросу, определенному в файле WmUser.h</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#ifdef 
+  UNICODE<BR>#define CreateWindowEx CreateWindowExW<BR>#else<BR>#define 
+  CreateWindowEx CreateWindowExA<BR>#endif // UNICODE</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Какая именно 
+версия CreateWindowEx будет вызвана, зависит от того, определен ли UNICODE в 
+период компиляции. Перенося 1б-разрядное Windows-приложение на платформу Win32. 
+Вы, вероятно, не станете определять UNICODE. Тогда все вызовы CreateWindowEx 
+будут преобразованы в вызовы CreateWindowExA — ANSI-версии функции. И перенос 
+приложения упростится, ведь 16-разрядная Windows работает толь- <BR>ко с 
+ANSI-версией CreateWindowEx.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+2000 функция CreateWindowExA — просто шлюз (транслятор), который выделяет память 
+для преобразования строк из ANSI в Unicode и вызывает CreateWindowExW, передавая 
+ей преобразованные строки. Когда CreateWindowExW вернет управление, 
+CrealeWindowExA освободит буферы и передаст Вам описатель окна.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разрабатывая 
+DLL, которую будут использовать и другие программисты, предусматривайте в ней по 
+две версии каждой функции — для ANSI и для Unicode. В ANSI-версии просто 
+выделяйте память, преобразуйте строки и вызывайте Unicode-версию той же функции. 
+(Этот процесс я продемонстрирую позже.)</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 98 
+основную работу выполняет CreateWindowExA. В этой операцион ной системе 
+предусмотрены точки входа для всех функций Windows, принимающих Unicode-строки, 
+но функции не транслируют их в ANSi, а просто сообщают об ошибке. Последующий 
+вызов GetLastError дает ERRORCALL_NOT_IMPLEMENTED. Должным образом действуют 
+только ANSI-версии функций. Ваше приложение не будет работать в Windows 98, если 
+в скомпилированном коде присутствуют вызовы "широкосимвольных" 
+функций.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Некоторые 
+функции Windows API (например, WinExec или OpenFile) существуют только для 
+совместимости с 16-разрядными программами, и их надо избегать. Лучше заменить 
+все вызовы WinExec и OpenFile вызовами CreateProcess и CreateFile 
+соответственно. Тем более, что старые функции просто обращаются к новым. Самая 
+серьезная проблема с ними в том, что они не принимают строки в Unicode, при их 
+вызове Вы должны передавать строки в ANSI. С другой стороны, в Windows 2000 у 
+всех новых или пока не устаревших функций обязательно есть как ANSI-, так и 
+Unicode-версия.</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top8p4></A>Строковые функции Windows</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 
+предлагает внушительный набор функций, работающих со строками. Они похожи на 
+строковые функции из библиотеки С, например на strcpy и wcscpy. Однако функции 
+Windows являются частью операционной системы, и многие се компоненты используют 
+именно их, а нс аналоги из библиотеки С. Я советую отдать предпочтение функциям 
+операционной системы. Это немного повысит быстродействие Ва- <BR>шего 
+приложения. Дело в том, что к ним часто обращаются такие тяжеловесные процессы, 
+как оболочка операционной системы (Explorer.exe), и скорее всего эти функции 
+будут загружены в память еще до запуска Вашего приложения.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>NOTE:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Данные функции доступны в Windows 2000 и Windows 98. Но Вы сможете 
+  вызывать их и в более ранних версиях Windows, если установите Internet 
+  Explorer версии 4.0 или выше.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По 
+классической схеме именования функций в операционных системах их имена состоят 
+из символов нижнего и верхнего регистра и выглядят так; StrCat, StrChr, StrCmp, 
+StrCpy и т. д. Для использования этих функций включите в программу заголовочный 
+файл ShlWApi.h. Кроме того, как я уже говорил, каждая строковая функция 
+существует в двух версиях — для ANSI и для Unicode (например, StrCatA и 
+StrCatW).<BR>Поскольку это функции операционной системы, их имена автоматически 
+преобразуются в нужную форму, если в исходном тексте Вашей программы перед ее 
+сборкой определен UNICODE.</FONT></P>
+<HR>
+
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top9></A>Создание программ, способных использовать и ANSI, и 
+Unicode</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Неплохая 
+мысль — заранее подготовить свое приложение к Unicode, даже если Вы пока не 
+планируете работать с этой кодировкой. Вот главное, что для этого 
+нужно:</FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>привыкайте 
+  к тому, что текстовые строки — это массивы символов, а не массивы байтов или 
+  значений типа char;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>используйте универсальные типы данных (вроде TCHAR или PTSTR) для 
+  текстовых символов и строк;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>используйте явные типы данных (вроде BYTE или PBYTE) для байтов, 
+  указателей на байты и буферов данных;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>применяйте 
+  макрос _TEXT для определения символьных и строковых литералов;</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>предусмотрите возможность глобальных замен (например, PSTR на 
+  PTSTR);</FONT> 
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>модифицируйте логику строковой арифметики. Например, функции 
+  обычно</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  принимают размер буфера в символах, а не в байтах Это значит, что вместо 
+  sizeof(szBuffer) Вы должны передавать (sizeof(szBuffer) / sizeof(TCHAR)). Но 
+  блок памяти для строки известной длины выделяется в байтах, а не символах, т. 
+  e. вместо malloc(nCharacters) нужно использовать malloc(nCbaracters 
+  *sizeof(TCHAR)) Из всего, что я перечислил, это запомнить труднее всего — если 
+  Вы ошибетесь, компилятор не выдаст никаких предупреждений.<BR></FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разрабатывая 
+программы-примеры для первого издания книги, я сначала написал их так, что они 
+компилировались только с использованием ANSI. Но, дойдя до этой главы (она была 
+тогда в конце), понял, что Unicode лучше, и решил написать примеры, которые 
+показывали бы, как легко создавать программы, компилируемые с применением и 
+Unicode, и ANSI. B конце концов я преобразовал все программы-примеры так, чтобы 
+их можно было компилировать в расчете на любой из этих стандартов.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конверсия 
+всех программ заняла примерно 4 часа — неплохо, особенно если учесть, что у меня 
+совсем не было опыта в этом деле.</FONT></P>
+<P align=left><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+Windows есть набор функций для работы с Unicode-строками. Эти функции 
+перечислены ниже.</FONT></P>
+<DIV align=left>
+<TABLE height=137 cellSpacing=0 cellPadding=0 rules=all width=360 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=65 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Функция</FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=65 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>lstrcat</FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Выполняет конкатенацию строк</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=65 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>lstrcmp</FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сравнивает две строки с учетом регистра букв</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=65 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>lstrcmpi</FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Сравнивает две строки без учета регистра букв</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=65 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>lstrcpy</FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Копирует строку в другой участок памяти</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=65 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>lstrlen</FONT></P></TD>
+    <TD vAlign=top align=left width=289 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Возвращает длину строки в символах</FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Они 
+реализованы как макросы, вызывающие либо Unicode-, либо ANSI-версию функции в 
+зависимости от того, определен ли UNICODE при компиляции исходного модуля 
+Например, если UNICODE не определен, lstrcat раскрывается в lstrcatA, определен 
+— в lstrcatW.<BR></FONT></P></DIV>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Строковые 
+функции lstrcmp и lstrcmpi ведут себя не так, как их аналоги из библиотеки С 
+(strcmp, strcmpi, wcscmp и wcscmpf), которые просто сравнивают кодовые позиции в 
+символах строк. Игнорируя фактические символы, они сравнивают числовое значение 
+каждого символа первой строки с числовым значением символа второй</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>строки. Но 
+lstrcmp и lstrcmpi реализованы через вызовы Windows-функции 
+CompareString;</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  CompareString(<BR>LCID lcid,<BR>DWORD fdwStyle,<BR>PCWSTR pString1,<BR>int 
+  cch1,<BR>PCWSTR pString2,<BR>int cch2);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+сравнивает две Unicode-строки. Первый параметр задаст так называемый 
+идентификаторлокализации (locale ID, LCID) — 32-битное значение, определяющее 
+конкретный язык. С помощью этого идентификатора CompareString сравнивает строки 
+с учетом значения конкретных символов в данном языке. Так что она действует куда 
+осмысленнее, чем функции библиотеки С.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда любая 
+из функций семейства lstrcmp вызывает CompareString, в первом параметре 
+передается результат вызова Windows-функции GetThreadLocale.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LCID 
+  GetThreadLocale();</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+возвращает уже упомянутый идентификатор, который назначается потоку в момент его 
+создания.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+параметр функции CompareString указывает флаги, модифицирующие метод сравнения 
+строк. Допустимые флаги перечислены в следующей таблице.</FONT></P>
+<TABLE height=190 cellSpacing=0 cellPadding=0 rules=all width=529 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Флаг</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Действие</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>NORM_IGNORECASE</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Различия в регистре букв игнорируются</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>NORM_IGNOREKANATYPE</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Различия между знаками хираганы и катаканы 
+    игнорируются</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>NORM_IGNORENONSPACE</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Знаки, 
+      отличные от пробелов, игнорируются</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>NORM_IGNORESYMBOLS</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Символы, отличные от алфавитно-цифровых, 
+  игнорируются</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>NORM_IGNOREWIDTH</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Разница 
+      между одно- и двухбайтовым представлением одного<BR>и того же символа 
+      игнорируется</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=171 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>SORT_STRINGSORT</FONT></P></TD>
+    <TD vAlign=top align=left width=352 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Знаки 
+      препинания обрабатываются так же, как и символы, от- <BR>личные от 
+      алфавитно-цифровых</FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызывая 
+CompareString, функция lstrcmp передает в параметре fdwStyle нуль, а lstrcmpi — 
+флаг NORM_IGNORECASE. Остальные четыре параметра определяют две строки и их 
+длину. Если cch1 равен -1, функция считает, что строка pString2 завершается 
+нулевым символом, и автоматически вычисляет ее длину. То же относится и к 
+параметрам cch2 wpString2.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Многие 
+функции С-библиотеки с Unicode-строками толком не работают. Так, tolower и 
+toupper неправильно преобразуют регистр букв со знаками ударения. Поэтому для 
+Unicode-строк лучше использовать соответствующие Windows-функции. К тому же они 
+корректно работают и с ANSI-строками.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первые две 
+функции:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PTSTR 
+  CharLower(PTSTR pszStnng);<BR>PTSTR CharUpper(PTSTR 
+pszString);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>преобразуют 
+либо отдельный символ, либо целую строку с нулевым символом в конце. Чтобы 
+преобразовать всю строку, просто передайте ее адрес. Но, преобразуя отдельный 
+символ, Вы должны передать его так:</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>TCHAR 
+  cLowerCaseCnr = CharLower((PTSTR) szString("O"));</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Приведение 
+типа отдельного символа к PTSTR вызывает обнуление старших 16 битов 
+передаваемого значения, а в его младшие 16 битов помещается сам символ. 
+Обнаружив, что старшие 16 битов этого значения равны 0, функция поймет, что Вы 
+хотите преобразовать не строку, а отдельный символ. Возвращаемое 32-битное зна 
+чение содержит результат преобразования в младших 16 битах.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующие две 
+функции аналогичны двум предыдущим за исключением того, что они преобразуют 
+символы, содержащиеся в буфере (который не требуется завершать нулевым 
+символом).</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  CharLowerBuff(<BR>PTSTR pszString,<BR>DWORD cchString);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  CharUppprRuff(<BR>PTSTR pszString,<BR>DWORD cchString);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прочие 
+функции библиотеки С (например, isalpba, islowern isupper) возвращают значение, 
+которое сообщает, является ли данный символ буквой, а также строчная она или 
+прописная. В Windows API тоже есть подобные функции, но они учитывают и язык, 
+выбранный пользователем в Control Panel:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  IsCharAlpha(TCHAR ch);<BR>BOOL IsCharAlphaNumeric(TCHAR ch);<BR>BOOL 
+  IsCharLower(TCHAR oh);<BR>BOOL IsCharUpper(TCHAR ch);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И последняя 
+группа функций из библиотеки С, о которых я хотел рассказать, — prmtf, Если при 
+компиляции _UNICODE определен, они ожидают передачи всех сим</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>вольных и строковых 
+параметров в Unicode; в ином случае — в ANSI.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+ввела в семейство фупкций printf своей С-библиотеки дополнительные типы полей, 
+часть из которых не поддерживается в ANSI C. Они позволяют легко сравнивать и 
+смешивать символы и строки с разной кодировкой. Также расширена функция wsprintf 
+операционной системы. Вот несколько примеров (обратите внимание на использование 
+буквы s в верхнем и нижнем регистре):</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char szA[100]; 
+  // строковый буфер e ANSI<BR>WCHAR szW[100]; // строковый буфер в 
+  Unicode<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обычный 
+  вызов sprintf: все строки в ANSI<BR>sprintf(szA, "%s", "ANSI 
+  Str");<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  строку из Unicode в ANSI<BR>sprintf(szA, "%S", "Unicode Str");<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обычный 
+  вызов swprintf. все строки в Unicode<BR>swprintf(szW, L"%s", L"Unicode 
+  Str");<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  строку из ANSI в Unicode<BR>swprintf(s/W, L"%S", "ANSI 
+Str");</FONT></P></BLOCKQUOTE>
+<HR>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top9p1></A>Ресурсы</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Компилятор 
+ресурсов генерирует двоичное представление всех ресурсов, используемых Вашей 
+программой. Строки в ресурсах (таблицы строк, шаблоны диалоговых окон, меню и 
+др.) всегда записываются в Unicode Если в программе не определяется макрос 
+UNICODE, Windows 98 и Windows 2000 сами проводят нужные преобразования Например, 
+если при компиляции исходного модуля UNICODE не определен, вызов LoadString на 
+самом деле приводит к вызову LoadStringA, которая читает строку из ресурсов и 
+преобразует ее в ANSI. Затем Вашей программе возвращается ANSI-представление 
+строки</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top9p2></A>Текстовые файлы</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Текстовых 
+файлов в кодировке Unicode пока очень мало. Ни в одном текстовом файле, 
+поставляемом с операционными системами или другими программными продуктами 
+Microsoft, не используется Unicode. Думаю, однако, что эта тенденция изменится в 
+будущем — пусть даже в отдаленном Например, программа Notepad в Windows 2000 
+позволяет создавать или открывать как Unicode-, так и ANSI-файлы. Посмотрите 
+на<BR>ее диалоговое окно Save Аs (рис. 2-2) и обратите внимание на предлагаемые 
+форматы текстовых файлов.<BR></FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=291 alt=rihter2-4.jpg src="images/rihter2-4.jpg" 
+width=421> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 2-2. Диалоговое окно Save As программы Notepad в Windows 
+2000<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Многим 
+приложениям, которые открывают и обрабатывают текстовые файлы (например, 
+компиляторам), было бы удобнее, если после открытия файла можно было бы 
+определить, содержит он символы в ANSI или в Unicode. B этом может помочь 
+функция IsTextUnicode</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  IsTextUnicode(CONST PVOID pvBuffer, int cb, PINT 
+pResult);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проблема с 
+текстовыми файлами в том, что не существует четких и строгих правил относительно 
+их содержимого. Это крайне затрудняет определение того, содержит файл символы в 
+ANSI или в Unicode Поэтому IsTextUnicode применяет набор статистических и 
+детерминистских методов для того, чтобы сделать взвешенное предположение о 
+содержимом буфера. Поскольку тут больше алхимии, чем точной науки,<BR>нет 
+гарантий, что Вы не получите неверные результаты от 
+IsTextUnicode.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый ее 
+парамегр, pvBuffer, указывает на буфер, подлежащий проверке. При этом 
+используется указатель типа void, поскольку неизвестно, в какой кодировке данный 
+массив символов.</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр сb 
+определяет число байтов в буфере, на который указываетр pvBuffer Так как 
+содержимое буфера не известно, сb - счетчик именно байтов, а не символов. 
+Заметьте: вовсе не обязательно задавать всю длину буфера. Но чем больше байтов 
+проанализирует функция, тем больше шансов получить правильный 
+результат.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+pResult — это адрес целочисленной переменной, которую надо инициализировать 
+перед вызовом функции. Ее значение сообщает, какие тесты должна провести 
+IsTextUnicode. Если pResult равен NULL, функция IsTextUnicode делает все 
+проверки. (Подробнее об этом см. документацию Platform SDK.)</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+возвращает TRUE, если считает, что буфер содержит текст в Unicode, и FALSE — в 
+ином случае. Да-да, она возвращает именно булево значение, хотя в прототипе 
+указано DWORD. Если через целочисленную переменную, на которую указывает 
+pResuIt, были запрошены лишь определенные тесты, функция (перед возвратом 
+управления) устанавливает ее биты в соответствии с результатами этих 
+тестов.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 
+  98:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>В 
+  Windows 98 функция IsTextUnicode по сути не реализована и просто возвращает 
+  FALSE; последующий вызов GetLastError дает код ошибки 
+  ERRORCALL_NOT_IMPLEMENTED.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Применение 
+функции IsTextUnicode иллюстрирует программа-пример FileRev (см. главу 
+17).<BR></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head2top9p3></A>Перекодировка строк из Unicode в ANSI и 
+обратно</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Windows-функция MultiByteToWideChar преобразует мультибайтовые символы 
+строки в широкобайтовые:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  MultiBytoToWideChar(<BR>UINT uCodePage,<BR>DWORD dwFlags,<BR>PCSTR 
+  pMultiByteStr,<BR>int cchMultiByte,<BR>PWSTR pWideCharStr,<BR>int 
+  cchWideChar);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+uCodePage задает номер кодовой страницы, связанной с мультибайтовой строкой. 
+Параметр dwFlags влияет на преобразование букв с диакритическими знаками. Обычно 
+эти флаги не используются, и dwFlags равен 0. Параметр pMultiByteStr указывает 
+на преобразуемую строку, a cchMultiByte определяет ее длину в байтах Функция 
+самостоятельно определяет длину строки, если cchMultiByte равен -1.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Unicode-версия строки, полученная в результате преобразования, 
+записывается в буфер по адресу, указанному в pWideCharStr. Максимальный размер 
+этого буфера (в символах) задается в параметре cchWideCbar. Если он равен 0, 
+функция ничего не преобразует, а просто возвращает размер буфера, необходимого 
+для сохранения результата преобразования. Обычно конверсия мультибайтовой строки 
+в ее Unicode-эквивалент проходит так:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>1. Вызывают 
+  MultiByteToWideChar, передавая NULL в параметре pWideCharStr и 0 
+  в<BR>параметре cchWideChar.<BR></FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3>2. Выделяют блок 
+  памяти, достаточный для сохранения преобразованной стро- <BR>ки. Его размер 
+  получают из предыдущего вызова MultiByteToWideChar.</FONT></P>
+  <HR>
+
+  <P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>3. Снова 
+  вызывают MultiByteToWideChar, на этот раз передавая адрес выделенно го буфера 
+  в параметре pWideCharStr, а размер буфера, полученный при первом обращении к 
+  этой функции, — в параметре cchWideChar.<BR></FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3>4. Работают с 
+  полученной строкой.</FONT><BR><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3>5. Освобождают блок памяти, занятый 
+  Unicode-строкой.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратное 
+преобразование выполняет функция WideCharToMultiByte</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  WideCharToMultiByte(<BR>UINT uCodePage,<BR>DWORD dwFlags,<BR>PCWSTR 
+  pWideCharStr,<BR>int cchWideChar,<BR>PSTR pMultiByteStr,<BR>int 
+  cchMultiByte,<BR>PCSTR pDefaultChar,<BR>PBOOL 
+pfUsedDefaultChar);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она очень 
+похожа на MultiByteToWideChar. И опять uCodePage определяет кодовую страницу для 
+строки — результата преобразования Дополнительный контроль над процессом 
+преобразования дает параметр dwFlags. Его флаги влияют на символы с 
+диакритическими знаками и на символы, которые система не может преобразовать. 
+Такой уровень контроля обычно не нужен, и dwFlags приравнивается 0</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пapaметр 
+pWideCharStr указывает адрес преобразуемой строки, a cchWideChar задает ее длину 
+в символах. Функция сама определяет длину исходной строки, если cchWideChar 
+равен -1.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Мультибайтовый вариант строки, полученный в результате преобразования, 
+записывается в буфер, на который указывает pMultiByteStr, Параметр cchMultiByte 
+определяет максимальный размер этого буфера в байтах Передав нулевое значение в 
+ccbMultiByte, Вы заставите функцию сообщить размер буфера, требуемого для записи 
+результата. Обычно конверсия широкобайтовой строки в мультибайтовую проходит в 
+той<BR>же последовательности, что и при обратном преобразовании</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Очевидно, Вы 
+заметили, что WideCharToMultiByte принимает на два параметра больше, чем 
+MultiByteToWideCbar, это pDefauItChar pfUsedDefaultChar. Функция 
+WideCharToMultiByte использует их, только если встречает широкий символ, не 
+представленный в кодовой странице, на которую ссылается uCodePage Если его 
+преобразование невозможно, функция берет символ, на который указывает 
+pDefaultChar. Если этот параметр равен NULL (как обычно и бывает), функция 
+использует системный символ по умолчанию. Таким символом обычно служит знак 
+вопроса, что при операциях с именами файлов очень опасно, поскольку он является 
+и символом подстановки.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+pfUsedDefaultChar указывает на переменную типа BOOL, которую функция 
+устанавливает как TRUE, если хоть один символ из широкосимвольной строки не 
+преобразован в свой мультибайтовый эквивалент. Если же все символы преобразованы 
+успешно, функция устанавливает переменную как FALSE. Обычно Вы передаете NULL в 
+этом параметре.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подробнее эти 
+функции и их применение описаны в документации Platform SDK.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эти две 
+функции позволяют легко создавать ANSI- и Unicode-версии других функций, 
+работающих со строками. Например, у Вас есть DLL, содержащая функцию, которая 
+переставляет все символы строки в обратном порядке Unicode-версию этой функции 
+можно было бы написать следующим образом.</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  StringReverseW(PWSTR pWidoCharStr) {<BR>// получаем указатель на последний 
+  символ в строке<BR>PWSTR pEndOfStr = pWideCharStr + wcslen(pWideCharStr) - 
+  1;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>wchar_t 
+  cCharT;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// повторяем, 
+  пока не дойдем до середины строки<BR>while (pWideCharStr &lt; pEndOfStr) 
+  {<BR>// записываем символ во временную переменную<BR>cCharT = 
+  *pWideCharStr;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// помещаем 
+  последний символ на место первого<BR>*pWideCharStr = 
+*pEndOfStr;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// копируем 
+  символ из временной переменной на место последнего символа<BR>*pEndOfStr = 
+  cCharT;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  продвигаемся на 1 символ вправо<BR>pWideCharStr++ж<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  продвигаемся на 1 символ влево<BR>pEndOfStr--;<BR>}<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// строка 
+  обращена; сообщаем об успешном завершении<BR>return(TRUE);<BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>ANSI-версию 
+  этой функции можно написать так, чтобы она вообще ничем не занималась, а 
+  просто преобразовывала ANSI-строку в Unicode, передавала ее в функцию 
+  StringReverseW и конвертировала обращенную строку снова в ANSI. Тогда функция 
+  должна выглядеть примерно так:<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  StringReverseA(PSTR pMultiByteStr) {<BR>PWSTR pWideCharStr;<BR>int 
+  nLenOfWideCharStr;<BR>BOOL fOk = FALSE;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вычисляем 
+  количество символов, необходимых<BR>// для хранения широкосимвольной версии 
+  строки<BR>nLenOfWideCharStr = MultiRyteToWideChar(CP_ACP, 0,<BR>pMultiByteStr, 
+  -1, NULL, 0);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Выделяем 
+  память из стандартной кучи процесса,<BR>// достаточную для хранения 
+  широкосимвольной строки,<BR>// Не забудьте, что MultiByteToWideChar 
+  возвращает<BR>// количество символов, а не байтов, поэтому мы должны<BR>// 
+  умножить это число на размер широкого символа.<BR>pWideCharStr = 
+  HeapAlloc(GetProcessHeap(), 0, nLenOfWideCharStr * 
+  sizeof(WCHAR));<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+  (pWideCharStr == NULL)<BR>return(fOk);</FONT></P></BLOCKQUOTE>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// преобразуем 
+  нультибайтовую строку в широкосимвольную<BR>MultiByteToWideChar(CP_ACP, 0, 
+  pMulti8yteStr, -1, pWideCharStr, nLenOfWideCharStr);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вызываем 
+  широкосимвольную версию этой функции для выполнения настоящей работы<BR>fOk = 
+  StnngReverseW(pWideCharStr);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (fOk} 
+  {<BR>// преобразуем широкосимвольную строку обратно в 
+  мультибайтовую<BR>WideCharToMultiByte(CP_ACP, 0, pWideCharStr, -1, 
+  pMultiByteStr, strlen(pMultiByteStr), NULL, NULL);<BR>}<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// освобождаем 
+  память, выделенную под широкобайтовую строку<BR>HeapFree(GetProcessHeap(), 0, 
+  pWideCharStr);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(fOk),<BR>}</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, в 
+заголовочном файле, поставляемом вместе с DLL, прототипы этих функций были бы 
+такими:<BR></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  StringReverseW (PWSTR pWideCharStr);<BR>BOOL StringReverseA (PSTR 
+  pMultiByteStr);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#ifdef 
+  UNICODE<BR>#define StnngReverse StringReverseW<BR>#else<BR>#define 
+  StringRevcrsc StringReverseA<BR>#endif // UNICODE<BR></FONT></P></BLOCKQUOTE>
+<HR>
+
+<P>
+<A href="head01.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head03.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

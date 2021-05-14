@@ -1,0 +1,406 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<META content="MSHTML 6.00.3790.1039" name=GENERATOR></HEAD>
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><FONT face=Arial size=3><B><FONT color=#990000>ЧАCTЬ 1</FONT></B></FONT></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3>МАТЕРИАЛЫ 
+ДЛЯ ОБЯЗАТЕЛЬНОГО ЧТЕНИЯ</FONT></B></P>
+<HR>
+
+<P><B><FONT face=Arial size=3><B><FONT color=#990000><A 
+name=head1></A></FONT></B></FONT><FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>ГЛАВА 1. Обработка ошибок<BR></FONT></B></P>
+<P>Прежде чем изучать функции, предлагаемые Microsoft Windows,
+посмотрим, как в них устроена обработка ошибок.
+<P>Когда Вы 
+вызываете функцию Windows, она проверяет переданные ей параметры, а затем 
+пытается выполнить свою работу. Если Вы передали недопустимый параметр или если 
+данную операцию нельзя выполнить по какой-то другой причине, она возвращает 
+значение, свидетельствующее об ошибке, В таблице 1 -1 показаны типы данных для 
+возвращаемых значений большинства функций Windows.<BR>
+
+<TABLE height=378 cellSpacing=0 cellPadding=0 rules=all width=540 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=13><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Тип данных 
+      </FONT></TD>
+    <TD vAlign=top align=left width=408 height=13><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Значение, 
+      свидетельствующее об ошибке </FONT></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=19><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>VOID</FONT> </TD>
+    <TD vAlign=top align=left width=408 height=19><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Функция всегда 
+      (или почти всегда) выполняется успешно. Таких функций в Windows очень 
+      мало.</FONT> </TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=48><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>BOOL</FONT> </TD>
+    <TD vAlign=top align=left width=408 height=48><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Если вызов 
+      функции заканчивается неудачно, возвращается 0; в остальных случаях 
+      возвращаемое значение олично от 0. (Не пытайтесь проверять его на 
+      соответствие TRUE или FALSE)</FONT> </TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=99><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>HANDLE</FONT> 
+</TD>
+    <TD vAlign=top align=left width=408 height=99><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Если вызов 
+      функции заканчивается неудачно, то обычно возвращается NULL, в остальных 
+      случаях HANDLE идентифицирует объект, которым Вы можете манипулировать 
+      Будьте осторожны: некоторые функции возвращают HANDLE со значением 
+      INVALID_HANDLE_VALUE, равным 1. В документации Platform SDK для каждой 
+      функции четко указывается, что именно она возвращает при ошибке — NULL или 
+      INVALID_HANDLE_VALUE</FONT> </TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=37><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>PVOID</FONT> </TD>
+    <TD vAlign=top align=left width=408 height=37><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Если вызов 
+      функции заканчивается неудачно, возвращается NULL, в остальных случаях 
+      PVOID сообщает адрес блока данных в памяти </FONT></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=126 height=84><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>LONG или 
+      DWORD</FONT> </TD>
+    <TD vAlign=top align=left width=408 height=84><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Это значение — 
+      "крепкий орешек". Функции, которые сообщают значения каких-либо счетчиков, 
+      обычно возвращают LONG или DWORD. Если по какой-то причине функция не 
+      сумела сосчитать то, что Вы хотели, она обычно возвращаем 0 или -1 (все 
+      зависит от конкретной функции) Если Вы используете одну из таких функций, 
+      проверьте по документации Platform SDK, каким именно значением она 
+      уведомляет об ошибке</FONT> </TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 1-1. Стандартные типы значений, возвращаемых функциями 
+Windows<BR></FONT></P>
+<P>При возникновении ошибки Вы должны разобраться, почему вызов данной функции оказался 
+неудачен. За каждой ошибкой закреплен свой код — 32-битное число.
+<P>Функция Windows, обнаружив ошибку, через механизм локальной памяти потока сопоставляет 
+соответствующий кол ошибки с вызывающим потоком (Локальная память потока 
+рассматривается в главе 21.) Это позволяет потокам работать независимо друг от 
+друга, не вмешиваясь в чужие ошибки. Когда функция вернет Вам управление, ее 
+возвращаемое значение будет указывать на то, что произошла какая-то ошибка. 
+Какая именно — Вы узнаете, вызвав функцию GetLastError.
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetLastError();</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P>Она просто возвращает 32-битный код ошибки для данного потока.
+<P>Теперь, когда у Вас есть код ошибки, Вам нужно обменять его на что-нибудь более внятное. 
+Список кодов ошибок, определенных Microsoft, содержится в заголовочном файле 
+WinError.h. Я приведу здесь его небольшую часть, чтобы Вы представляли, на что 
+он похож<BR>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MessageId: 
+  ERROR_SUCCESS</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  MessageText<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// The 
+  operation completed successfully.<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  ERROR_SUCCESS 0L<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  NO_ERROR 0L // dderror<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  SEC_E_OK ((HRESULT)0x00000000L)<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MessageId 
+  ERROR_INVALID_FUNCTION<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  MessageText:<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Incorrect 
+  function.<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  ERROR_INVALID_FUNCTION 1L // dderror<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MessageId: 
+  ERROR_FILE_NOT_FOUND<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  MessageText:<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// The system 
+  cannot find the file specified.<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  ERROR_FILE_NOT_FOUND 2L<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MessageId. 
+  ERROR_PATH_NOT_FOUND<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  MessageText<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// The syblem 
+  cannot find the path specified.<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  ERROR_PATH_NOT_FOUND 3L<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MessageId 
+  ERROR_TOO_MANY_OPEN_FILES<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  MessageText:</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// The system 
+  cannot open the file.<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  ERROR_TOO_MANY_OPEN_FILES 4L</FONT></P></BLOCKQUOTE>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// MessageId, 
+  ERROR_ACCESS_DENIED<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  MessageText:<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Access is 
+  denied.<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define 
+  ERROR_ACCESS_DENIED 5L</FONT></P></BLOCKQUOTE>
+<P>Как видите, с каждой ошибкой связаны идентификатор сообщения (его можно использовать в 
+исходном коде для сравнения со значением, возвращаемым GetLastError), текст 
+сообщения (описание ошибки на нормальном языке) и номер (вместо него лучше 
+использовать индентификатор) Учтите, что я показал лишь крошечную часть файла 
+WinError.h; на самом деле в нем более 21 000 строк!
+<P>Функцию GetLastError нужно вызывать сразу же после неудачного вызова функции Windows, 
+иначе код ошибки может быть потерян.
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>NOTE:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>GetLastError возвращает последнюю ошибку, возникшую в потоке. Если 
+  этот поток вызывает другую функцию Windows и все проходит успешно, код 
+  последней ошибки не перезаписывается и не используется как индикатор 
+  благополучного вызова функции. Лишь несколько функций Windows нарушают это 
+  правило и все же изменяют код последней ошибки. Однако в документации Platform 
+  SDK утверждается обратное: якобы после успешного выполнения API-функции обычно 
+  изменяют код последней ошибки.<BR></FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>WINDOWS98:</FONT><FONT face="Arial, Helvetica, sans-serif" 
+  color=#006600 size=2><BR>Многие функции Windows 98 на самом деле реализованы в 
+  16-разрядном коде, унаследованном от операционной системы Windows 3.1. В нем 
+  не было механизма, сообщающего об ошибках через некую функцию наподобие 
+  GetLastError, и Microsoft не стала «исправлять" 1б-разрядный код в Windows 98 
+  для поддержки обработки ошибок. На практике это означает, что многие 
+  Win32-функции в Windows 98 не устанавливают код последней ошибки после 
+  неудачного завершения, а просто возвращают значение, которое свидетельствует 
+  об ошибке. Поэтому Вам не удастся определить причину 
+ошибки.<BR></FONT></P></BLOCKQUOTE>
+<P>Некоторые функции Windows всегда завершаются успешно, но по разным причинам Например, 
+попытка создать объект ядра «событие" с определенным именем может быть успешна 
+либо потому, что Вы действительно создали его, либо потому, что такой объект уже 
+есть. Но иногда нужно знать причину успеха Для возврата этой информации 
+Microsoft предпочла использовать механизм установки кода последней ошибки. Так 
+что и при успешном выполнении некоторых функций Вы можете вызывать GetLastError 
+и получать дополнительную информацию К числу таких функций относится, например, 
+CreateEvent, О других функциях см. Platform SDK.
+<P>На мой взгляд, особенно полезно отслеживать код последней ошибки в процессе отладки. 
+Кстати, отладчик в Microsort Visual Studio 6.0 позволяет настраивать окно Watch 
+так, чтобы оно всегда показывало код и описание последней ошибки в текущем 
+потоке. Для этого надо выбрать какую-нибудь строку в окне Watch и ввести 
+«@err,hr». Теперь посмотрите на рис. 1-1. Видите, я вызвал функцию CreateFile. 
+Она вернула значение INVALIDHANDLEVALUE (-1) типа HANDLE, cвидетельствующее о 
+том, что ей не удалось открыть заданный файл. Но окно Watch показывает нам код 
+последней ошибки (который вернула бы функция GetLastError, если бы я ее 
+вызвал),
+<HR>
+
+<P>равный 0x00000002, и описание «The system cannot find the file specified" («Система не 
+может найти указанный файл»). Именно эта строка и определена в заголовочном 
+файле WinError.h для ошибки с кодом 2<BR>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=227 alt=rihter2-1.jpg src="images/rihter2-1.jpg" 
+width=506> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 1 -1. Используя « @err,hr» в окне Watch среды Visual Studio 6.0, Вы 
+можете просматривать<BR>код последней ошибки в текущем потоке<BR></FONT></P>
+<P>С Visual Studio поставляется небольшая утилита Error Lookup, которая позволяет получать 
+описание ошибки по ее коду.<BR>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=179 alt=rihter2-2.jpg src="images/rihter2-2.jpg" 
+width=285> </FONT></P>
+<P>Если приложение обнаруживает какую-нибудь ошибку, то, как правило, сообщает о ней 
+пользователю, выводя на экран ее описание. В Windows для этого есть специальная 
+функция, которая «конвертирует» код ошибки в ее описание, — 
+FormatMessage.<BR>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  ForrnatMessage(<BR>DWORD dwFlags,<BR>LHCVOID pSource,<BR>DWORD 
+  dwMessageId,<BR>DWORD dwLanguageId,<BR>PTSTR pszBuffer,<BR>DWORD 
+  nSize,<BR>va_list *Arguments);</FONT></P></BLOCKQUOTE>
+<P>FormatMessage ~ весьма богатая по своим возможностям функция, и именно ее желательно применять 
+при формировании всех строк, показываемых пользователю Дело в том, что она 
+позволяет легко работать со множеством языков. FormatMessage определяет, какой 
+язык выбран в системе в качестве основного (этот параметр задается через апплет 
+Regional Settings в Control Panel), и возвращает текст на соответствующем языке 
+Разумеется, сначала Вы должны перевести строки на нужные языки и встроить этот 
+ресурс в свой EXE- или DLL -модуль, зато потом функция будет автоматически 
+выбирать требуемый язык Программа-пример ErrorShow, приведенная в 
+конце главы, демонстрирует, как вызывать эту функцию для получения текстового описания ошибки 
+по ее коду, определенному Microsoft.<BR>
+<P>Время от времени меня кто-нибудь да спрашивает, составит ли Microsoft полный список кодов 
+всех ошибок, возможных в каждой функции Windows. Ответ; увы, нет. Скажу больше, 
+такого списка никогда не будет — слишком уж сложно сго составлять и поддерживать 
+для все новых и новых версий системы<BR>
+<P>Проблема с подобным списком еще и в том, что Вы вызываете одну API-функцию, а она может 
+обратиться к другой, та — к третьей и т. д, Любая из этих функций может 
+завершиться неудачно (и по самым разным причинам). Иногда функция более высокого 
+уровня сама справляется с ошибкой в одной из вызванных ею функций и в конечном 
+счете выполняет то, что Вы от нее хотели. В общем, для создания такого списка 
+Microsoft пришлось бы проследить цепочки вызовов в каждой функции, что очень 
+трудно. А с появлением новой версии системы эти цепочки нужно было бы 
+пересматривать заново.
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head1top1></A>Вы тоже можете это сделать</FONT></B></H2>
+<P>О'кэй, я показал, как функции Windows сообщают об ошибках. Microsoft позволяет Вам 
+использовать этот механизм и в собственных функциях. Допустим, Вы пишете 
+функцию, к которой будут обращаться другие программы. Вызов этой функции может 
+по какой-либо причине завершиться неудачно, и Вам тоже нужно сообщать об 
+ошибках. С этой целью Вы просто устанавливаете код последней ошибки в потоке и 
+возвращаете значение FALSE, INVALID_HANDLE_VALUE, NULL или что-то другое, более 
+подходящее в Вашем случае. Чтобы установить код последней ошибки в потоке, Вы 
+вызываете SetLastError
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  SetLastError(DWORD dwErrCode);</FONT></P></BLOCKQUOTE>
+<P>и передаете ей нужное 32-битное число. Я стараюсь использовать коды, уже 
+определенные в WinError.h, — при условии, что они подходят под те ошибки, о 
+которых могут сообщать мои функции Если Вы считаете, что ни один из кодов в 
+WinError.h не годится для ошибки, возможной в Вашей функции, определите свой 
+код. Он представляет собой 32-битное значение, которое разбито па поля, 
+показанные в следующей<BR>таблице.<BR>
+<DIV align=left>
+<TABLE height=111 cellSpacing=0 cellPadding=0 rules=all width=581 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=78 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Биты</FONT></P></TD>
+    <TD vAlign=top align=left width=120 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>31-30</FONT></P></TD>
+    <TD vAlign=top align=left width=95 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>29</FONT></P></TD>
+    <TD vAlign=top align=left width=93 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>28</FONT></P></TD>
+    <TD vAlign=top align=left width=82 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>27-16</FONT></P></TD>
+    <TD vAlign=top align=left width=99 height=8>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15-0</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=78 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержимое</FONT></P></TD>
+    <TD vAlign=top align=left width=120 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код 
+      степени "тяжести" (severity)</FONT></P></TD>
+    <TD vAlign=top align=left width=95 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Кем 
+      определен<BR>— Microsoft<BR>или<BR>пользователем</FONT></P></TD>
+    <TD vAlign=top align=left width=93 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован</FONT></P></TD>
+    <TD vAlign=top align=left width=82 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Код<BR>подсистемы<BR>(facility code)</FONT></P></TD>
+    <TD vAlign=top align=left width=99 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Код<BR>исключения</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=78 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение</FONT></P></TD>
+    <TD vAlign=top align=left width=120 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>0 = 
+      успех<BR>1 = информация<BR>2 = предупреждение<BR>3 = ошибка</FONT></P></TD>
+    <TD vAlign=top align=left width=95 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>0 = 
+      Microsoft<BR>1 = пользователь</FONT></P></TD>
+    <TD vAlign=top align=left width=93 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Должен<BR>быть 0</FONT></P></TD>
+    <TD vAlign=top align=left width=82 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяется<BR>Microsoft</FONT></P></TD>
+    <TD vAlign=top align=left width=99 height=53>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяет- <BR>ся Microsoft<BR>или пользо</FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>вателем</FONT></P></TD></TR></TBODY></TABLE>
+<DIV align=left>
+<P>&nbsp;</P>
+<P>Подробнее об этих полях я рассказываю в главе 24. На данный момент единственное важное для 
+Вас поле — бит 29- Microsoft обещает, что все коды ошибок, генерируемые ее 
+функциями, будут содержать 0 в этом бите. Если Вы определяете собственный код 
+ошибки, запишите сюда 1. Тогда у Вас будет гарантия, что Ваш код ошибки не 
+войдет в конфликт с кодом, определенным Microsoft, — ни сейчас, ни в 
+будущем.<BR>
+</DIV></DIV>
+<HR>
+
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head1top2></A>Программа-пример ErrorShow</FONT></B></H2>
+<P>Эта программа, «01 ErrorShow.exe» (см. листинг на рис. 1 -2), демонстрирует, как 
+получить текстовое описание ошибки no ee коду. Файлы исходного кода и ресурсов 
+программы находятся в каталоге Ol-ErrorShow на компакт-диске, прилагаемом к 
+книге.
+<P>Программа ErrorShow в основном предназначена для того, чтобы Вы увидели, как работают окно 
+Watch отладчика и утилита Error Lookup. После запуска ErrorShow открывается 
+следующее окно.<BR>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=84 alt=rihter2-3.jpg src="images/rihter2-3.jpg" 
+width=278> </FONT></P>
+<P>В поле Error можно ввести любой код ошибки. Когда Вы щелкнете кнопку Look Up, внизу, в 
+прокручиваемом окне появится текст с описанием данной ошибки. Единственная 
+интересная особенность программы заключается в том, как она обращается к функции 
+FormatMessage. Я использую эту функцию так:<BR>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  код ошибки<BR>DWORD dwError = GetDlgItemInt(hwnd, IDC_ERRORCODE, NULL, 
+  FALSE);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HLOCAL hlocal 
+  = NULL; // буфер для строки с описанием ошибки</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  текстовое описание ошибки<BR>BOOL fOk = 
+  FormatMessage(<BR>FORMAT_MESSAGE_FROM_SYSTFM | 
+  FORMAT_MESSAGE_ALLOCATC_BUFFER,<BR>NULL, dwError, MAKELANGID(LANG_ENGLISH, 
+  SUBLANG_ENGLISH_US).<BR>(LPTSTR) &amp;hlocal, 0, NULL);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hlocal != 
+  NULL) {<BR>SetDlgItemText(hwnd, IDC_ERRORTEXT, (PCTSTR) 
+  LocalLock(hlocal));<BR>LocalFree(hlocal);<BR>} else {<BR>SetDlgItemText(hwnd, 
+  IDC ERRORTEXT, TEXT("Error number not found "));<BR>}</FONT></P></BLOCKQUOTE>
+<P>Первая строка считывает код ошибки из текстового поля. Далее я создаю экземпляр описателя 
+(handle) блока памяти и инициализирую его значением NULL. Функция FormatMessage 
+сама выделяет нужный блок памяти и возвращает нам его описатель.
+<P>Вызывая FormatMessage, я передаю флаг FORMAT_MESSAGE_FROM_SYSTEM Он сообщает функции, 
+что мне нужна строка, соответствующая коду ошибки, определенному в системе. 
+Кроме того, я передаю флаг FORMAT_MESSAGE_ALLOCATE_BUFFER, чтобы функция 
+выделила соответствующий блок памяти для хранения текста Описатель этого блока 
+будет возвращен в переменной hlocal. Третий параметр указывает код интересующей 
+нас ошибки, а четвертый — язык, на котором мы хотим увидеть ее 
+описание.
+<P>Если выполнение FormatMessage заканчивается успешно, описание ошибки помещается в 
+блок памяти, и я копирую его в прокручиваемое окно, расположенное в нижней части 
+окна программы. А если вызов FormatMessage оказывается неудачным,<BR>
+<HR>
+
+<P>я пытаюсь найти код сообщения в модуле NetMsg.dll, чтобы выяснить не связана ли ошибка с 
+сетью Используя описатель NetMsg.dll, я вновь вызываю FormatMessage. Дело в том, 
+что у каждого DLL или ЕХЬ-модуля может быть собственный набор кодов ошибок, 
+который включается в модуль с помощью Message Compiler (MC.exe) Как раз это и 
+позволяет делать утилита Error Lookup через свое диалоговое окно Modules.
+<P><A href="examp/01-ErrorShow.zip"><IMG height=16 src="images/" width=16>ErrorShow</A><BR>
+
+<P>
+<A href="intro.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head02.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

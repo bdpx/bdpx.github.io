@@ -1,0 +1,826 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=p5></A><FONT color=#990000>ЧАСТЬ V</FONT></FONT> <FONT 
+face="Arial, Helvetica, sans-serif" color=#990000 size=3>СТРУКТУРНАЯ ОБРАБОТКА 
+ИСКЛЮЧЕНИЙ </FONT><FONT face="Arial, Helvetica, sans-serif" color=#0000ff 
+size=3></FONT></B></P>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h23></A>ГЛАВА 23</FONT> <FONT face="Arial, Helvetica, sans-serif" 
+color=#0000ff size=3>Обработчики завершения </FONT></B></P>
+<P></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Закроем глаза 
+и помечтаем, какие бы программы мы писали, если бы сбои в них были невозможны! 
+Представляете, памяти навалом, неверных указателей никто не переда ет, нужные 
+файлы всегда на месте Не программирование, а праздник, да? А код про грамм? 
+Насколько он стал бы проще и понятнее! Без всех этих <I>if </I>и <I>goto,</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И если Вы 
+давно мечтали о такой среде программирования, Вы сразу жс оцените <I>структурную 
+обработку исключений </I>(structured exception handling, SEH). Преимуще ство SEH 
+в том, что при написании кода можно сосредоточиться на решении своей задачи Если 
+при выполнении программы возникнут неприятности, система сама обнаружит их и 
+сообщит Вам. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя 
+полностью игнорировать ошибки в программе при использовании SEH нельзя, она всс 
+жс позволяет отделить основную работу от рутинной обработки оши бок, к которой 
+можно вернуться позже. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Главное, 
+почему Microsoft ввела в Windows поддержку SEH, было ее стремление упростить 
+разработку операционной системы и повысить ее надежность. А нам SЕН поможет 
+сделать надежнее наши программы </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Основная 
+нагрузка по поддержке SEH ложится на компилятор, а не на операци онную систему. 
+Он генерирует специальный код на входах и выходах блоков исклю чений (exception 
+blorks), создает таблицы вспомогательных структур данных для поддержки SEH и 
+предоставляет функции обратного вызова, к которым система мог ла бы обращаться 
+для прохода по блокам исключений Компилятор отвечает и за формирование стековых 
+фреймов (stack frames) и другой внутренней информации, используемой операционной 
+системой. Добавить поддержку SEH в компилятор — задача не из легких, поэтому не 
+удивляйтесь, когда увидите, что разные поставщики no-разному реализуют SEH в 
+своих компиляторах К счастью, на детали реализации можно не обращать внимания, а 
+просто задействовать возможности компилятора в поддержке SEH </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Различия в 
+реализации SEH разными компиляторами могли бы затруднить описа ние конкретных 
+примеров использования SEH. Но большинство поставщиков компи ляторов 
+придерживается синтаксиса, рекомендованного Microsoft Синтаксис и клю чевые 
+слова в моих примерах могут отличаться от применяемых в других компиля торах, по 
+основные концепции SEH везде одинаковы В этой главе я использую син таксис 
+компиляюра Microsoft Visual C++ </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>NOTE: 
+  </FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><BR>Не 
+  путайте SEH с обработкой исключении в С++, которая представляет собой еще одну 
+  форму обработки исключений, построенную на применении ключе вых слов языка С++ 
+  <I>catch </I>и <I>throw </I>При этом Microsoft Visual C++ использует пре 
+  имущества поддержки SEH, уже обеспеченной компилятором и операционны ми 
+  сиоемдми Windows. </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>SEH 
+предоставляет две основные возможности, обработку завершения (termination 
+handling) и обработку исключений (exception handling). B этой главе мы 
+рассмотрим обработку завершения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обработчик 
+завершения гарантирует, что блок кода (собственно обработчик) будет выполнен 
+независимо от того, как происходит выход из другого блока кода — защищенного 
+участка программы. Синтаксис обработчика завершения при работе с компилятором 
+Microsoft Visual C++ выглядит так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  <BR>// защищенный блок <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_finally <BR>{ 
+  <BR>// обработчик завершения <BR>} </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ключевые 
+слова _<I>try </I>и <I>__flnally </I>обозначают два блока обработчика 
+завершения, В предыдущем фрагменте кода совместные действия операционной системы 
+и ком пилятора гарантируют, что код блока<I> finаllу </I>обработчика завершения 
+будет выполнен независимо от того, как произойдет выход из защищенного блока. И 
+неважно, разме стите Вы в защищенном блоке операторы <I>return, goto </I>или 
+даже <I>longjump — </I>обработ чик завершения все равно будет вызван. Далее я 
+покажу Вам несколько примеров ис пользования обработчиков завершения </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1></A>Примеры использования обработчиков завершения </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку при 
+использовании SEH компилятор и операционная система вместе кон тролируют 
+выполнение Вашего кода, то лучший, на мой взгляд, способ продемонст рировать 
+работу SEH — изучать исходные тексты программ и рассматривать порядок выполнения 
+операторов в каждом из примеров </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поэтому в 
+следующих разделах приведен ряд фрагментов исходного кода, а свя занный с каждым 
+из фрагментов тект поясняет, как компилятор и операционная система изменяют 
+порядок выполнения кода. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p1></A>Funcenstein1 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы оценить 
+последствия применения обработчиков завершения, рассмотрим бо лее конкретный 
+пример: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcenstein1() <BR>{ <BR>DWORD dwTemp; <BR>// 1 Что-то делаем здесь 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  <BR>// 2. Запрашиваем разрешение на доступ <BR>// к защищенным данным, а затем 
+  используем их <BR>WaitForSingleObject(g_hSem, INFINITE); <BR>g_dwProtectedData 
+  = 5; <BR>dwTemp = g_dwProtectedData; <BR>} </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_finally <BR>{ 
+  <BR>// 3 Даем и другим попользоваться защищенными данными 
+  <BR>ReleaseSemaphore(g_hSem, 1, NULL); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 4 
+  Продолжаем что-то делать <BR>return(dwTemp); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Пронумерованные комментарии подсказывают, в каком порядке будет выполнять 
+ся этот код. Использование в <I>Funcemtein1 </I>блоков <I>try-finally </I>на 
+самом деле мало что дает. Код ждет освобождения семафора, изменяет содержимое 
+защищенных данных, сохраняет новое значение в локальной переменной <I>divTemp, 
+</I>освобождает семафор и возвращает повое значение тому, кто вызвал эту 
+функцию. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p2></A>Funcenstein2 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+чуть-чуть изменим код функции и посмотрим, что получится: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcenstein2() <BR>{ <BR>DWORD dwTemp;<BR>// 1 Что-то делаем здесь </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  <BR>// 2 Запрашиваем разрешение на доступ <BR>// к защищенным данным, а затем 
+  используем их <BR>WaitForSingleObject(g_nSem, INFINITE);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>g_dwProtectedData = 5; <BR>dwTemp = g_dwProlecledData; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// возвращаем 
+  новое значение <BR>return(dwTemp); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_finally <BR>{ 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 3 Даем и 
+  другим попользоваться защищенными данными <BR>ReleaseSemaphore(g_hSem, 1, 
+  NULL); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// продолжаем 
+  что-то делать - в данной версии <BR>// этот участок кода никогда не 
+  выполняется <BR>dwTemp = 9; return(dwTemp); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В конец блока 
+<I>try </I>в функции <I>Funcenstein2 </I>добавлен оператор <I>retum </I>Он 
+сообща ет компилятору, что Вы хотите выйти из функции и вернуть значение 
+переменной <I>dwTemp </I>(в данный момент равное 5). Но, если будет выполнен 
+<I>return, </I>текущий поток никогда не освободит семафор, и другие потоки не 
+получат шанса занять этот сема фор. Такой порядок выполнения грозит вылиться в 
+действительно серьезную пробле му ведь потоки, ожидающие семафора, могут 
+оказаться не в состоянии возобновить свое выполнение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Применив 
+обработчик завершения, мы не допустили преждевременного выпол нения оператора 
+<I>return </I>Когда <I>return </I>пытается реализовать выход из блока <I>try, 
+</I>компилятор проверяет, чтобы сначала был выполнен код в <I>блоке finally, </I>— причем до 
+того, как оператору <I>return </I>в блоке <I>try </I>будет позволено реализовать 
+выход из функции Вы зов <I>ReleaseSemaphore </I>в обработчике завершения (в 
+функции <I>Funcenstein2</I>)<I> </I>гаранти рует освобождение семафора — поток 
+не сможет случайно сохранить права на се мафор и тем самым лишить процессорного 
+времени все ожидающие этот семафор потоки. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+выполнения блока <I>finаllу </I>функция фактически завершает работу Любой код за 
+блоком <I>finally </I>не выполняется, поскольку возврат из функции происходит 
+внутри блока <I>try. </I>Так что функция возвращает 5 и никогда — 9 </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каким же 
+образом компилятор гарантирует выполнение блок<I> finally </I>до выхода из блока 
+<I>try</I>? Дело вот в чем. Просматривая исходный текст, компилятор видит, что 
+Вы вставили <I>return </I>внутрь блока <I>try </I>Тогда он генерирует код, 
+который сохраняет воз вращаемое значение (в нашем примере 5) в созданной им же 
+временной перемен ной Затем создаст код для выполнения инструкций, содержащихся 
+внутри блока <I>finally, — </I>это называется<I> локальной раскруткой </I>(local 
+unwind) Точнее, локальная рас крутка происходит, когда система выполняет блок<I> 
+finаllу </I>из-за преждевременною выхода из блока <I>try </I>Значение временной 
+переменной, сгенерированной компилято ром, возвращается из функции после 
+выполнения инструкций в блоке <I>finаllу</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+чтобы все это вытянуть, компилятору приходится генерировать допол нительный код, 
+а системе — выполнять дополнительную работу На разных типах процессоров 
+поддержка обработчиков завершения реализуется по-разному Напри мер, 
+процессоруА1рhа понадобится несколько сотен или даже тысяч машинных ко манд, 
+чтобы перехватить преждевременный возврат из <I>try </I>и вызвать код блока<I> 
+finаllу </I>Поэтому лучше не писать код, вызывающий преждевременный выход из 
+блока <I>try </I>обработчика завершения, — это может отрицательно сказаться на 
+быстродействии программы. Чуть позже мы обсудим ключевое слово _<I>leave, 
+</I>которое помогает избе жать написания кода, приводящего клокальной раскрутке. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обработка 
+исключений предназначена для перехвата тех исключений, которые происходят не 
+слишком часто (в нашем случае — преждевременного возврата). Если же какое-то 
+исключение — чуть ли не норма, гораздо эффективнее проверять его явно, не 
+полагаясь на SEH </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте: 
+когда поток управления выходит из блока <I>try </I>естественным образом (как в 
+<I>Funcensfetn1), </I>издержки от вызова блока <I>finally </I>минимальны При 
+использовании компилятора Microsofr на процессорах x86 для входа <I>finаllу 
+</I>при нормальном выхо де из <I>try </I>исполняется всего одна машинная команда 
+— вряд ли Вы заметите ее влия ние на быстродействие своей программы Но издержки 
+резко возрастут, ссли компи лятору придется генерироватьдополнительный код, а 
+операционной системе — вы полнять дополншельную работу, как в 
+<I>Funcenstetn2</I> </FONT></P>
+<P></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p3></A>Funcenstein3 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Снова изменим 
+код функции: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcenstein3() <BR>{<BR>DWORD dwTemp;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1 Что-то 
+  делаем здесь </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  <BR>// 2. Запрашиваем разрешение на доступ <BR>// к защищенным данным, а затем 
+  используем их </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>WaitForSingleObject(g_hSem, INFINITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>g_dwProtectedData = 5; <BR>dwTemp = g_dwProtectedData; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// пытаемся 
+  перескочить через блок finally <BR>goto ReturnValue: <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally 
+  <BR>{ <BR>// 3. Даем и другим попользоваться защищенными данными </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>ReleaseSemaphore(g_hSem, 1, NULL); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwTemp = 9; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 4. 
+  Продолжаем что-то делать <BR>ReturnValue:</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(dwTemp); <BR>}</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обнаружив в 
+блоке <I>try </I>функции <I>Funcenstein3 </I>оператор <I>gofo, </I>компилятор 
+генери рует код для локальной раскрутки, чтобы сначала выполнялся блок 
+<I>finаllу</I> <I>. </I>Но на этот раз после <I>finаllу</I> исполняется код, 
+расположенный за меткой <I>RetumValue, </I>так как воз врат из функции не 
+происходит ни в блоке <I>try, </I>ни в блоке <I>finally. </I>B итоге функция 
+возвращает 5. И опять, поскольку Бы прервали естественный ход потока управления 
+из <I>try </I>в <I>finally, </I>быстродействие программы — в зависимости от типа 
+процессора — может снизиться весьма значительно. </FONT></P>
+<P></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p4></A>Funcfurter1 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А сейчас 
+разберем другой сценарий, в котором обработка завершения действитель но полезна: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcfurter1() <BR>{ <BR>DWORD dwTemp; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1. Что-то 
+  делаем здесь </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  <BR>// 2. Запрашиваем разрешение на доступ <BR>// к защищенным данным, а затем 
+  используем их <BR>WaitForSingleObject(g_hSem, INFINITE); <BR>dwTemp = 
+  Funcinator(g_dwProtectedData); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_finally <BR>{ 
+  <BR>// 3. Даем и другим попользоваться защищенными данными 
+  <BR>RelcaseSemaphore(g_hSem, 1, NULL); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 4. 
+  Продолжаем что-то делать <BR>return(dwTemp); <BR>} </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, в 
+функции <I>Funcinator, </I>вызванной из блока <I>try, — </I>«жучок», из-за 
+которо го возникает нарушение доступа к памяти. Без SEH пользователь в очередной 
+раз уви дел бы самое известное диалоговое окно Application Error. Стоит его 
+закрыть — за вершится и приложение Если бы процесс завершился (из-за 
+пеправильногодоступа к памяти), семафор остался бы занят — соответственно и 
+ожидающие его потоки не получили бы процессорное время. Но вызов 
+<I>ReleaseSemaphore </I>в блоке<I> finаllу </I>гаранти рует освобождение 
+семафора, дажс ссли нарушение доступа к памяти происходит в какой-то другой 
+функции. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Раз 
+обработчик завершения — такое мощное средство, способное перехватывать 
+завершение программы из-за неправильного доступа к памяти, можно смело рассчи 
+тывать и<SUP>ч</SUP>на то, что оно также перехватит комбинации 
+<I>setjump/longump </I>и элементар ные операторы типа <I>break </I>и 
+<I>continue.</I> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p5></A>Проверьте себя: FuncaDoodleDoo </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Посмотрим, 
+отгадаете ли Вы, что именно возвращает следующая функция </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  FuncaDoodleDoo() <BR>{<BR>DWORD dwTerrip = 0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>while (dwTemp 
+  &lt; 19) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try<BR>{ 
+    <BR>if (dwTemp == 2) continue; <BR>if (dwTemp == 3) break; <BR>} </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally { 
+    dwTernp++; } </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>dwTemp++;</FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwTemp += 10; 
+  <BR>return(dwTemp); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Проанализируем эту функцию шаг за шагом. Сначала <I>dwTemp 
+</I>приравнивается 0. Код в блоке <I>try </I>выполняется, но ни одно из условий 
+в операторах <I>if</I> не дает TRUE, и поток управления естественным образом 
+переходит в блок <I>finаllу,</I> где <I>dwTemp </I>увели чивается до 1. Затем 
+инструкция после блока <I>finаllу </I>снова увеличивает значение <I>dwTemp, 
+</I>приравнивая его 2. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На следующей 
+итерации цикла <I>dwTemp </I>равно 2, поэтому выполняется оператор <I>continue 
+</I>в блоке <I>try, </I>Без обработчика завершения, вызывающего принудительное 
+вы полнение блока <I>finаllу </I>перед выходом из <I>try, </I>управление было бы 
+передано непосред ственно в начало цикла <I>while, </I>значение <I>dwTemp 
+</I>больше бы не менялось — и мы в бесконечном цикле! В присутствии же 
+обработчика завершения система обнаружи вает, что оператор <I>continue 
+</I>приводит к преждевременному выходу из <I>try, </I>и передает управление блок 
+<I>finаllу. </I>Значение <I>dwTemp </I>в нем увеличивается до 3, но код за этим 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>блоком не 
+выполняется, так как управление снова передается оператору <I>continue, </I>и мы 
+вновь в начале цикла. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+обрабатываем третий проход цикла. На этот раз значение выражения в первом <I>if 
+</I>равно FALSE, а во втором — TRUE. Система снова перехватывает нашу по пытку 
+прервать выполнение блока <I>try </I>и обращается к <I>коду finаllу. 
+</I>Значение <I>dwTemp </I>увеличивается до 4. Так как выполнен оператор 
+<I>break, </I>выполнение возобновляется после тела цикла. Поэтому код, 
+расположенный за блоком<I> finаllу </I>(но в теле цикла), не выполняется. Код, 
+расположенный за телом цикла, добавляет 10 к значению <I>dwTemp, </I>что дает в 
+итоге 14, — это и есть результат вызова функции. Даже не стану убеж дать Вас 
+никогда не писать такой код, как в <I>FuncaDoodleDoo. </I>Я-то включил 
+<I>continue </I>и <I>break </I>в середину кода, только чтобы продемонстрировать 
+поведение обработчика завершения. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя 
+обработчик завершения справляется с большинством ситуаций, в которых выход из 
+блока <I>try </I>был бы преждевременным, он не может вызвать выполнение бло ка 
+<I>finally </I>при завершении потока или процесса. Вызов <I>ExitThread </I>или 
+<I>ExitProcess </I>сра зу завершит поток или процесс — без выполнения 
+какого-либо кода в блоке<I> finаllу. </I>То же самое будет, если Ваш поток или 
+процесс погибнут из-за того, что некая програм ма вызвала <I>TerminateThread 
+</I>или <I>TerminateProcess. </I>Некоторые функции библиотеки С (вроде 
+<I>abort). </I>в свою очередь вызывающие <I>ExitProcess, </I>тоже исключают 
+выполнение <I>блока finаllу. </I>Раз Вы не можете запретитьдругой программе 
+завершение какого-либо из своих потоков, или процессов, так хоть сами не делайте 
+преждевременных вызо вов <I>ExitThread </I>и <I>ExitProcess.</I> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p6></A>Funcenstein4 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрим 
+еще один сценарий обработки завершения. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcenstein4() <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dwTemp; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1. Что-то 
+  делаем здесь </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  <BR>// 2. Запрашиваем разрешение на доступ <BR>// к защищенным данным, а затем 
+  используем их <BR>WaitForSingleObject(g_hSem, INFINITE); <BR>g_dwProtectedData 
+  = 5; <BR>dwTemp = g_dwProtectedData; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// возвращаем 
+  новое значение return(dwTemp); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally 
+  <BR>{ <BR>// 3. Даем и другим попользоваться защищенными данными 
+  <BR>ReleaseSemaphore(g_hSem, 1, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return(103); 
+  <BR>}</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// продолжаем 
+  что-то делать - этот код <BR>// никогда не выполняется <BR>dwTemp = 9; 
+  </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(awTemp); <BR>}</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Блок <I>try 
+</I>в<I> Funcenstein4 </I>пытается вернуть значение переменной <I>dwTemp </I>(5) 
+функ ции, вызвавшей <I>Funcenstein4. </I>Как мы уже отметили при обсуждении 
+<I>Funcenstein2, </I>попытка преждевременного возврата из блока <I>try 
+</I>приводит к генерации кода, кото рый записывает возвращаемое значение во 
+временную переменную, созданную ком пилятором. Затем выполняется код в блоке 
+<I>finаllу.</I> Кстати, в этом варианте <I>Funcenstein2 </I>я добавил в блок 
+<I>finаllу</I> оператор <I>return. </I>Вопрос: что вернет <I>Funcenstein4 — 
+</I>5 или 103? Ответ: 103, так как оператор <I>return </I>в блоке <I>finаllу</I> 
+приведет к записи значения 103 в ту же временную переменную, в которую занесено 
+значение 5. По завершении блока <I>finаllу </I>текущее<I> </I>значение временной 
+переменной (103) возвращается функции, вызвав шей <I>Funcenstein4</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, 
+обработчики завершения, весьма эффективные при преждевременном вы ходе из блока 
+<I>try, </I>могут дать нежелательные результаты именно потому, что предотв 
+ращают досрочный выход из блока <I>try. </I>Лучше всего избегать любых 
+операторов, спо собных вызыать преждевременный выход из блока <I>try 
+</I>обработчика завершения. А в идеале — удалить все операторы <I>return, 
+continue, break,goto </I>(и им подобные) как из блоков <I>try, </I>так и из 
+блоков <I>finally. </I>Тогда компилятор сгенерирует код и более компак-. тный 
+(перехватывать преждевременные выходы из блоков <I>try </I>не понадобится), и бо 
+лее быстрый (на локальную раскрутку потребуется меньше машинных команд). Да и 
+читать Ваш код будет гораздо легче. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p7></A>Funcarama1 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Мы уже далеко 
+продвинулись в рассмотрении базового синтаксиса и семантики об работчиков 
+завершения. Теперь поговорим о том, как обработчики завершения упро щают более 
+сложные задачи программирования. Взгляните на функцию, в которой не используются 
+преимущества обработки завершения: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  Funcarama1() <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile = 
+  INVALID_HANDLE_VALUE; <BR>PVOID pvBuf = NULL; <BR>DWORD dwNumBytesRead; 
+  <BR>BOOL fOk; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hFile = 
+  CreateFile("SOMEDATA.DAT", GENERIC_READ, <BR>FILE_SHARE_READ, NULL, 
+  OPEN_EXISTING, 0, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>lf (hFile == 
+  INVALID_HANDLE_VALUE) <BR>{ <BR>return(FALSE); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>pvBuf = 
+  VirtualAlloc(NULL, 1024, MEM_COMMIT, PAGE_READWRTTE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (pvBuf == 
+  NULL) <BR>{ <BR>CloseHandle(hFile); <BR>return(FALSE); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>fOk = 
+  ReadFile(hFile, pvBuf, 1024, &amp;dwNumBytesRead, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (!fOk || 
+  (dwNumBytesRead == 0)) <BR>{ <BR>VirtualFree(pvBuf, MEM_RELEASE | 
+  MEM_DECOMMIT); <BR>CloseHandle(hFile); <BR>return(FALSE); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>//<I> 
+  </I>что-то делаем с данными </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// очистка 
+  всех ресурсов </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>VirtuallFree(pvBuf, MEM_RELEASE | MEM_DECOMMIT); 
+  <BR>CloseHandle{hFile); return(TRUE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проверки 
+ошибок в функции<I> Fипсаrата1 </I>затрудняют чтение ее текста, что услож няст 
+ее понимание, сопровождение и модификацию </FONT></P>
+<P></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p8></A>Funcarama2 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, 
+можно переписать <I>Funcaramal </I>так, чтобы она была яснее: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  Funcarama2() <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile = 
+  INVALID_HANDLE_VALUE; <BR>PVOID pvBuf = NULL; <BR>DWORD dwNumByTesRead; 
+  <BR>BOOL fOk;<BR>fSuccess = FALSE; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hFile = 
+  CreatcFile("SOMEDATA.DAT", GENERIC_READ, FILE_SHARE_READ NULL, OPEN_EXISTING, 
+  0, NULL); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hFile != 
+  INVALID_HANDLE_VALUE) <BR>{ <BR>pvBuf = VirtualAlloc(NULL, 1024, MEM_COMMIT, 
+  PAGE_READWRITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (pvBuf != 
+  NULL)<BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>fOk = 
+    ReadFile(hFile, pvBuf, 1024, &amp;dwNumBytesRedd, NULL); <BR>if (fOk 
+    &amp;&amp; (dwNumBytesRead != 0)) <BR>{ <BR>// что-то делаем с данными 
+    <BR>... <BR>fSuccess = TRUE; <BR>} </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>VirtualFree(pvBuf, MEM_RELEASE | MEM_DECOMMIT); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hFile); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(fSuccess); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>Funcarama2 
+</I>легче для понимания, но по-прежнему трудна для модификации и сопровождения. 
+Кроме того, приходится делать слишком много отступов по мере добавления новых 
+условных операторов, после такой переделки Вы того и гляди нач нете писать код 
+на правом краю экране и переносить операторы на другую строку через каждые пять 
+символов! </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p9></A>Funcarama3 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перспишем-ка 
+еще раз первый вариант <I>(Funcaramal), </I>задействовав преимущества обработки 
+завершения </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  Funcarama3() <BR>{ <BR>// Внимание! Инициализируйте все переменные, 
+  предполагая худшее </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile = 
+  INVALID_HANDLE_VALUE; <BR>PVOID pvBuf = NULL;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwNumBytesRead; <BR>BOOL fOk; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hFile = 
+    CreateFile("SOMEDATA.DAT". GENERIC_READ, <BR>FILE_SHARE_READ, NULL, 
+    OPEN_EXISTING, 0, NULL); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hFile == 
+    INVALID_HANDLE_VALUE)<BR>{ <BR>return(FALSE); <BR>} </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>pvBuf = 
+    VirtualAlloc(NULL, 1024, MEM_COMMIT, PAGE_READWRITE); <BR>if (pvBuf == NULL) 
+    <BR>{ <BR>return(FALSE); <BR>} </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>fOk = 
+    ReadFile(hFile, pvBuf, 1024, &amp;dwNumBytesRead, NULL); <BR>if (ifOk || 
+    (dwNumBytesRead != 1024)) <BR>{ <BR>return(FALSE); <BR>} </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// что-то 
+    делаем с данными </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally 
+  <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// очистка 
+    всех ресурсов <BR>if (pvBuf != NULL)<BR>VirtualFree(pvBuf, MEM_RELEASE | 
+    MEM_DECOMMIT); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hFile != 
+    INVALID_HANDLE_VALUE)<BR>CloseHandle(hFile); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>//<I> 
+  </I>продолжаем что-то делать <BR>return(TRUE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Главное 
+достоинство <I>Funcarama3 </I>в том, что весь код, отвечающий за очистку, со 
+бран в одном месте — в блоке <I>finally. </I>Если понадобится включить что-то в 
+эту функ цию, то для очистки мы просто добавим одну-единственную строку в блок 
+<I>finally — </I>возвращаться к каждому месту возможного возникновения ошибки и 
+вставлять в него строку для очистки не нужно </FONT></P>
+<P></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p10></A>Funcarama4: последний рубеж </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Настоящая 
+проблема в <I>Fипсаrата3 — </I>расплата за изящество. Я уже говорил: избегай те 
+по возможности операторов <I>return </I>внутри блока <I>try.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+облегчить последнюю задачу, Microsoft ввела еще одно ключевое слово в свой 
+компилятор С++- _<I>leave. </I>Вот новая версия <I>(Funcarama4), </I>построенная 
+на при менении нового ключевого слова:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  Funcarama4() { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Внимание, 
+  инициализируйте все переменные, предполагая худшее </FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hFile = 
+  INVALID_HANDLE_VALUE; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID pvBuf = 
+  NULL; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  предполагаем, что выполнение функции будет неудачным BOOL fFunctionOk = FALSE; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try { 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  dwNumBytesRead; <BR>BOOL fOk; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>hFile = 
+  CreateFile("SOMEDATA.DAT", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 
+  0, NULL); <BR>if (hFile == INVALID,HANDLE_VALUE) <BR>{ <BR>__leave; <BR>} 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>pvBuf = 
+  VirtualAlloc(NULL, 1024, MEM_COHMIT, PAGE_READWRITE); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (pvBuf == 
+  NULL) <BR>{ <BR>__leave; <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>fOk = 
+  ReadFile(hFile, pvBuf, 1024, &amp;dwNumBytesRead, NULL); <BR>if (!fOk || 
+  (dwNumBytesRead == 0)) <BR>{ <BR>__leave; <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// что-то 
+  делаем с данными <BR>// функция выполнена успешно fFunctionOk = TRUE; } 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally 
+  <BR>{ <BR>// очистка всех ресурсов <BR>if (pvBuf != NULL) 
+  <BR>VirtualFree(pvBuf, MEM_RELEASE | MEM__DECOMMIT); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hFile != 
+  INVALID_HANDLE_VALUE) </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hFile); <BR>} // продолжаем что-то делать </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(fFunctionOk); <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ключевое 
+слово _<I>leave </I>в блоке <I>try </I>вызывает переход в конец этого блока. 
+Може те рассматривать это как переход на закрывающую фигурную скобку блока 
+<I>try. </I>И никаких неприятностей это не сулит, потому что выход из блока 
+<I>try </I>и вход в блок <I>finally </I>происходит естественным образом. Правда, 
+нужно ввести дополнительную бу леву переменную <I>fFunctionOk, </I>сообщающую о 
+завершении функции: удачно оно или нет. Но это дает минимальные издержки. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разрабатывая 
+функции, использующие обработчики завершения именно так, ини циализируйте все 
+описатели ресурсов недопустимыми значениями перед входом в блок <I>try. 
+</I>Тогда в блоке <I>finally </I>Вы проверите, какие ресурсы выделены успешно, и 
+узна ете тем самым, какие из них следует потом освободить. Другой 
+распространенный </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>метод 
+отслеживания ресурсов, подлежащих освобождению, — установка флага при успешном 
+выделении ресурса. Код <I>finally </I>проверяет состояние флага и таким обра зом 
+определяет, надо ли освобождать ресурс, </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p11></A>И еще о блоке finally </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пока нам с 
+Вами удалось четко выделить только два сценария, которые приводят к выполнению 
+блока<I> finаllу:</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• нормальная 
+передача управления от блока <I>try </I>блоку<I> finаllу;</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• локальная 
+раскрутка <I>— </I>преждевременный выход из блока <I>try </I>(из-за операто ров 
+<I>goto, longjump, continue, break, return </I>и т. д.), вызывающий 
+принудительную передачу управления блоку <I>finаllу</I>. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третий 
+сценарий — <I>глобалъная раскрутка </I>(global unwind) — протекает не столь 
+выраженно. Вспомним <I>Funcfurterl. </I>Ее блок <I>try </I>содержал вызов 
+функции <I>Funcinator. </I>При неверном доступе к памяти в <I>Funcinator 
+</I>глобальная раскрутка приводила к вы полиению блока <I>finаllу </I>в 
+<I>Funcfurter1 </I>Но подробнее о глобальной раскрутке мы пого ворим в следующей 
+главе. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выполнение 
+кода в блоке <I>finаllу </I>всегда начинается в результате возникновения одной 
+из этих трех ситуаций. Чтобы определить, какая из них вызвала выполнение блока 
+<I>finаllу</I>, вызовите встраиваемую <I>функцию 
+AbnormalTermination</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  AbnormalTermination(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Еe можно 
+вызвать только из блока<I> finаllу; </I>она возвращает булево значение, кото рое 
+сообщает, был ли преждевременный выход из блока <I>try, </I>связанного с данным 
+блоком <I>finаllу.</I> Иначе говоря, если управление естественным образом 
+передано из <I>try </I>в <I>ftnally, AbnormalTermination </I>возвращает FALSE. А 
+ссли выход был преждевременным — обычно либо из-за локальной раскрутки, 
+вызванной оператором <I>goto, return, break </I>или <I>continue, </I>либо из-за 
+глобальной раскрутки, вызванной нарушением доступа к памя ти, — то вызов 
+<I>AbnormalTermination </I>дает TRUE Но, когда она возвращяет TRUE, разли чить, 
+вызвано выполнение блока<I> finаllу </I>глобальной или локалыюй раскруткой, 
+нельзя. Впрочем, это не проблема, так как Вы должны избегать кода, приводящего к 
+локаль ной раскрутке </FONT></P>
+<P></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p12></A>Funcfurter2 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующий 
+фрагмент демонстрирует использование встраиваемой функции <I>Abnor 
+malTermination:</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcfurter2() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+    dwTemp; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1 Что-то 
+    делаем здесь </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><SUP>1</SUP> 
+Встраиваемая функция (intrinsic function) — особая функция, распознаваемая 
+компилято ром Вместо генерации вызова такой функции он подставляет в точке 
+вызова ее код. При мером встраиваемой функции является <I>memcpy </I>(если 
+указан ключ компилятора /Oi). Встре чая вызов <I>memcpy, </I>компилятор 
+подставляет ec код непосредственно в вызывающую функ цию Обычно это ускоряет 
+работу программы ценой увеличения ее размера Функция <I>AbnormalTermination 
+</I>отличается от <I>тетсру </I>тем, что существует только во встраиваемом 
+варианте. Ее нет ни в одной библиотеке С. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try { 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 2. 
+    Запрашиваем разрешение на доступ<BR>// к защищенным данным, а затем 
+    используем их <BR>WaitForSingleObject(g_hSem, INFINITE); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwTemp = 
+    Funcinator(g_dwProtectedData); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally<BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 3. Даем и 
+    другим попользоваться защищенными данными <BR>ReleaseSemaphore(g_hSem, 1, 
+    NULL); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (!AbnormalTermination()) <BR>{ </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// в блоке 
+    try не было ошибок - управление<BR>// передано в блок finally естественным 
+    образом </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>else 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// что-то 
+  вызвало исключение, и, так как в блоке try <BR>// нет кода, который мог бы 
+  вызвать преждевременный <BR>// выход, блок finally выполняется из-за 
+  глобальной <BR>// раскрутки <BR>// если бы в блоке try был оператор goto, мы 
+  бы <BR>// не узнали, как попали сюда </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 4. 
+  Продолжаем что-то делать </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(dwТemp); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь Вы 
+знаете, как создавать обработчики завершения. Вскоре Вы увидите, что они могут 
+быть еще полезнее и важнее, — когда мы дойдем до фильтров и обработ чиков 
+исключений (в следующей главе). А пока давайте суммируем причины, по ко торым 
+следует применять обработчики завершения. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Упрощается 
+  обработка ошибок — очистка гарантируется и проводится в од ном месте. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Улучшается 
+  восприятие текста программ. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Облегчается сопровождение кода. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Удается 
+  добиться минимальных издержек по скорости и размеру кода — при условии 
+  правильного применения обработчиков. </FONT></LI></UL>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h23t1p13></A>Программа-пример SEHTerm </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+программа, «23 SEHTerm.exe» (см. листинг на рис. 23-1), демонстрирует обработ 
+чики завершения. Файлы исходного кода и ресурсов этой программы находятся в 
+каталоге 23-SEHTerm на компакт-диске, прилагаемом к книге. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После запуска 
+SEHTerm ее первичный поток входит в блок <I>try. </I>Из него открывает ся 
+следующее окно. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=100 alt=rihter23-1.jpg src="images/rihter23-1.jpg" 
+width=187> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом окне 
+предлагается обратиться к памяти по недопустимому адресу. (Боль шинство 
+приложений не столь тактично — они обращаются по недопустимым адре сам, никого 
+не спрашивая.) Давайте обсудим, что случится, если Вы щелкнете кнопку Yes. B 
+этом случае поток попытается записать значение 5 по нулевому адресу памяти. 
+Запись по нулевому адресу всегда вызывает исключение, связанное с нарушением 
+доступа. А когда поток возбуждает такое исключение, Windows 98 выводит окно, по 
+казанное ниже. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=120 alt=rihter23-2.jpg src="images/rihter23-2.jpg" 
+width=404> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+2000 аналогичное окно выглядит иначе </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=107 alt=rihter23-3.jpg src="images/rihter23-3.jpg" 
+width=374> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+теперь щелкнитe кнопку Сlоsе (в Windows 98) или OK (в Windows 2000), процесс 
+завершится. Однако в исходном коде этой программы присутствует блок <I>finally, 
+</I>который будет выполнен до того, как процесс завершится Из этого блока от 
+крывается следующее окно. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=95 alt=rihter23-4.jpg src="images/rihter23-4.jpg" 
+width=185> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>Блок 
+finаllу </I>выполняется потому, что происходит ненормальный выход из связан ного 
+с пим блока <I>try. </I>После закрытия этого окна процесс завершается. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>О'кэй, а 
+сейчас снова запустим эту программу. Но на этот раз попробуйте щелк нуть кнопку 
+No, чтобы избежать обращения к памяти по недопустимому адресу. Тог да поток 
+естественным образом перейдет из блока <I>try </I>в <I>блок finаllу, </I>откуда 
+будет от крыто следующее окно. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=95 alt=rihter23-5.jpg src="images/rihter23-5.jpg" 
+width=187> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что на этот раз в окне сообщается о нормальном выходе из блока <I>try 
+</I>Когда Вы закроете это окно, поток выйдет из блока <I>finаllу</I> и покажет 
+после днее окно. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=97 alt=rihter23-6.jpg src="images/rihter23-6.jpg" 
+width=200> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Послетою как 
+Вы скроете и это окно, процесс нормально завершится, посколь ку функция 
+<I>WinMain </I>вернет управление. Заметьте, что данное окно не появляется при 
+аварийном завершении процесса. </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2>
+<A href="examp/23-SEHTerm.zip"><IMG height=16 src="images/CLSDFOLD.gif" width=16> SEHTerm</A></FONT></P>
+<HR>
+
+<P>
+<A href="head22.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head24.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

@@ -1,0 +1,2005 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h1></A>ГЛАВА 7 Планирование потоков, приоритет и привязка к процессорам 
+</FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Операционная 
+система с вытесняющей многозадачностью должна использовать тот или иной 
+алгоритм, позволяющий ей распределять процессорное время между пото ками Здесь 
+мы рассмотрим алгоритмы, применяемые в Windows 98 и Windows 2000. Б главе 6 мы 
+уже обсудили структуру CONTEXT, поддерживаемую в объекте ядра "поток", и 
+выяснили, что она отражает состояние регистров процессора на момент последнего 
+выполнения потока процессором Каждые 20 мс (или около того) Windows 
+просматривает все существующие объекты ядра "поток" и отмечает те из них, кото 
+рые могут получать процессорное время. Далее она выбирает один из таких объек 
+тов и загружает в регистры процессора значения из его контекста Эта операция на 
+зывается <I>переключением контекста </I>(context switching) По каждому потоку 
+Windows ведет учет того, сколько раз он подключался к процессору. Этот 
+показатель сообща ют специальные утилиты вроде Microsoft Spy++ Например, на 
+иллюстрации ниже показан список свойов одного из потоков. Обратите внимание, что 
+этот поток под ключался к процессору 37379 раз </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=286 alt=h7-1.jpg src="images/h7-1.jpg" width=344> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток 
+выполняет код и манипулирует данными в адресном пространстве своего процесса 
+Примерно через <I>20 </I>мс Windows сохранит значения регистров процессора в 
+контексте потока и приостановит сго выполнение. Далее система просмотрит ос 
+тальные объекты ядра "поток", подлежащие выполнению, выберет один из них, заг 
+рузит его контскст в регистры процессора, и все повторится Этот цикл операций — 
+выбор потока, загрузка его контекста, выполнение и сохранение контекста — начи 
+нается с момента запуска системы и продолжается до cc выключения. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таков вкратце 
+механизм планирования работы множества потоков. Детали мы обсудим позже, но 
+главное я уже показал Все очень просто, да? Windows потому и называется системой 
+с вытесняющей многозадачностью, что в любой момент может приостановить любой 
+поток и вместо него запустить другой. Как Вы еще увидите, этим механизмом можно 
+управлять, правда, крайне ограниченно. Всегда помните: Вы не в состоянии 
+гарантировать, что Ваш поток будет выполняться непрерывно, что ника кой другой 
+поток не получи'1 доступ к процессору и т д. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Меня часто спрашивают, как сделать так, чтобы 
+  поток гарантированно запус кался в течение определенного времени после 
+  какого-нибудь события — на пример, не позднее чем через миллисекунду после 
+  приема данных с последо вательного порта? Ответ прост: никак. Такие требования 
+  можно предъявлять к операционным системам реального времени, но Windows к ним 
+  не относит ся. Лишь операционная система реального времени имеет полное 
+  представле ние о характеристиках аппаратных средств, на которых она работает 
+  (об ин тервалах запаздывания контроллеров жестких дисков, клавиатуры и т. д.). 
+  А создавая Windows, Microsoft ставила другую цель обеспечить поддержку мак 
+  симально широкого спектра оборудования — различных процессоров, диско вых 
+  устройств, сетей и др. Короче говоря, Windows не является операционной 
+  системой реального времени. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хочу особо 
+подчеркнуть, что система планирует выполнение только тех потоков, которые могут 
+получать процессорное время, но большинство потоков в системе к таковым не 
+относится. Так, у некоторых объектов-потоков значение счетчика просто ев 
+(suspend count) больше 0, а значит, соответствующие потоки приостановлены и не 
+получают процессорное время. Вы можете создать приостановленный поток вызовом 
+<I>CreateProcess </I>или <I>CreateThread </I>с флагом CREATESUSPENDED (В 
+следующем разделе я расскажу и о таких функциях, как <I>SuspendThread </I>и 
+<I>ResumeThread.)</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме 
+приостановленных, существуют и другие потоки, не участвующие в распре делении 
+процессорного времени, — они ожидают каких-либо событий. Например, если Вы 
+запускаете Notepad и не работаете в нем с текстом, его поток бездействует, а 
+система не выделяет процессорное время тем, кому нечего делать. Но стоит лишь 
+сместить его окно, прокрутить в нем текст или что-то ввести, как система 
+автомати чески включит поток Notepad в число планируемых Это вовсе не означает, 
+что по ток Notepad тут жс начнет выполняться. Просто система учтет его при 
+планировании потоков и когда-нибудь выделит ему время — по возможности в 
+ближайшем будущем </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t1></A>Приостановка и возобновление потоков</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В объекте 
+ядра "поток" имеется переменная — счетчик числа простоев данного по тока При 
+вызове <I>CreateProcess </I>или <I>CreateThread </I>он инициализируется 
+значением, рав ным 1, которое запрещает системе выделять новому потоку 
+процессорное время. Та кая схема весьма разумна: сразу после создания поток не 
+готов к выполнению, ему нужно время для инициализации. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После гого 
+как поток полностью инициализирован, <I>CreateProcess </I>или <I>CreateThread 
+</I>проверяет, не передан ли ей флаг CREATE_SUSPENDED, и, если да, возвращает 
+управ ление, оставив поток в приостановленном состоянии В ином случае счетчик 
+простоев обнуляется, и поток включается в число планируемых — если только он не 
+ждет ка кого-то события (например, ввода с клавиатуры). </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав поток 
+в приостановленном состоянии, Выможете настроить некоторые его свойства 
+(например, приоритет, о котором мы поговорим позже). Закончив настройку, Вы 
+должны разрешить выполнение потока. Для этого вызовите <I>ResumeThread </I>и 
+пере дайте описатель потока, возвращенный функцией <I>CreateThread 
+</I>(описатель можно взять и из структуры, на которую указывает параметр 
+<I>ppiProcInfo, </I>передаваемый в <I>CreateProcess).</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#3300ff size=2>DWORD 
+  ResumeThread(HANDLE hThread); </FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если вызов 
+<I>ResumeThread </I>прошел успешно, она возвращает предыдущее значение счетчика 
+простоев данного потока; в ином случае — 0xFFFFFFFF. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выполнение 
+отдельного потока можно приостанавливать несколько раз. Если поток приостановлен 
+3 раза, то и возобновлен он должен быть тоже 3 раза — лишь тогда система выделит 
+ему процессорное время. Выполнение потока можно приос тановить не только при его 
+создании с флагом CREATE_SUSPENDED, но и вызовом <I>SuspendThread.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>DWORD 
+RuspendThread(HANDLE hThread); </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Любой поток 
+может вызвать эту функцию и приостановить выполнение другого потока (конечно, 
+если его описатель известен). Хоть об этом нигде и не говорится (но я все равно 
+скажу!), приостановить свое выполнение поток способен сам, а во зобновить себя 
+без посторонней помощи — нет. Как и <I>ResumeThread, </I>функция <I>Sus 
+pendThread </I>возвращает предыдущее значение счетчика простоев данного потока. 
+Поток можно приостанавливать не более чем MAXIMUM_SUSPEND_COUNT раз (в файле 
+WinNT.h это значение определено как 127). Обратите внимание, что <I>Suspend 
+Thread </I>в режиме ядра работает асинхронно, но в пользовательском режиме не 
+выпол няется, пока потокостается в приостановленном состоянии. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создавая 
+реальное приложение, будьте осторожны с вызовами <I>SuspendThread, </I>так как 
+нельзя заранее сказать, чем будет заниматься его поток в момент приостановки. 
+Например, он пытается выделить память из кучи и поэтому заблокировал к ней дос 
+туп. Тогда другим потокам, которым тоже нужна динамическая память, придется 
+ждать его возобновления. <I>SuspendThread </I>безопасна только в том случае, 
+когда Вы точно знаете, что делает (или может делать) поток, и предусматриваете 
+все меры для исклю чения вероятных проблем и взаимной блокировки потоков. (О 
+взаимной блокировке и других проблемах синхронизации потоков я расскажу в главах 
+8, 9 и 10.) </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t2></A>Приостановка и возобновление процессов</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В Windows 
+понятия "приостановка" и "возобновление" неприменимы к процессам, так как они не 
+участвуют в распределении процессорного времени. Однако меня не рая спрашивали, 
+как одним махом приостановить все потоки определенного процесса. Это можно 
+сделать из другого процесса, причем он должен быть отладчиком и, в ча стности, 
+вызывать функции вроде <I>WaitForDebugEvent </I>и <I>ContinueDebugEvent.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Других 
+способов приостановки всех потоков процесса в Windows нет: програм ма, 
+выполняющая такую операцию, может "потерять" новые потоки. Система должна как-то 
+приостанавливать в этот период не только все существующие, но и вновь со 
+здаваемые потоки. Microsoft предпочла встроить эту функциональность в системный 
+механизм отладки. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вам, конечно, 
+не удастся написать идеальную функцию <I>SuspendProcess, </I>но вполне по силам 
+добиться ec удовлетворительной работы во многих ситуациях. Вот мой ва риант 
+функции <I>SuspendProcess.</I> </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  SuspendProcess(DWORD dwProcessID, BOOL tSuspend) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  список потоков в системе <BR>HANDLE hSnapshot = 
+  CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, dwProcessID), </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hSnapshot 
+  != INVALID_HANDLE_VALUE) { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  просматриваем список потоков<BR>THREADENTRY32 te = { sizeof(te) }; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL fOk = 
+  Thread32First(hSnapshot, &amp;te); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>for (, fOk, 
+  fOk = Thread32Next(hSnapshot, &amp;te)) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// относится 
+  ли данный поток к нужному процессу<SUP> </SUP><BR>if (te.th320wnerProcessID == 
+  dwProcessID) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// пытаемся 
+  получить описатель потока по его идентификатору <BR>HANDLE hThread = 
+  OpenThread(THREAD_SUSPEND_RESUME, FALSE, te th32ThreadID); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (hThread != 
+  NULL) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  приоcтанавливаем или возобновляем поток <BR>if (fSuspend)<BR>SuspendTh 
+  read(hThread); <BR>else <BR>ResumeThread(hThread); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hThread); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} <BR>} 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>CloseHandle(hSnapsnot); <BR>} <BR>} </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+перечисления списка потоков я использую ToolHelp функции (они рассмат ривались в 
+главе 4). Определив потоки нужною процесса, я вызываю <I>OpenThread.</I> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenThread( DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD 
+  dwThreadID);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Это новая 
+функция, которая появилась в Windows 2000 Она находит объект ядра "поток" по 
+идентификатору, указанному в dwTbreadJD, увеличивает его счетчик поль зователей 
+на 1 и возвращает описатель объекта Получив описатель, я могу передать его в 
+<I>SuspendThread</I> (или <I>ResumeThread</I>) <I>OpenThread</I> имеется только 
+в Windows 2000, поэтому моя функция <I>SuspendProcess</I> не будет работать ни в 
+Windows 95/98, ни в Windows NT 4 0 </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вероятно, Вы 
+уже догадались, почему <I>SuspendProcess</I> будет срабатывать не во всех 
+случаях: при перечислении могут создавайся новые и уничтожаться существующие 
+потоки. После вызова <I>CreateToolhelp32Snapshot</I> в процессе может появиться 
+новый поток, который моя функция уже не увидит, а значит, и не приостановит 
+Впослед ствии, когда я попытаюсь возобновить потоки, вновь вызвав 
+<I>SuspendProcess,</I> она во </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>зобновит 
+поток, который собственно и не приостанавливался. Но может быть еще хуже- при 
+перечислении текущий поток уничтожается и создастся новый с тем же 
+идентификатором. Тогда моя функция приостановит неизвестно какой поток (и даже 
+непонятно в каком процессе). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, все 
+эти ситуации крайне маловероятны, и, если Вы точно представляе те, что делает 
+интересующий Вас процесс, никаких проблем не будет. В общем, ис пользуйте мою 
+функцию на свой страх и риск. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t3></A>Функция Sleep</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поток может 
+сообщить системе не выделять ему процессорное время на определен ный период, 
+вызвав: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOID 
+  Sleep(DWORD dwMilliseconds); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+приостанавливает поток па <I>dwMilliseconds </I>миллисекунд. Отметим несколько 
+важных моментов, связанных с функцией <I>Sleep.</I> </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызывая 
+  <I>Sleep, </I>поток добровольно отказывается от остатка выделенного ему кванта 
+  времени </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+  прекращает выделять потоку процессорное время на период, <I>пример но 
+  </I>равный заданному, Все верно: если Вы укажете остановить поток на 100 мс, 
+  приблизительно на столько он и "заснет", хотя не исключено, что его сон про 
+  длится на несколько секунд или даже минут болыше Вспомните, Windows не 
+  является системой реального времени. Ваш поток может возобновиться в за данный 
+  момент, но это зависит от того, какая ситуация сложится в системе к тому 
+  времени. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+  вызвать <I>Slecp </I>и передать в <I>dwMilliseconds </I>значение INFINITE, 
+  вооб ще запретив планировать поток. Но это не очень практично — куда лучше 
+  корректно завершить поток, освободив сго стек и объект ядра. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы можете 
+  вызвать <I>Sleep </I>и передать в <I>dwMilliseconds </I>нулевое значение. 
+  Тогда Вы откажетесь от остатка своего кванта времени и заставите систему 
+  подклю чить к процессору другой поток. Однако система может снова запустить 
+  Ваш поток, если других планируемых потоков с тем же приоритетом нет. 
+  </FONT></LI></UL>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t4></A>Переключение потоков</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>SwitchToThread </I>позволяет подключить к процессору другой поток (если он 
+есть): </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SwitchToThread(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда Вы 
+вызываете эту функцию, система проверяет, есть ли поток, которому не хватает 
+процессорного времени Если нет, <I>SwitchToThread </I>немедленно возвращает 
+управление, а если да, планировщик отдает ему дополнительный квант времени (при 
+оритет этого потока может быть ниже, чем у вызывающего). По истечении , этого 
+кван та планировщик возвращается в обычный режим работы </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>SwitchToThread </I>позволяет потоку, которому не хватает процессорного 
+времени, отнять этот ресурс у потока с более низким приоритетом. Она возвращает 
+FALSE, если на момент ее вызова в системе нет ни одного потока, готового к 
+исполнению, в ином случае <I>— </I>ненулевое значение. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызов 
+<I>SwitchToThread </I>аналогичен вызову <I>Sleep с </I>передачей в 
+<I>dwMilliseconds </I>нуле вого значения. Разница лишь в том, что 
+<I>SwitchToThread </I>дает<I> </I>возможность выполнять потоки с более низким 
+приоритетом, которым не хвачает процессорного времени, а <I>Sleep </I>действует 
+без оглядки на "голодающие" потоки.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WIDOWS 98</FONT> <BR>В Windows<B> </B>98 функция 
+  <I>SwitchToThread </I>лишь определена, но не реализована</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h1t5></A>Определение периодов выполнения потока</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иногда нужно 
+знать, сколько времени затрачивает поток на выполнениетой или иной операции 
+Многие в таких случаях пишут что-то вроде этого: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  стартовое время <BR>DWORD dwStartTime = GetTickCount(); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+  выполняем какой-нибудь сложный алгоритм </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вычитаем 
+  стартовое время из текущего <BR>DWORD dwElapsedTime = GetTickCount() - 
+  dwSlartTime; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот код 
+основан на простом допущении, что он нс будет прерван. Но в операци онной 
+системе с вытесняющей многозадачностью никто не знает, когда поток полу чит 
+процессорное время, и результат будет сильно искажен. Что нам здесь нужно, так 
+это функция, которая сообщает время, затраченное процессором на обработку дан 
+ного потока. К счастью, в Windows есть такая функция: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetThreadTimes( HANDLE hThread, PFILETIME pftCreationTime, PFILETIMt 
+  pftExitTime, PFILETIME pftKernelTime, PFIIFTIME 
+pftUserTime);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>GetThreadTimes </I>возвращает четыре временных параметра: </FONT></P>
+<TABLE height=211 cellSpacing=0 cellPadding=0 rules=all width=609 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=209 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Показатель времени </FONT></P></TD>
+    <TD vAlign=top align=left width=394 height=18>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=209 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Время 
+      coздания (creation time) </FONT></P></TD>
+    <TD vAlign=top align=left width=394 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Абсолютная величина, выраженная в интервалах </FONT><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>по 100 нс. 
+      Отсчитывается с полуночи 1 января 1601 года по Гринвичу до момента 
+      создания потока </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=209 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Время 
+      завершении (exit time) </FONT></P></TD>
+    <TD vAlign=top align=left width=394 height=63>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Абсолютная величина, выраженная в интервалах по 100 нс 
+      Отсчитывается с полуночи 1 января 1601 года по Гринвичу до момента 
+      завершения потока. Если поток все еще выполняется, этот показатель имеет 
+      неопределенное значение </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=209 height=50>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Время 
+      выполнения ядра (kernel time) </FONT></P></TD>
+    <TD vAlign=top align=left width=394 height=50>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Относительная величина, выраженная в интерва лах по 100 нс. 
+      Сообщает время, затраченное этим потоком на выполнение кода операцион ной 
+      системы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=209 height=13>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Бремя 
+      выполнения User (User time) </FONT></P></TD>
+    <TD vAlign=top align=left width=394 height=13>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Относительная величина, выраженная в интерва лах по 100 не Сообщает 
+      время, затраченное по током на выполнение кода приложения. 
+  </FONT></P></TD></TR></TBODY></TABLE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С помощью 
+этой функции можно определить время, необходимое для выполне ния сложного 
+алгоритма: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_int64 
+  FileTimeToQuadWord(PFILETIME ptt) <BR>{ 
+  <BR>return(Int64ShllMod32(pft-&gt;dwHighDateTime, 32) | 
+  pft-&gt;dwLowDateTime); <BR>}</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  PerformLongOperation () <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>FILETIME 
+  ftKernelTimeStart, ftKernelTimeEnd; <BR>FILETIME ftUserTimeStart, 
+  ftUserTirreEnd; <BR>FILETIME ftDummy; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_int64 
+  qwKernelTimeElapsed, qwUserTimeElapsed, qwTotalTimeElapsed; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  начальные показатели времени <BR>GetThreadTimes(GetCurrentThrcad(), 
+  &amp;ftDurrmy, &amp;ftDummy, &amp;ftKernelTirrieStart, &amp;ttUserTimeStart); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+  выполняем сложный алгоритм </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  конечные показатели времени <BR>GetThreadTimes(GetCurrentThread(), 
+  &amp;ftDumrny, &amp;ftDummy, &amp;ftKernelTimeEnd, &amp;ftUserTimeEnd); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  значении времени, затраченного на выполнение ядра и User, <BR>// преобразуя 
+  начальные и конечные показатели времени из FILETIME <BR>// в учетверенные 
+  слова, а затем вычитая начальные показатели из конечных 
+  <BR>qwKernelTimeElapsed = FileTimeToQuadWord(&amp;ftKernelTimeEnd) - 
+  FileTimeToQuadWord(&amp;ftKernelTimeStart); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>qwUserTimeElapsed = FileTimeToQuadWord(&amp;ftUserTimeFnd) - 
+  FileTimeToQuadWord(&amp;riUserTimeStart); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  общее время, складывая время выполнения ядра и User <BR>qwTotalTimeElapsed = 
+  qwKernelTimeElapsed + qwUserTimeElapsed; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// общее время 
+  хранится в qwTotalTimeElapsed <BR>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметим, что 
+существует еще одна функция, аналогичная <I>GetThreadTimes </I>и при менимая ко 
+всем потокам в процессе:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetPrucessTimes( HANDLE hProcess, PFILETIHE pftCreationTime,<SUP> 
+  </SUP>PFILETIME pftExitTime, PFILETIME pftKernelTime,<I> </I>PFILETIME 
+  pftUserTime);</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>GetProcessTimes </I>возвращает временные параметры, суммированные по 
+всем пото кам (даже уже завершенным) в указанном процессе Так, время выполнения 
+ядра бу дет суммой периодов времени, затраченного всеми потоками процесса на 
+выполне ние кода операционной системы. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>К сожалению, в Windows 98 функции 
+  <I>GetThreadTimes </I>и <I>GetProcessTimes </I>опре делены, но не реализованы, 
+  Так что в Windows 98 нет надежного механизма, с помощью которого можно было бы 
+  определить, сколько процессорного вре мени выделяется потоку или процессу. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>GetThreadTimes </I>не годится для высокоточного измерения временных 
+интервалов — для этого в Windows предусмотрено двe специальные функции: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  QueryPerformanceFrequency(LARGE_INTEGER* pliFrequency); <BR>BOOL 
+  QueryPerformanceCounler(LARGE_INTEGER* pliCount); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Они построены 
+на том допущении, что поток не вытесняется, поскольку высоко точные измерения 
+проводятся, как правило, в очень быстро выполняемых блоках кода. Чтобы слегка 
+упростить работу с этими функциями, я создал следующий С++ - класс: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>class 
+  CStopwatch <BR>{ <BR>public: </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>CStopwatch() { 
+  QueryPerformanceFrequency(&amp;m_liPeifFreq), Start(); } <BR>void Start() { 
+  QueryPerformanceCounter(&amp;m_liPerfStart); } </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_irt64 Now() 
+  const <BR>{ // возвращает число миллисекунд после вызова Start </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LARGE_INTEGER 
+  liPerfNow; <BR>QueryPerformanceCounter(&amp;liPerfNow); 
+  <BR>return(((liPerfNow.QuadPart - m_liPerfStart.QuadPart) * 1000) / 
+  m_liPerfFreq.QuadPart); <BR>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>private 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LARGE_INTEGER 
+  m_liPerfFreq; <BR>// количество отсчетов в секунду <BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LARGE_INTEGER 
+  m_liPerfStart; <BR>// начальный отсчет </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}; 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я применяю 
+этот класс так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>// создаю 
+  секундомер (начинающий отсчет с текущего момента времени) <BR>CStopwatch 
+  stopwatch; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>// здесь н 
+  помещаю код, время выполнения которого нужно измерить </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>// определяю, 
+  сколько времени прошло <BR>__int64 qwElapsedTime = stopwatch Now(); 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>// 
+  qwElapsedTime сообщает длительность выполнения в миллисекундах 
+</FONT></P></BLOCKQUOTE>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h7t6></A>Структура CONTEXT</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К этому 
+моменту Вы должны понимать, какую важную роль играет структура CONTEXT в 
+планировании потоков. Система сохраняет в ней состояние потока перед самым 
+отключением его от процессора, благодаря чему его выполнение возобновляется с 
+того места, где было прервано </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы, наверное, 
+удивитесь, но в документации Platform SDK структуре CONTEXT отведен буквально 
+один абзац: </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>"В структуре 
+CONTEXT хранятся данные о состоянии регистров с учетом специ фики конкретного 
+процессора. Она используется системой для выполнения различ ных внутренних 
+операций. В настоящее время такие структуры определены для про цессоров Intel, 
+MIPS, Alpha и PowerPC. Соответствующие определения см. в заголовоч ном файле 
+WinNT.h" </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+документации нет ни слова об элементах этой структуры, набор которых зави сит от 
+типа процессора. Фактически CONTEXT — единственная из всех структур Windows, 
+специфичнаядля конкретного процессора. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так из чего 
+же состоит структура CONTEXT Давайте посмотрим Ее элементы чет ко соответствуют 
+регистрам процессора. Например, для процессоров <I>x86 </I>в число элементов 
+входят <I>Eax, Ebx, Ecx, Edx </I>и т д., а для процессоров Alpha — <I>IntVO, 
+IntTO, IntT1, IntSO, IntRa, IntZero </I>и др. Структура CONTEXT для процессоров 
+<I>x86 </I>выглядит так. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _CONTEXT { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// 
+  Флаги, управляющие содержимым записи CONTEXT. <BR>// </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Если запись 
+  контекста используется как входной параметр, тогда раздел, <BR>// управляемый 
+  флагом (когда он установлен), считается содержащим <BR>// действительные 
+  значения, Если запись котекста используется для <BR>// модификации контекста 
+  потока, то изменяются только те разделы, для <BR>// которых флаг установлен 
+  <BR>// <BR>// Если запись контекста используется как входной и выходной 
+  параметр <BR>// для захвата контекста потока, возвращаются только те разделы 
+  контекста, <BR>// для которых установлены соответствующие флаги. Запись 
+  контекста никогда <BR>// не используется только как выходной параметр. <BR>// 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  ContextFlags; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// Этот 
+  раздел определяется/возвращается, когда в ContextFlags установлен <BR>// флаг 
+  CONTEXT_DEBUG_REGISTERS. Заметьте, что CONTEXT_DEBUG_REGISTERS <BR>// не 
+  включаются в CONTEXT_FUlL. <BR>// </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD Dr0; 
+  <BR>DWORD Dr1;<I> </I><BR>DWORD Dr2; <BR>DWORD Dr3; <BR>DWORD Dr6; <BR>DWORD 
+  Dr7; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// Этот 
+  раздел определяется/возвращается, когда в ContextFlags <BR>// установлен флаг 
+  CONTEXT_FLOATING_POINT, <BR>// FLOATING_SAVE_AREA FloatSave;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// Этот 
+  раздел определяется/возвращается, когда в ContextFlags <BR>// установлен флаг 
+  CONTEXT_SEGMENTS <BR>// </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD SegGs; 
+  <BR>DWORD SegFs; <BR>DWORD SegEs; <BR>DWORD SegDs; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// Этот 
+  раздел определяется/возвращается, когда в ContextFlags <BR>// установлен флаг 
+  CONTEXT_INTEGER <BR>// </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD Edi; 
+  <BR>DWORD Esi, <BR>DWORD Ebx; <BR>DWORD Fdx; <BR>DWORD Ecx; <BR>DWORD Eax; 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// Этот 
+  раздел определяется/возвращается, когда в ContextFlags <BR>// установлен флаг 
+  CONTEXT_CONTROL. <BR>// </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD Ebp, 
+  <BR>DWORD Eip; <BR>DWORD SegCs; // следует очистить <BR>DWORD EFlags, // 
+  следует очистить <BR>DWORD Esp, <BR>DWORD SegSs; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// <BR>// Этот 
+  раздел определяется/возвращается, когда в ContextFlags <BR>// установлен флаг 
+  CONTEXT_EXTENDED_REGISTERS <BR>// Формат и смысл значений зависят от типа 
+  процессора. <BR>// </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BYTE 
+  ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  CONTEXT;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта структура 
+разбита на несколько разделов. Раздел CONTEXT_CONTROL содер жит управляющие 
+регистры процессора: указатель команд, указатель стека, флаги и адрес возврата 
+функции. (В отличис от <I>x86, </I>который при вызове функции помещает адрес 
+возврата в стек, процессор Alpha сохраняет адрес возврата в одном из регист 
+ров,) Раздел CONTEXT_INTEGER соответствует целочисленным регистрам процессо ра, 
+CONTEXT_FLOATING_POINT — регистрам с плавающей точкой, CONTEXT_SEG MENTS — 
+сегментным регистрам (только для x86), CONTEXT_DEBUG_REGISTERS — регистрам, 
+предназначенным для отладки (только для x86), a CONTEXT_EXTEN DED_REGISTERS — 
+дополнительным регистрам (только для <I>x86</I>). </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 
+фактически позволяет заглянуть внутрь объекта ядра "поток" и получить сведения о 
+текущем состоянии регистров процессора. Для этого предназначена 
+функция:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetThreadContext( HANDLE hThread, PCONTEXT pContext);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создайте 
+экземпляр структуры CONTEXT, инициализируйте нужные флаги (в эле менте 
+<I>ContextFlags) </I>и передайте функции <I>GetThreadContext </I>адрес этой 
+структуры. Функция поместит значения в элементы, сведения о которых Вы запросили 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прежде чем 
+обращаться к <I>GetThreadContext, </I>приостяновите поток вызовом <I>Sus 
+pendThread, </I>иначе поток может быть подключен к процессору, и значения 
+регистров существенно изменятся. На самом деле у потока есть два контекста- 
+пользовательско го режима и режима ядра. <I>GetThreadContext </I>возвращает лишь 
+первый из них. Если Вы вызываете <I>SuspendThread, </I>когда поток выполняет код 
+операционной системы, пользо вательский контекст можно считать достоверным, даже 
+несмотря на то что поток еще не остановлен (он всс равно не выполнит ни одной 
+команды пользовательского кода до последующего возобновления) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Единственный 
+элемент структуры CONTEXT, которому не соответствует какой либо регистр 
+процессора, — <I>ContextFlags. </I>Присутствуя во всех вариантах этой струк туры 
+независимо от типа процессора, он подсказывает функции <I>GetThreadContext, 
+</I>значения каких регистров Вы хотите узyать. Например, чтобы получить значения 
+управляющих регистров для потока, напишите что-то вроде: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  экземпляр структуры <BR>CONTEXT CONTEXT Context; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сообщаем 
+  системе, что нас интересуют сведения <BR>// только об управляющих регистрах 
+  <BR>Context ContextFlags = CONTEXT_CONTROL;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// требуем от 
+  системы информацию о состоянии <BR>// регистров процессора для данного потока 
+  <BR>GetThreadContext(hThread, &amp;Context); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  действительные значения содержат элементы структуры CONTEXT, <BR>// 
+  соответствующие управляющим регистрам, остальные значения <BR>// не определены 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перед вызовом 
+<I>GetThreadContext </I>надо инициализировать элемент <I>ContextFlags. </I>Чтобы 
+получить значения как управляющих, так и целочисленных регистров, иници 
+ализируйте его так </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сообщаем 
+  системе, что нас интересуют <BR>// управляющие и целочисленные регистры 
+  <BR>Context.ContextFlags = CONTEXT_CONTROL | CONTEXT 
+INTEGER;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть еще один 
+идентификатор, позволяющий узнать значения важнейших регис тров (т. e. 
+используемых, по мнению Microsoft, чаще всего): </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сообщаем 
+  системе, что нас интересуют <BR>// все значимые регистры 
+  <BR>Context.ContextFlags = CONTEXT_FULL; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>CONTEXT_FULL 
+определен в файле WinNT.h, как показано в таблице. </FONT></P>
+
+<TABLE height=63 cellSpacing=0 cellPadding=0 rules=all width=549 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=110 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тип 
+      процессора </FONT></P></TD>
+    <TD vAlign=top align=left width=558 height=17>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определение CONTEXT_FULL</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=110 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>x86 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=558 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>CONTEXT_CONTROL | CONTEXT INTEGER | CONTEXT_SEGMENTS 
+  </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=110 height=26>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Alpha 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=558 height=26>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>CONTEXT_CONTROL | CONTEXT_FLOATING_POINT | CONTEXT_INTEGER 
+      </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+возврата из <I>GetThreadContext </I>Вы легко проверите значения любых регист ров 
+для потока, но помните, что такой код зависит от типа процессора В следующей 
+таблице перечислены элементы структуры CONTEXT, соответствующие указателям 
+команд и стека для разных типов процессоров </FONT></P>
+<TABLE height=68 cellSpacing=0 cellPadding=0 rules=all width=279 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=77 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Тип 
+      процессора </FONT></P></TD>
+    <TD vAlign=top align=left width=101 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель команд </FONT></P></TD>
+    <TD vAlign=top align=left width=93 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель стека </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=77 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>х86</I></FONT></P></TD>
+    <TD vAlign=top align=left width=101 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>CONTEXT.Eip </FONT></P></TD>
+    <TD vAlign=top align=left width=93 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>CONTEXT.Esp </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=77 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Alpha 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=101 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>CONTEXT.Fir </FONT></P></TD>
+    <TD vAlign=top align=left width=93 height=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>CONTEXT.IntSp </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Даже 
+удивительно, какой мощный инструмент дает Windows в руки разработчи ка! Но есть 
+вещь, от которой Вы придете в полный восторг- значения элементов CONTEXT можно 
+изменять и передавать объекту ядра "поток" с помощью функции 
+<I>SetThreadContext.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetThreadContext( HANDLE hThread, CONST CONTEXT *pContext); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перед этой 
+операцией поток тожe нужно приостановить, иначе результаты могут быть 
+непредсказуемыми. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прежде чем 
+обращаться к <I>SetThreadContext, </I>инициализируйте элемент <I>ContextFlags, 
+</I>как показано ниже. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>CONTEXT 
+  Context;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  приостанавливаем поток <BR>SuspendThread(hThread); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  регистры для контекста потока <BR>Context.ContextFlags = CONTEXT_CONTROL; 
+  <BR>GetThreadContext(hThread, &amp;Context); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  устанавливаем указатель команд по своему выбору; <BR>// в нашем примере 
+  присваиваем значение 0x00010000 <BR>#if defined(_ALPHA_) <BR>Context.Fir = 
+  0x00010000; <BR>#elif defined(_X86_) <BR>Context.Eip = 0x00010000; <BR>#else 
+  <BR>#error Module contains CPU-specific code, modify and recompile. <BR>#endif 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вносим 
+  изменения в регистры потока, ContextFlags <BR>// можно и не инициализировать, 
+  так как это уже сделано <BR>Context.ConlrolFlags = CONTEXT_CONTROL; 
+  SetThreadContext(hThread, &amp;Context); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+  возобновляем выполнение потока; оно начнется с адреса 0x00010000 </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>ResumeThread(hThread); </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот код, 
+вероятно, приведет к ошибке защиты (нарушению доступа) в удаленном потоке; 
+система сообщит о необработанном исключении, и удаленный процесс бу дет закрыт. 
+Все верно — нс Ваш, а удаленный. Вы благополучно обрушили другой процесс, 
+оставив свой в целости и сохранности! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функции 
+<I>GetTbreadContexf </I>и <I>SetThreadContext </I>наделяют Вас огромной властью 
+над потоками, но пользоваться ею нужно с осторожностью. Вызывают их лишь считан 
+ные приложения. Эти функции предназначены для отладчиков и других инструмен 
+тальных средств, хотя обращаться к ним можно из любых программ </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подробнее о 
+структуре CONTEXT мы поговорим в главе 24. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h7t7></A>Приоритеты потоков</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В начале 
+главы я сказал, что поток получает доступ к процессору на 20 мс, после чего 
+планировщик переключает процессор на выполнение другого потока. Так происхо дит, 
+только если у всех потоков один приоритет, но на самом деле в системе суще 
+ствуют потоки с разными приоритетами, а это меняет порядок распределения про 
+цессорного времени. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каждому 
+потоку присваивается уровень приоритета — от 0 (самый низкий) до 31 (самый 
+высокий). Решая, какому потоку выделить процессорное премя, система сна чала 
+рассматривает только потоки с приоритетом 31 и подключает их к процессору по 
+принципу карусели. Если поток с приоритетом 31 нс исключен из планирования, он 
+немедленно получает квант времени, по истечении которого система проверяет, есть 
+ли еще один такой поток. Если да, он тоже получает свой квант процессорного 
+времени. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пока в 
+системе имеются планируемые потоки с приоритетом 31, ни один поток с более 
+низким приоритетом процессорного времени не получает. Такая ситуация на зывается 
+"голоданием* (starvation). Она наблюдается, когда потоки с более высоким 
+приоритетом так интенсивно используют процессорное время, что остальные прак 
+тически не работают. Вероятность этой ситуации намного ниже в многопроцессор ных 
+системах, где потоки с приоритетами 31 и 30 могут выполняться одновременно. 
+Система всегда старается, чтобы процессоры были загружены работой, и они проста 
+ивают только в отсутствие планируемых потоков. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На первый 
+взгляд, в системе, организованной таким образом, у потоков с низким приоритетом 
+нет ни единого шанса на исполнение. Но, как я уже говорил, зачастую потоки как 
+раз и не нужно выполнять. Например, если первичный поток Вашего про цесса 
+вызывает <I>GetMessage, </I>а система видит, что никаких сообщений пока нет, она 
+приостанавливает его выполнение, отнимает остаток неиспользованного времени и 
+тут же подключает к процессору другой ожидающий поток. И пока в системе не по 
+явятся сообщения для потока Вашего процесса, он будет простаивать — система не 
+станет тратить на него процессорное время. Но вот в очереди этого потока появля 
+ется сообщение, и система сразу же подключает его к процессору (если только в 
+этот момент не выполняется поток с более высоким приоритетом). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь 
+обратите внимание на еще один момент. Потоки с более высоким при оритетом всегда 
+вытесняют потоки с более низким приоритетом независимо от того, исполняются 
+последние или нет. Допустим, процессор исполняет поток с приорите том 5, и тут 
+система обнаруживает, что поток с более высоким приоритетом готов к выполнению. 
+Что будет? Система остановит поток с более низким приоритетом — даже ссли не 
+истек отведенный ему квант процессорного времени — и подключит к процессору 
+поток с более высоким приоритетом (и, между прочим, выдаст ему пол ный квант 
+времени), </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кстати, при 
+загрузке системы создается особый поток — <I>поток обнуления стра ниц </I>(zero 
+page thread), которому присваивается нулевой уровень приоритета. Ни один поток, 
+кроме этого, не может иметь нулевой уровень приоритета Он обнуляет сво бодные 
+страницы в оперативной памяти при отсутствии других потоков, требующих внимания 
+со стороны системы. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h7t8></A>Абстрагирование приоритетов</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создавая 
+планировщик потоков, разработчики из Microsoft прекрасно понимали, что он не 
+подойдет на все случаи жизни. Они также осознавали, что со временем "назна 
+чение" компьютера может измениться Например, в момент выпуска Windows NT со 
+здание приложений с поддержкой OLE еще только начиналось. Теперь такие прило 
+жения — обычное дело. Кроме того, значительно расширилось применение игрово го 
+программного обеспечения, ну и, конечно же, Интернета </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Алгоритм 
+планирования потоков существенно влияет на выполнение приложений. С самого 
+начала разработчики Microsott понимали, что его придется изменять по мере того, 
+как будут расширяться сферы применения компьютеров Microsoft гарантирует, что 
+наши программы будут работать и в следующих версиях Windows. Как же ей уда ется 
+изменять внутреннее устройство системы, не нарушая работоспособность наших 
+программ? Ответ в том, что: </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• планировщик 
+документируется не полностью; </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• Microsoft 
+не разрешает в полной мере использовать все особенности плани ровщика; 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• Microsoft 
+предупреждает, что алгоритм работы планировщика постоянно ме няется, и не 
+рекомендует писать программы в расчете на текущий алгоритм </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows API 
+предоставляет слой абстрагирования от конкретного алгоритма ра боты 
+планировщика, запрещая прямое обращение к планировщику. Вместо этого Вы 
+вызываете функции Windows, которые "интерпретируют" Ваши параметры в зависи 
+мости от версии системы, Я буду рассказывать именно об этом слое аборагирования 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Проектируя 
+свое приложение, Вы должны учитывать возможность параллельного выполнения других 
+программ. Следовательно, Вы обязаны выбирать класс приорите та, исходя из того, 
+насколько "отзывчивой" должна быть Ваша программа. Согласен, такая формулировка 
+довольно туманна, но так и задумано: Microsoft не желает обе щать ничего такого, 
+что могло бы нарушить работу Вашего кода в будущем. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 
+поддерживает шесть классов приоритета; idle (простаивающий), below normal (ниже 
+обычного), normal (обычный), above normal (выше обычного), high (вы сокий) и 
+realtime (реального времени). Самый распространенный класс приоритета, 
+естественно, — normal; его использует <I>99% </I>приложений. Классы приоритета 
+показа ны в следующей таблице. </FONT></P>
+<TABLE height=120 cellSpacing=0 cellPadding=0 rules=all width=688 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета </FONT></P></TD>
+    <TD vAlign=top align=left width=548 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Real-lime </FONT></P></TD>
+    <TD vAlign=top align=left width=548 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Потоки 
+      в этом процессе обязаны немедленно реагировать на события, обеспечивая 
+      выполнение критических по времени задач. Такие потоки вытесняют даже 
+      компоненты операционной системы Будьте крайне осторожны с этим классом. 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=51>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>High 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=548 height=51>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Потоки 
+      в этом процессе тоже должны немедленно реагировать на со бытия, 
+      обеспечивая выполнение критических по времени задач Этот класс присвоен, 
+      например, Task Manager, что дает возможность пользо вателю закрывать 
+      больше неконтролируемые процессы </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=549 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета, промежуточный между normal и high. Это новый класс, введенный 
+      <I>в </I>Windows 2000. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=549 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Потоки 
+      в этом процессе не предъявляют особых требований к выделе нию им 
+      процессорного времени. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=549 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета, промежуточный между normal и idle. Это новый класс, введенный 
+      в Windows 2000. </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=106 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=549 height=48>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Потоки 
+      в этом процессе выполняются, когда система не занята другой работой Этот 
+      класс приоритета обычно используется для утилит, ра ботающих в фоновом 
+      режиме, экранных заставок и приложений, собирающих статистическую 
+      информацию </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Приоритет 
+idle идеален для программ, выполняемых, только когда системе боль ше нечего 
+делать, Примеры таких программ — экранные заставки и средства мони торинга. 
+Компьютер, не используемый в интерактивном режиме, может быть занят другими 
+задачами (действуя, скажем, в качестве файлового сервера), и их потокам незачем 
+конкурировать с экранной заставкой за доступ к процессору. Средства мо 
+ниторинга, собирающие статистическую информацию о системе, тоже не должны мешать 
+выполнению более важных задач </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Класс 
+приоритета high следует использовать лишь при крайней необходимости Может, Вы 
+этого и нс знаете, но Explorer выполняется с высоким приоритетом. Боль шую часть 
+времени его потоки простаивают, готовые пробудиться, кактолько пользо ватель 
+нажмет какую-нибудь клавишу или щелкнет кнопку мыши. Пока потоки Explorer 
+простаивают, система не выделяет им процессорное время, что позволяет выполнять 
+потоки с более низким приоритетом Но вот пользователь нажал, скажем, Ctrl+Esc, и 
+система пробуждает поток Explorer. (Комбинация клавиш Ctrl+Esc попутно открыва 
+ет меню Start.) Если в данный момент исполняются потоки с более низким приори 
+тетом, они немедленно вытесняются, и начинает работать поток Explorer Microsoft 
+разработала Explorer именно так потому, что любой пользователь — независимо от 
+текущей ситуации в системе — ожидает мгновенной реакции оболочки на свои ко 
+манды R сущности, окна Explorcr можно открывать, даже когда все потоки с более 
+низким приоритетом зависают в бесконечных циклах Обладая более высоким при 
+оритетом, потоки Explorer вытесняют поток, исполняющий бесконечный цикл, и дают 
+возможность закрыть зависший процесс. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Надо отметить 
+высокую степень продуманности Explorer. Основную часть време ни он просто 
+"спит", не требуя процессорного времени. Будь это не так, вся система работала 
+бы гораздо медленнее, а многие приложения просто не отзывались бы на действия 
+пользователя </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Классом 
+приоритета real-time почти никогда не стоит пользоваться На самом деле в ранних 
+бета-версиях Windows NT 3.1 присвоение этого класса приоритета прило жениям даже 
+не предусматривалось, хотя операционная система поддерживала эту возможность. 
+Real-time — чрезвычайно высокий приоритет, и, поскольку большин ство потоков в 
+системе (включая управляющие самой системой) имеет более низкий приоритет, 
+процесс с таким классом окажет на них сильное влияние. Так, потоки реального 
+времени могут заблокировать необходимые операции дискового и сетевого 
+ввода-вывода и привести к несвоевременной обработке ввода от мыши и клавиату ры 
+— пользователь может подумать, что система зависла. У Вас должна быть очень 
+веская причина для применения класса real-time — например, программе требуется 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>реагировать 
+на события в аппаратных средствах с минимальной задержкой или вы полнять 
+быстротечную операцию, которую нельзя прерывать ни при каких обстоя 
+тельствах</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Процесс с классом приоритета real-time нельзя 
+  запустить, если пользователь не имеет привилегии Increase Scheduling Priority. 
+  По умолчанию такой привилеги ей обладает администратор и пользователь с 
+  расширенными полномочиями. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Конечно, 
+большинство процессов имеет обычный класс приоритета. В Windows 2000 появилось 
+два новых промежуточных класса — below normal и above normal Microsoft добавила 
+их, поскольку некоторые компании жаловались, что существующий набор классов 
+приоритетов не дает должной гибкости. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выбрав класс 
+приоритета, забудьте о том, как Ваша программа будет выполняться совместно с 
+другими приложениями, и сосредоточьтесь на ее потоках. Windows под держивает 
+семь относительных приоритетов потоков: idle (простаивающий), lowcst (низший), 
+below normal (ниже обычного), normal (обычный), above normal (выше обычного), 
+highest (высший) и time-critical (критичный по времени) <I>Эти </I>приорите ты 
+относительны классу приоритета процесса Как обычно, большинство потоков 
+использует обычный приоритет. Относительные приоритеты потоков описаны в сле 
+дующей таблице. </FONT></P>
+<TABLE height=290 cellSpacing=0 cellPadding=0 rules=all width=478 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Относительный приоритет потока </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Time-critical </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с приоритетом 31 в классе real-time и с приоритетом 15 в 
+      других классах </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Highest 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с приоритетом на два уровня выше обычною для данного класса 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с приоритетом на один уровень выше обычного для данного класса 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=37>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с обычным приоритетом процесса для данного класса 
+    </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с приоритетом на один уровень ниже обычного для данного класса 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Lowest 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с приоритетом на два уровня ниже обычного для данного класса 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=130 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=342 height=38>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Поток 
+      выполняется с приоритетом 16 в классе real-time и с приоритетом 1 в других 
+      классах </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, Вы 
+присваиваете процессу некий класс приоритета и можете изменять от носительные 
+приоритеты потоков в пределах процесса. Заметьте, что я не сказал ни слова об 
+уровнях приоритетов 0-31. Разработчики приложений не имеют с ними дела. Уровень 
+приоритета формируется самой системой, исходя из класса приоритета про цесса и 
+относительного приоритета потока, А механизм его формирования — как раз то, чем 
+Microsoft не хочет себя ограничивать И действительно, этот механизм меня ется 
+практически в каждой версии системы. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В следующей 
+таблице показано, как формируется уровень приоритета в Win dows 2000, но не 
+забывайте, что в Windows NT и тем более в Windows 95/98 этот механизм действует 
+несколько иначе Учтите также, что в будущих версиях Windows он вновь изменится. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Например, 
+обычный поток в обычном процессе получает уровень приоритета 8, Поскольку 
+большинство процессов имеет класс normal, a большинство потоков — </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>относительный 
+приоритет normal, y основной части потоков в системе уровень при оритета равен 
+8. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычный поток 
+в процессе с классом приоритета high получает уровень приори тета 13. Изменив 
+класс приоритета процесса на idle, Вы снизите уровень приоритета того же потока 
+до 4. Вспомните, что приоритет потока всегда относителен классу приоритета его 
+процесса Изменение класса приоритета процесса не влияет на от носительные 
+приоритеты его потоков, но сказывается на уровне их приоритета </FONT></P>
+<TABLE height=221 cellSpacing=0 cellPadding=0 rules=all width=482 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=70 rowSpan=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Относительный приоритет потока </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=70 rowSpan=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      </FONT></P></TD>
+    <TD vAlign=top align=left colSpan=4 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета процесса </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=70 rowSpan=2>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Real-time </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=43 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>High 
+      </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Time-critical (критичный по времени) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=23>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=23>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=23>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=23>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=23>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=23>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>31 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Highest 
+      (высший) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>6 </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>8 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>10 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>12 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>26 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal (выше обычного) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>5 </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>7 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>9 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>11 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>14 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>25 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      (обычный) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>4 </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>6 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>8 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>10 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>13 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>24 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal (ниже обычного) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>3</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>5 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>7 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>9 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>12 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>23 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Lowest 
+      (низший) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>2</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>4 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>6 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>8 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>11 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>22 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=217 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      (простаивающий) </FONT></P></TD>
+    <TD vAlign=top align=left width=31 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD>
+    <TD vAlign=top align=left width=43 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD>
+    <TD vAlign=top align=left width=48 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD>
+    <TD vAlign=top align=left width=40 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD>
+    <TD vAlign=top align=left width=35 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD>
+    <TD vAlign=top align=left width=52 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>16 </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание, что в таблице не показано, как задать уровень приоритета 0. Это 
+связано с тем, что нулевой приоритет зарезервирован для потока обнуления стра 
+ниц, и никакой другой поток не может иметь такой приоритет. Кроме того, уровни 
+17-21 и 27-30 в обычном приложении тоже недоступны. Вы можете пользоваться ими, 
+только если пишете драйвер устройства, работающий в режиме ядра. И еще одно: 
+уровень приоритета потока в процессе с классом real-time не может опускаться 
+ниже 16, а потока в процессе с любым другим классом — подниматься выше 
+15.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE</FONT> <BR>Концепция класса приоритета вводит некоторых в 
+  заблуждение. Они делают отсюда вывод, будто процессы участвуют в распределении 
+  процессорного вре мени. Так вот, процессы никогда не получают процессорное 
+  время — оно вы деляется лишь потокам Класс приоритета процесса — сугубо 
+  абстрактная кон цепция, введенная Microsoft c единственной целью: скрыть от 
+  разработчика внутреннее устройство планировщика. </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>В общем 
+  случае поток с высоким уровнем приоритета должен быть активен как можно меньше 
+  времени. При появлении у него какой-либо работы он тут же получает 
+  процессорное время. Выполнив минимальное количество команд, он должен снова 
+  вернуться в ждущий режим. С другой стороны, поток с низ ким уровнем приоритета 
+  может оставаться активным и занимать процессор довольно долго. Следуя этим 
+  правилам, Вы сохраните должную отзывчивость операционной системы на действия 
+  пользователя. </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h7t9></A>Программирование приоритетов</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так как же 
+процесс получает класс приоритета? Очень просто Вызывая <I>CreateProcess, </I>Вы 
+можете указать в ее параметр <I>fdwCreate</I> нужный класс приоритета. 
+Идентифика торы этих классов приведены в следующей таблице. </FONT></P>
+
+<TABLE height=158 cellSpacing=0 cellPadding=0 rules=all width=353 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Класс 
+      приоритета </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентификатор </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Real-time </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>RFALTIME_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>High 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>HIGH_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>ABOVE_NORMAL_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>NORMAL_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>BELOW_NORMAL_PRIORITY_CLASS </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=131 height=27>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=216 height=27>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>IDLE_PRIORITY_CLASS </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вам может 
+показаться странным, что, создавая дочерний процесс, родительский сам 
+устанавливает ему класс приоритета. За примером далеко ходить не надо — возь мем 
+все тот же Explorcr При запуске из него какого-нибудь приложения новый про цесс 
+создается с обычным приоритетом Но Explorer ведь не знает, что делает этот 
+процесс и как часто его потокам надо выделять процессорное время. Поэтому в сис 
+теме предусмотрена возможность изменения класса приоритета самим выполняемым 
+процессом — вызовом функции <I>SetPriontyClass-</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetPriontyClass( HANDLE hProcess, DWORD fdwPriority); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+меняет класс приоритета процесса, определяемого описателем <I>hPro cess, </I>в 
+соответствии со значением параметра <I>fdwPriority.</I> Последний должен 
+содержать одно из значений, указанных в таблице выше. Поскольку 
+<I>SetPriorityClass </I>принимает описатель процесса, Вы можете изменить 
+приоритет любого процесса, выполняемо го в системе, — если его описатель 
+известен и у Вас есть соответствующие права дос тупа. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно 
+процесс пытается изменить свой класс приоритета. Вот как процесс может сам себе 
+установить класс приоритета idle: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Парная ей 
+функция <I>GetPriorityClass </I>позволяет узнать класс приоритета любого 
+процесса. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetPriorityClass(HANDLE hProcess); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+возвращает, как Вы догадываетесь, один из ранее перечисленных флагов. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При запуске 
+из оболочки командного процессора начальный приоритет програм мы тоже обычный. 
+Однако, запуская ее командой Start, можно указать ключ, опреде ляющий начальный 
+приоритет Так, следующая команда, введенная в оболочке коман дного процессора, 
+заставит систему запустить приложение Calculator и присвоить ему приоритет idle: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff size=2>C:\&gt;START 
+  /LOW CALC.EXE </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Команда Start 
+допускает также ключи /BELOWNORMAL, /NORMAL, /ABOVENORMAL, /HIGH и /REALTIME, 
+позволяющие начать выполнение программы с соответствующим классом приоритета. 
+Разумеется, после запуска программа может вызвать <I>SetPriorrty Class </I>и 
+установить себе другой класс приоритета.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>В Windows 98 команда Start не поддерживает 
+  ни один из этих ключей. Из обо лочки командного процессора Windows 98 процессы 
+  всегда запускаются с классом приоритета normal. </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Task Manager 
+в Windows 2000 дает возможность изменять класс приоритета про цесса. На рисунке 
+ниже показана вкладка Processes в окне Task Manager co списком выполняемых на 
+данный момент процессов. В колонке Base Pri сообщается класс приоритета каждого 
+процесся Вы можете изменить его, выбрав процесс и указав другой класс в подменю 
+Set Priority контексшого меню. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=335 alt=h7-2.jpg src="images/h7-2.jpg" width=301> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Только что 
+созданный поток получает относительный приоритет normal Почему <I>CreateThoread 
+</I>не позволяет задать относительный приоритет — для меня так и остает ся 
+загадкой. Такая операция осуществляется вызовом функции: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetThreadPriority( HANDLE hThread, int nPriority);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разумеется, 
+параметр <I>bThread </I>указывает на поток, чей приоритет Вы хотите из менить, а 
+через <I>nPriority </I>передается один из идентификаторов (см. таблицу ниже) 
+</FONT></P>
+<TABLE height=174 cellSpacing=0 cellPadding=0 rules=all width=429 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Относительный приоритет потока </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентификатор </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Time-critical </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAD_PRIORITY_TIME_CRITICAL </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Highest 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAD_PRIORITY_HIGHEST </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Above 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAD_PRIORITY_ABOVE_NORMAL </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Normal 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAD_PRIORITY_NORMAL </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Below 
+      normal </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAD_PRIORITY_BELOW_NORMAL </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Lowest 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAD_PRIORITY_LOWEST </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=193 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Idle 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=230 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>THREAU_PRIORITY_IDLE </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>GetThreadPnority, </I>парная <I>SetThreadPriority, </I>позволяет узнать 
+относитель ный приоритет потока. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  GetThreadPriority(HANDLE hThread);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+возвращает один из идентификаторов, показанных в таблице выше. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы создать 
+поток с относительным приоритетом idle, сделайте, например, так: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  dwThreadID;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hThread 
+  = CreateThread(NULL, 0, ThreadFunc, NULL, CREATE_SUSPENDED, &amp;dwThreadID); 
+  SetThreadPriority(hThread, THREAD_PRIORITY_IDLE); ResumeThread(hThread); 
+  CloseHandle(hThread); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+<I>CreateThread </I>всегда создает поток с относительным приоритетом normal. 
+Чтобы присвоить потоку относительный приоритет idle, создайте приоста новленный 
+поток, передав в <I>CreateThread </I>флаг CREATE_SUSPENDED, а потом вызови те 
+<I>SetThreadPriority </I>и установите нужный приоритет. Далее можно вызвать 
+<I>Resume Thread, </I>и поток будет включен в число планируемых. Сказать 
+заранее, когда поток получит процессорное время, нельзя, но планировщик уже 
+учитывает его новый при оритет Выполнив эти операции, Вы можете закрыть 
+описатель потока, чтобы соот ветствующий объект ядра был уничтожен по завершении 
+данного потока.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Ни одна Windows-функция не возвращает уровень 
+  приоритета потока. Такая ситуация создана преднамеренно. Вспомните, что 
+  Microsoft может в любой момент изменить алгоритм распределения процессорного 
+  времени. Поэтому при разработке приложений не стоит опираться на какие-то 
+  нюансы этого алгоритма. Используйте классы приоритетов процессов и 
+  относительные при оритеты потоков, и Ваши приложения будут нормально работать 
+  как в нынеш них, так и в следующих версиях Windows</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h7t9p1></A>Динамическое изменение уровня приоритета потока </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Уровень 
+приоритета, получаемый комбинацией относительного приоритета потока и класса 
+приоритета процесса, которому принадлежит данный поток, называют <I>ба зовым 
+уровнем приоритета потока. </I>Иногда система изменяет уровень приоритета потока 
+Обычно это происходит в ответ на некоторые события, связанные с вводом выводом 
+(например, на появление оконных сообщений или чтение с диска). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так, поток с 
+относительным приоритетом normal, выполняемый в процессе с клас сом приоритета 
+high, имеет базовый приоритет 13 Если пользователь нажимает ка кую-нибудь 
+клавишу, система помещает в очередь потока сообщение WM_KEYDOWN. А поскольку в 
+очереди потока появилось сообщение, поток становится планируемым. При этом 
+драйвер клавиатуры может заставить систему временно поднять уровень приоритета 
+потока с 13 до 15 (действительное значение может отличаться в ту или другую 
+сторону). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Процессор 
+исполняет поток в течение отведенного отрезка времени, а по его истечении 
+система снижает приоритет потока на 1, до уровня 14. Далее потоку вновь 
+выделяется квант процессорного времени, по окончании которого система опять 
+снижает уровень приоритета потока на 1. И теперь приоритет потока снова соответ 
+ствует его базовому уровню </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Текущий 
+уровень приоритета не может быть ниже базового. Кроме того, драйвер устройства, 
+"разбудивший" поток, сам устанавливает величину повышения приори тета. И опять 
+же Microsoft нс документирует, насколько повышаются эти значения кон кретными 
+драйверами. Таким образом, она получает возможность тонко настраивать 
+динамическое изменение приоритетов потоков в операционной системе, чтобы та 
+максимально быстро реагировала на действия пользователя </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система 
+повышает приоритет только тех потоков, базовый уровень которых на ходится в 
+пределах 1-15 Именно поэтому данный диапазон называется "областью динамического 
+приоритета" (dynamic priority range). Система не допускает динами ческого 
+повышения приоритета потока до уровней реального времени (более 15) Поскольку 
+потоки с такими уровнями обслуживают системные функции, это ограни чение не дает 
+приложению нарушить работу операционной системы И, кстати, сис тема никогда не 
+меняет приоритет потоков с уровнями реального времени (от 16до 31). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Некоторые 
+разработчики жаловались, что динамическое изменение приоритета системой 
+отрицательно сказывается па производительности их приложений, и поэто му 
+Microsoft добавила две функции, позволяющие отключать этот механизм:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetProcessPriorityBoost( HANDLE hProcess, BOOL DisablePriontyBoost); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetThreadPriorityBoost( HANDLE hThread, BOOL DisablePriorityBoost); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>SetProcessPriorityBoost </I>заставляет систему включить или oтключить 
+изменение при оритетов всех потоков в указанном процессе, a 
+<I>SetThreadPriorttyBoost </I>действует при менительно к отдельным потокам. Эти 
+функции имеют свои аналоги, позволяющие определять, разрешено или запрещено 
+изменение приоритетов. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetProcessPriorityBoost( HANDLE hProcess, PBOOL pDisablePriorityBoost); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GeLThreadPriorityBoost( HANDLE hThread, PBOOL pDisablePriorityBoost); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Каждой из 
+этих двух функций Вы передаете описатель нужного процесса или потока и адрес 
+переменной чипа BOOL, в которой и возвращается результат. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>В Windows 98 эти четыре функции 
+  определены, но не реализованы, и при вызове любой из них возвращается FALSE. 
+  Последующий вызов <I>GetLastError </I>дает<I> </I>ERROR_CALL_NOT_IMPLEMENTED. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть еще одна 
+ситуация, в которой система динамически повышает приоритет потока Представьте, 
+что поток с приоритетом 4 готов к выполнению, но не может получить доступ к 
+процессору из-за того, что его постоянно занимают потоки с при оритетом 8. Это 
+типичный случай "голодания" потока с более низким приоритетом. Обнаружив такой 
+поток, не выполняемый на протяжении уже трех или четырех се кунд, система 
+поднимает его приоритет до 15 и выделяет ему двойную порцию вре мени По его 
+истечении потоку немедленно возвращается его базовый приоритет. </FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h7t9p2></A>Подстройка планировщика для активного процесса </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+пользователь работает с окнами какого-то процесса, последний считается <I>ак 
+тивным </I>(foreground process), a остальные процессы — <I>фоновыми 
+</I>(background proces ses). Естественно, пользователь заинтересован в 
+повышенной отзывчивости активно го процесса по сравнению с фоновыми Для этого 
+Windows подстраивает алгоритм планирования потоков активного процесса, В Windows 
+2000, когда процесс становит </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ся активным, 
+система выделяет его потокам более длительные кванты времени Такая регулировка 
+применяется только к процессам с классом приоритета normal </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 2000 
+позволяет модифицировать работу этого механизма подстройки Щелкнув кнопку 
+Performance Options на вкладке Advanced диалогового окна System Properties, Вы 
+открываете следующее окно </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=250 alt=h7-3.jpg src="images/h7-3.jpg" width=347> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Переключатель 
+Applications включает подстройку планировщика для активного процесса, а 
+переключатель Background Services — выключает (в этом случае оптими зируется 
+выполнение фоновых сервисов) В Windows 2000 Professional по умолчанию выбирается 
+переключатель Applications, а в остальных версиях Windows 2000 — пе реключатель 
+Background Services, так как серверы редко используются в интерактив ном режиме 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Windows 98 
+тоже позволяет подстраивать распределение процессорного време ни для потоков 
+активного процесса с классом приоритета normal Когда процесс этого класса 
+становится активным, система повышает на 1 приоритет его потоков, если их 
+исходные приоритеты были lowest, below normal, normal, above normal или highest, 
+приоритет потоков idle или time-critical не меняется Поэтому поток с 
+относительным приоритетом normal в активном процессе с классом приоритета normal 
+имеет уро вень приоритета 9, а не 8 Когда процесс вновь становится фоновым, 
+приоритеты его потоков автоматически возвращаются к исходным уровням 
+</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Windows 98 не предусматривает возможности 
+  настройки этого механизма, так как не рассчитана на работу в качестве 
+  выделенного сервера </FONT></P><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Причина для 
+таких изменений активных процессов очень проста система дает им возможность 
+быстрее реагировать на пользовательский ввод Если бы приоритеты их потоков не 
+менялись, то и обычный процесс фоновой печати, и обычный, но актив ный процесс, 
+принимающий пользовательский ввод, — оба одинаково конкурирова ли бы за 
+процессорное время И тогда пользователь, набирая текст в активном при ложении, 
+заметил бы, что текст появляется на экране какими-то рывками Но благо даря тому, 
+что система повышает уровни приоритета потоков активного процесса, они получают 
+преимущество над потоками обычных фоновых процессов</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h7t9p3></A>Программа-пример Scheduling Lab </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+прогрдмма, "07 SchedLab ехе" (см листинг на рис 7-1), позволяет эксперименти 
+ровать с классами приоритетов процессов и относительными приоритетами потоков 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>и исследовать 
+их влияние на общую производительность системы. Файлы исходного кода и ресурсов 
+этой программы находятся в каталоге 07-SchedLab нз компакт-диске, прилагаемом к 
+книге После запуска SchedLab открывается окно, показанное ниже </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=139 alt=h7-4.jpg src="images/h7-4.jpg" width=324> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Изначально 
+первичный поток работает очень активно, и степень использования процессора 
+подскакивает до 100% Все, чем он занимается, — постоянно увеличивает исходное 
+значение на 1 и выводит текущее значение в крайнее справа окно списка Все эти 
+числа не несут никакой смысловой информации; их появление просто демон стрирует, 
+что поюк чем-то занят Чтобы прочувствовать, как повлияет на него изме нение 
+приоритета, запустите по крайней мере два экземпляра программы. Можете также 
+открыть Task Manager и понаблюдать за нагрузкой на процессор, создаваемой каждым 
+экземпляром </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В начале 
+теста процессор будет загружен на 100%, и Вы увидите, что все экземп ляры 
+SchedLab получают примерно равные кванты процессорного времени (Task Manager 
+должен показать практически одинаковые процентные доли для всех ее эк 
+земпляров.) Как только Вы поднимете класс приоритета одного из экземпляров до 
+above normal или high, львиную долю процессорного времени начнет получать имен 
+но этот экземпляр, а аналогичные показатели для других экземпляров резко упадут. 
+Однако они никогда не опустятся до нуля — это действует механизм динамического 
+повышения приоритета "голодающих" процессов Теперь Вы можете самостоятельно 
+поиграть с изменением классов приоритетов процессов и относительных приорите тов 
+потоков. Возможность установки класса приоритета real-time я исключил наме 
+ренно, чтобы не нарушить paбoтy операционной системы. Если Вы все же хотите 
+поэкспериментировать с этим приоритетом, Вам придется модифицировать исход ный 
+текст моей программы </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Используя 
+поле Sleep, можно приостановить первичный поток на заданное число миллисекунд в 
+диапазоне oт 0 до 9999 Попробуйте приостанавливать его хотя бы на 1 мс и 
+посмотрите, сколько процессорного времени это позволит сэкономить. На своем 
+ноутбуке с процессором Pentium II 300 МГц, я выиграл аж 99% - впечатляет! 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кнопка 
+Suspend заставляет первичный поток создать дочерний поток, который 
+приостанавливает родительский и выводит следующее окно. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=96 alt=h7-5.jpg src="images/h7-5.jpg" width=374> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Пока это окно 
+открыто, первичный поток полностью отключается от процессо ра, а дочерний тоже 
+не требует процессорного времени, так как ждет от пользовате ля дальнейших 
+действий Вы можете свободно перемещать это окно в пределах экра на или убрать 
+его в сторону от основною окна программы. Поскольку первичный поток остановлен, 
+основное окно не принимает оконных сообщений (в том числе </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>WM_PAINT). 
+Это еще раз доказывает, что поток задержан Закрыв окно с сообщением. Вы 
+возобновите первичный поток, и нагрузка на процессор снова возрастет до 100%. А 
+теперь проведите еще один эксперимент. Откройте диалоговое окно Performance 
+Options (я говорил о нем в предыдущем разделе) и выберите переключатель Back 
+ground Services (или, наоборот, Application) Потом запустите несколько 
+экземпляров мосй программы с классом приоритета normal и выберите один из них, 
+сделав его активным процессом. Вы сможете наглядно убедиться, как эти 
+переключатели влия ют на активные и фоновые процессы </FONT></P>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#000000 size=2><A 
+href="examp/07-SchedLab.zip"><IMG 
+height=16 src="images/CLSDFOLD.gif" width=16>SchedLab</A></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h7t10></A>Привязка потоков к процессорам </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По умолчанию 
+Windows 2000 использует <I>нежесткую привязку </I>(soft affmity) потоков к 
+процессорам Это означает, что при прочих равных условиях, система пытается 
+выполнять поток на том же процессоре, на котором он работал в последний раз При 
+таком подходе можно повторно использовать данные, все еще хранящиеся в кэше 
+процессора </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В повой 
+компьютерной архитектуре NUMA (Non Uniform MemoryAccess) машина состоит из 
+нескольких плат, на каждой из которых находятся четыре процессора и отдельный 
+банк памяти На следующей иллюстрации показана машина с тремя таки ми платами, в 
+сумме содержащими 12 процессоров Отдельный погок может выпол няться на любом из 
+этих процессоров </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=226 alt=h7-6.jpg src="images/h7-6.jpg" width=524> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система NUMA 
+достигает максимальной производительности, если процессоры используют память на 
+своей плате Если же они обращаются к памяти на другой пла те, производительность 
+резко падает В такой среде желательно, чтобы потоки одно го процесса выполнялись 
+на процессорах 0-3, другого — на процессорах 4-7 и т д Windows 2000 позволяет 
+подстроиться под эту архитектуру, закрепляя отдельные процессы и потоки за 
+конкретными процессорами Иначе говоря, Вы можете конт ролировать, на каких 
+процессорах будут выполняться Ваши потоки Такая привязка называется <I>жесткой 
+</I>(hard affmity) </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Количество 
+процессоров система определяет при загрузке, и эта информация ста новится 
+доступной приложениям через функцию <I>GetSystemInfo </I>(о ней — в главе 14). 
+По умолчанию любой поток может выполняться на любом процессоре. Чтобы пото ки 
+отдельного процесса работали лишь на некоем подмножестве процессоров, ис 
+пользуйте функцию <I>SetProcessAffinityMask:</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetProcessAffinityMask( HANDLE hProcess, DWOHD_PTR dwProcessAffinityMask); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В первом 
+параметре, <I>hProcess, </I>передается описатель процесса. Второй параметр, 
+<I>dwProcessAffinityMask, </I>— это битовая маска, указывающая, на каких 
+процессорах мо гут выполняться потоки данного процесса. Передав, например, 
+значение 0x00000005, мы разрешим процессу использовать только процессоры 0 и 2 
+(процессоры 1 и 3-31 ему будут недоступны). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Привязка к 
+процессорам наследуется дочерними процессами. Так, если для роди тельского 
+процесса задана битовая маска 0x00000005, у всех потоков его дочерних процессов 
+будет идентичная маска, и они смогут работать лишь на тех же процессо рах. Для 
+привязки целой группы процессов к определенным процессорам используйте объект 
+ядра "задание" (см главу 5). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ну и, конечно 
+же, есть функция, позволяющая получить информацию о такой привязке; </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetProcessAffinityMask( HANDLE hProcess, PDWORD_PTR pdwProcessAffiniLyMask, 
+  PDWORD_PTR pdwSystemAffinityMask); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вы передаете 
+ей описатель процесса, а результат возвращается в переменной, на которую 
+указывает <I>pdwProcessAffimtyMask. </I>Кроме того, функция возвращает систем 
+ную маску привязки через переменную, на которую ссылается 
+<I>pdwSystemAffinityMask. </I>Эта маска указывает, какие процессоры в системе 
+могут выполнять потоки. Таким образом, маска привязки процесса всегда является 
+подмножеством системной маски привязки.</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>В Windows 98, которая использует только 
+  один процессор независимо от того, сколько их на самом дслс, 
+  <I>GetProcessAffinityMask </I>всегда возвращает в обеих пе ременныхзначенис 1. 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>До сих пор мы 
+говорили о том, как назначить все потоки процесса определенным процессорам. Но 
+иногда такие ограничения нужно вводить для отдельных потоков. Допустим, в 
+процессе имеется четыре потока, выполняемые на четырехпроцессорной машине. Один 
+из потоков занимается особо важной работой, и Вы, желая повысить вероятность 
+того, что у него всегда будет доступ к вычислительным мощностям, зап рещяете 
+остальным потокам использовать процессор 0. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Задать маски 
+привязки для отдельных потоков позволяет функция: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD_PTR 
+  SetThreadAffimtyMask( HANOLE hThread, DWORD_PTR dwThreadAffinityMask); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В параметре 
+<I>hTbread </I>передается описатель потока, a <I>dwThreadAffinityMask </I>опреде 
+ляет процессоры, доступные этому потоку. Параметр <I>dwThreadAffinityMask 
+</I>должен </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>быть 
+корректным подмножеством маски привяжи процесса, которому принадлежит данный 
+поток Функция возвращает предыдущую маску привязки потока Вот как ог раничить 
+три потока из нашего примера процессорами 1, 2 и 3 </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// поток 0 
+  выполняется только на процессоре 0 <BR>SetThreadAffimtyMask(hThread0 
+  0x00000001); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// потоки 1, 2 
+  3 выполняются на процессорах 1 2 3 <BR>SetThreadAffinityMask(hThredd1 
+  0x0000000E); <BR>SetThreadAffimtyMask(hThread2 0x0000000E); 
+  <BR>SetThreadAffinityMask(hThread3 0x0000000E);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>В Windows 98, которая использует только 
+  один процессор независимо от того, сколько их на самом деле, параметр 
+  <I>dwThreadAffmityMask </I>всегда должен быть равен 1 </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При загрузке 
+система тестирует процессоры типа x86 на наличие в них знамени того "жучка" в 
+операциях деления чисел с плавающей точкой (эта ошибка имеется в некоторых 
+Pentium) Она привязывает поток, выполняющий потенциально сбойную операцию 
+деления, к исследуемому процессору и сравнивает результат с тем, что дол жно 
+быть на самом деле Такая последовательность операций выполняется для каж дого 
+процессора в машине </FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE</FONT> <BR>В большинстве сред вмешательство в системную 
+  привязку потоков нарушает нормальную работу планировщика, не позволяя ему 
+  максимально эффектив но распределять вычислительные мощности Рассмотрим один 
+  пример </FONT></P></BLOCKQUOTE>
+<TABLE height=95 cellSpacing=0 cellPadding=0 rules=all width=391 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=37 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 size=2>Поток 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=63 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>Приоритет </FONT></P></TD>
+    <TD vAlign=top align=left width=92 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 size=2>Маска 
+      привязки </FONT></P></TD>
+    <TD vAlign=top align=left width=189 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>Результат </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=37 height=24>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>А </FONT></P></TD>
+    <TD vAlign=top align=left width=63 height=24>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>4 </FONT></P></TD>
+    <TD vAlign=top align=left width=92 height=24>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>0x00000001 </FONT></P></TD>
+    <TD vAlign=top align=left width=189 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>Работает только на процессоре 0 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=37 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>В </FONT></P></TD>
+    <TD vAlign=top align=left width=63 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>8 </FONT></P></TD>
+    <TD vAlign=top align=left width=92 height=21>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>0x00000003 </FONT></P></TD>
+    <TD vAlign=top align=left width=189 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>Работает на процессоре 0 и 1 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=37 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>С </FONT></P></TD>
+    <TD vAlign=top align=left width=63 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>6 </FONT></P></TD>
+    <TD vAlign=top align=left width=92 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>0x00000002 </FONT></P></TD>
+    <TD vAlign=top align=left width=189 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#006600 
+      size=2>Работает только на процессоре 1 </FONT></P></TD></TR></TBODY></TABLE>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Когда поток 
+  А пробуждается, планировщик, видя, что тот жестко привязан к процессору 0, 
+  подключает сго именно к этому процессору Далее активизи руется поток В, 
+  который может выполняться на процессорах 0 и 1, и плани ровщик выделяет ему 
+  процессор 1, так как процессор 0 уже занят Пока все нормально </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Но вот 
+  пробуждается поток С привязанный к процессору 1 Этот процес сор уже занят 
+  потоком В с приоритетом 8, а значит, поток С, приоритет кото рого равен 6, не 
+  может его вытеснить Он конечно, мог бы вытеснить поток А (с приоритетом 4) с 
+  процессора 0, но у него нет прав на использование этого процессора 
+  </FONT></P><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3></FONT></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ограничение 
+потока одним процессором не всегда является лучшим решением Всдь может оказаться 
+так, что три потока конкурируют за доступ к процессору 0, тог да как процессоры 
+1, 2 и 3 простаивают Гораздо лучше сообщить системе, что поток желательно 
+выполнять на определенном процессоре, но, если он занят, его можно переключать 
+на другой процессор </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Указать 
+предпочтительный (идеальный) процессор позволяет функция<B>:</B> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  SetThreadIdealProcessor( HANDLE hThread, DWORD dwIdealProcessor); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В параметре 
+<I>hThread </I>передается описатель потока. D отличие от функций, кото рые мы 
+уже рассматривали, параметр <I>dwIdealProcessor </I>содержит не битовую маску, а 
+целое значение в диапазоне 0-31, которое указывает предпочтительный процессор 
+для данного потока. Передав в нем константу MAXIMUM_PROCESSORS (в WinNT.h она 
+определена как 32), Вы сообщите системе, что потоку не требуется предпочтитель 
+ный процессор. Функция возвращает установленный ранее номер предпочтительно го 
+процессора или MAXIMUM_PROCESSORS, если таковой процессор не задан </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Привязку к 
+процессорам можно указать в заголовке исполняемого файла. Как ни странно, но 
+подходящего ключа компоновщика на этот случай, похоже, не предус мотрено. Тем не 
+менее Вы можете воспользоваться, например, таким кодом: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// загружаем 
+  ЕХЕ-файл в память <BR>PLOADED_IMAGE pLoadedImage = ImageLoad(szExeName, NULL); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// получаем 
+  информацию о текущей загрузочной конфигурации ЕХЕ-файла 
+  <BR>IMAGE_LOAD_CONFIG_DIRECTORY ilcd; 
+  <BR>GetImageConfigInfprmation(pLoadedImage, &amp;ilcd), </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// изменяем 
+  маску привязки процесса </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>ilcd.ProcessAffimtyMask = 0x00000003; <BR>// нам нужны процессоры 0 и 1 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сохраняем 
+  новую информацию о загрузочной конфигурации 
+  <BR>SetImageConfigInformation(pLoadedImage, &amp;ilcd);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// выгружаем 
+  ЕХЕ-файл из памяти </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>ImageUnload(pLoadcdImage); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Детально 
+описывать эти функции я не стану — при необходимости Вы найдете их в 
+документации Platform SDK. Кроме того, Вы можете использовать утилиту Image 
+Cfg.exe, которая позволяет изменять некоторые флаги в заголовке исполняемого мо 
+дуля Подсказку по ее применению Вы получите, запустив ImageCfg.exe без ключей. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Указав при 
+запуске ImageCfg ключ -а, Вы сможете изменить маску привязки для приложения 
+Конечно, все, что делает эта утилита, — вызывает функции, перечислен ные в 
+подсказке по ее применению. Обратите внимание на ключ -u, который сооб щает 
+системе, что исполняемый файл может выполняться исключительно на одно 
+процессорной машине </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, 
+привязку процесса к процессорам можно изменять с помощью Task Manager в Windows 
+2000, В многопроцессорных системах в контекстном меню для процесса появляется 
+команда Set Affinity (ее нет на компьютерах с одним процессо ром) Выбрав эту 
+команду, Вы откроете показанное ниже диалоговое окпо и выбере</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>те конкретные 
+процессоры для данногопроцесса. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=282 alt=h7-7.jpg src="images/h7-7.jpg" 
+width=351></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 2000</FONT> <BR>При запуске Windows, 2000 на машине с 
+  процессорами типа <I>x86 </I>можно огра ничить число процессоров, используемых 
+  системой. В процессе загрузки сис тема считывает файл Boot.ini, который 
+  находится в корневом каталоге загру зочного диска. Вот как он выглядит на моем 
+  компьютере с двумя процессорами </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>[boot 
+  loader] <BR>timeout=2 <BR>default=multi(0)disk(0)rdisk(0)partition(1)\WINNT 
+  </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>[operating 
+  systems] <BR>multi(0)disk(0)rdisk(0)partition(1)\WINNT= "Windows 2000 Server" 
+  <BR>/fastdetecL multi(0)disk(0)rdisk(0)partition(1)\WINNT="Windows 2000 
+  Server" <BR>/fastdetec+ /NurnProcs=1 </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Этот файл 
+  создается при установке Windows 2000, последнюю запись я добавил сам (с 
+  помощыо Notepad) Она заставляет систему использовать только один процессор 
+  Ключ /NumProcs=l — как раз то зелье, которое и вызывает все эти магические 
+  превращения Я пользуюсь им иногда для отладки (Но обычно работаю со всеми 
+  своими процессорами) </FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Заметьте, 
+  что ключи перенесены на отдельные строки с отступом лишь для удобства чтения 
+  На самом деле ключи и путь от загрузочного раздела жестко го диска должны 
+  находиться на одной строке </FONT></P></BLOCKQUOTE>
+<HR>
+
+<P>
+<A href="head06.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head08.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

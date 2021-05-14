@@ -1,0 +1,1796 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h24></A>Г Л А В А 24 Фильтры и обработчики исключений </FONT></B></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Исключение — 
+это событие, которого Вы не ожидали. В хорошо написанной про грамме не 
+предполагается попыток обращения по неверному адресу или деления на нуль И все 
+же такие ошибки случаются За псрехват попыток обращения по неверно му адресу и 
+деления на нуль отвечает центральный процессор, возбуждающий исклю чения в ответ 
+на эти ошибки. Исключение, возбужденное процессором, называется <I>аппаратным 
+</I>(hardware exception) Далее мы увидим, что операционная система и прикладные 
+программы способны возбуждать собственные исключения — <I>программ ные 
+</I>(software exceptions). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+возникновении аппаратного или программного исключения операционная система дает 
+Вашему приложению шанс определить его тип и самостоятельно обра ботать Синтаксис 
+обработчика исключений таков:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try { 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// защищенный 
+  блок </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+  (фильтр исключений) { </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обработчик 
+  исключений </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обратите 
+внимание на ключевое слово _ <I>except </I>За блоком <I>try </I>всегда должен 
+сле довать либо блок <I>finaly</I>, либо блок <I>except. </I>Для данного блока 
+<I>try </I>нельзя указать одно временно и блок <I>finaly, </I>и блок <I>except: 
+</I>к тому же за <I>try </I>не может следовать несколько блок <I>finaly </I>или 
+<I>except </I>Однако <I>try-finally </I>можно вложить в <I>try-except, </I>и 
+наоборот. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t1></A>Примеры использования фильтров и обработчиков исключений 
+</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В отличие от 
+обработчиков завершения (рассмотренных в предыдущей главе), филь тры и 
+обработчики исключений выполняются непосредственно операционной сис темой — 
+нагрузка на компилятор при этом минимальна. В следующих разделах я рас скажу, 
+как обычно выполняются блоки <I>try-except, </I>как и когда операционная система 
+проверяет фильтры исключений и в каких случаях она выполняет код обработчиков 
+исключений. </FONT></P>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t1p1></A>Funcmeister1 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот более 
+конкретный пример блока <I>try-except</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcmeister1() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dwTemp 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1 Что-то 
+    делаем здесь </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 2 
+      Выполняем какую-то операцию <BR>dwTemp = 0; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (EXCEPTION_EXECUTE HANDLER) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      обрабатываем исключение этит код никогда не выполняется <BR>... 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 3 
+    Продолжаем что то делать return(dwTemp) </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В блоке 
+<I>try </I>функции <I>Funcmetsterl </I>мы просто присваиваем 0 переменной 
+<I>dwTemp </I>Такая операция не приведет к исключению, и поэтому код в блоке 
+<I>except </I>никогда не выполняется Обратите внимание на такую особенность 
+конструкция <I>try-finally </I>ведет себя иначе После того как переменной 
+<I>dwTemp </I>присваивается 0, следующим испол няемым оператором оказывается 
+<I>return</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя ставить 
+операторы <I>return, goto, continue </I>и <I>break </I>в блоке <I>try 
+</I>обработчика за вершения настоятельно не рекомендуется, их применение в этом 
+блоке не приводит к снижению быстродействия кода или к увеличению сго размера 
+Использование этих операторов в блоке <I>try, </I>связанном с блоком <I>except, 
+</I>не вызовет таких неприятностей, как локальная раскрутка </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t1p2></A>Funcmeister2 </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Попробуем 
+модифицировать нашу функцию и посмотрим, что будет</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  Funcmeister2() <BR>{</FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dwTemp 
+    = 0; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1 Нто-то 
+    делаем здесь </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 2 
+      Выполняем какую-то операцию </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwTemp = 5 
+      / dwTemp; <BR>// генерирурт исключение </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwTemp += 
+      10; <BR>// никогда не выполняется </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except ( 
+    /* 3 Проверяем фильтр */ EXCEPTION_EXECUTE_HANDLER) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 4. 
+      Обрабатываем исключение </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>MessageBeep(0) </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 5 
+    Продолжаем что-то делать </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(dwТemp); }</FONT><FONT face="Times New Roman, Times, serif" 
+    color=#000000 size=3> </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=856 alt=rihter23-7.jpg src="images/rihter23-7.jpg" 
+width=611> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 24-1. Так система обрабатывает исключения </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Инструкция 
+внутри блока <I>try </I>функции <I>Funcmeister2 </I>пытается поделить 5 на 0. 
+Перехватив это событие, процессор возбуждает аппаратное исключение Тогда опе 
+рационная система ищст начало блока <I>except </I>и проверяет выражение, 
+указанное в качестве фильтра исключении, оно должно дать один из трех 
+идентификаторов, оп ределенных в заголовочном Windows-файле Exept.h </FONT></P>
+
+<TABLE height=93 cellSpacing=0 cellPadding=0 rules=all width=368 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=296 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентификатор </FONT></P></TD>
+    <TD vAlign=top align=left width=66 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=296 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>EXCEPTION_EXECUTE_HANDLER </FONT></P></TD>
+    <TD vAlign=top align=left width=66 height=24>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=296 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>EXCEPTION_CONTINUE_SEARCH </FONT></P></TD>
+    <TD vAlign=top align=left width=66 height=19>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=296 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>EXCEPTION_CONTINUE_EXECUTION </FONT></P></TD>
+    <TD vAlign=top align=left width=66 height=28>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>-1 </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Далее мы 
+обсудим, как эти идентификаторы изменяют выполнение потока. Читая следующие 
+разделы, посматривайте на блок-схему на рис. 24-1, которая иллюстриру ет 
+операции, выполняемые системой после генерации исключения </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t2></A>EXCEPTION_EXECUTE_HANDLER </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Фильтр 
+исключений в <I>Funcmeister2 </I>определен как EXCEPTIONEXECUTE_HANDLER Это 
+значение сообщает системе в основном вот что: "Я вижу это исключение; так и 
+знал, что оно где-нибудь произойдет; у меня есть код <I>для </I>его обрабогки, и 
+я хочу его сейчас выполнить" В этот момент система проводит глобальную раскрутку 
+(о ней — немного позже), а затем управление передается коду внутри блока 
+<I>except </I>(коду обра ботчика исключений). После его выполнения система 
+считает исключение обрабо танным и разрешает программе продолжить работу. Этот 
+механизм позволяет Win dows-приложениям перехватывать ошибки, обрабатывать их и 
+продолжать выполне ние — пользователь даже не узнает, что была какая-то ошибка. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но вот откуда 
+возобновится выполнение? Поразмыслив, можно представить не сколько вариантов. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый 
+вариант. Выполнение возобновляется сразу за строкой, возбудившей ис ключение. 
+Тогда в <I>Funcmeister2 </I>выполнение продолжилось бы с инструкции, которая 
+прибавляет к <I>dwTemp </I>число 10, Вроде логично, но на дслс в большинстве 
+программ нельзя продолжить корректное выполнение, если одна из предыдущих 
+инструкций вызвала ошибку. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В нашем 
+случае нормальное выполнение можно продолжить, но <I>Funcmeister2 </I>в этом 
+смысле не типична. Ваш код скорее всего структурирован так, что инструкции, 
+следующие за гой, где произошло исключение, ожидают от нее корректное значение. 
+Например, у Вас может быть функция, выделяющая блок памяти, тогда для опера ций 
+с ним, несомненно, предусмотрена целая серия инструкций. Если блок памяти 
+выделить не удается, все они потерпят неудачу, и программа повторно вызовет иск 
+лючение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот еще 
+пример того, почему выполнение нельзя продолжить сразу после коман ды, 
+возбудившей исключение. Заменим оператор языка С, дающий исключение в 
+<I>Funcmeisfer2 </I>строкой:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>malloc(5 / 
+  dwTemp); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Компилятор 
+сгенерирует для нее машинные команды, которые выполняют деле ние, результат 
+помещают в стек и вызывают <I>malloc. </I>Если попытка деления привела к ошибке, 
+дальнейшее (корректное) выполнение кода невозможно. Система должна поместить 
+что-то в стек, иначе он будет разрушен. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К счастью, 
+Microsoft не дает нам шанса возобновить выполнение со строки, рас положенной 
+вслед за возбудившей исключение Это спасает нас от только что опи санных 
+потенциальных проблем. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+вариант, Выполнение возобновляется с той же команды, которая возбуди ла 
+исключение. Этот вариант довольно интересен. Допустим, в блоке <I>except 
+</I>присут ствует оператор: </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>dwTemp = 
+  2;</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Тогда Вы 
+вполне могли бы возобновить выполнение с возбудившей исключение команды. На этот 
+раз Вы поделили бы 5 на 2, и программа спокойно продолжила бы свою работу. Иначе 
+говоря, Вы что-то меняете и заставляете систему повторить вы полнение команды, 
+возбудившей исключение. Но, применяя такой прием, нужно иметь в виду некоторые 
+тонкости (о них — чуть позже). </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третий, и 
+последний, вариант — приложение возобновляет выполнение с инст рукции, следующей 
+за блоком <I>except. </I>Именно так и происходит, когда фильтр исклю чений 
+определен как EXCEPTION_EXECUTE_HANDLER. По окончании выполнения кода в блоке 
+<I>exceрt </I>управление передается на первую строку за этим блоком. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t2p1></A>Некоторые полезные примеры </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, Вы 
+хотите создать отказоустойчивое приложение, которое должно рабо тать 24 часа в 
+сутки и 7 дней в неделю. В наше время, когда программное обеспече ние настолько 
+усложнилось и подвержено влиянию множества непредсказуемых фак торов, мне 
+кажется, что без SEH просто нельзя создать действительно надежное при ложение. 
+Возьмем элементарный пример, функцию <I>strcpy </I>из библиотеки С:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char* 
+  strcpy(char* strDestination, const char* strSource);</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Крошечная, 
+давно известная и очень простая функция, да? Разве она может выз вать завершение 
+процесса? Ну, если в каком-нибудь из параметров будет передан NULL (или любой 
+другой недопустимый адрес), <I>strcpy </I>приведет к нарушению доступа, и весь 
+процесс будет закрыт. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создание 
+абсолютно надежной функции <I>strcpy </I>возможно только при использова нии SEH 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char* 
+  RobustStrCpy(char* strDestination, const char* strSource) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>strcpy(strDestination, strSource); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>except 
+    (EXCEPTION_EXECUTE_HANDLER) <BR>{ </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+    ничего на делаем <BR>} </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(strDestination); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все, что 
+делает эта функция, — помещает вызов <I>strcpy </I>в SEH-фрейм. Если вызов 
+<I>strcfiy </I>приходит успешно, <I>RobustStrCpy </I>просто возвращает 
+управление. Если же <I>strcpy </I>генерирует нарушение доступа, фильтр 
+исключений возвращает значение EXCEP TION_EXECIITE_HANDLER, которое заставляет 
+поток выполнить код обработчика. В функции <I>RobublStrCpy </I>обработчик не 
+делает ровным счетом ничего, и опягь <I>Robust StrCpy </I>просто возвращает 
+управление. Но она никогда не приведет к аварийному за вершению 
+процесса<SUP>1</SUP> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрим 
+другой пример. Вот функция, которая сообщает число отделенных пробелами лексем в 
+строке. </FONT></P>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+  RobustHowManyToken(const char* str) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int 
+    nHowManyTokens = -1, <BR>// значение, равное -1, сообщает о неудаче 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char* 
+    strTemp = NULL; <BR>// предполагаем худшее </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+      временный буфер <BR>strTemp = (char*) malloc(strlen(str) + 1); </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      копируем исходную строку во временный буфер <BR>strcpy(strTemp, str); 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      получаем первую лексему <BR>char* pszToken = strtok(strTemp, " "); 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      перечисляем все лексемы <BR>for (; pszToken != NULL; pszToken = 
+      strtok(NULL, " ")) nHowManyTokens++; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>nHowManyTokens++; // добавляем 1, так как мы начали с -1 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (EXCEPTION_EXECUTE_HANDLER} <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+      ничего не делаем </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// удаляем 
+    временный буфер (гарантированная операция) <BR>free(strTemp); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(nHowManyTokens); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+создает временный буфер и копирует в нсго строку. Затем, вызывая библиотечную 
+функцию <I>strtok, </I>она разбирает строку на отдельные лексемы. Времен ный 
+буфер необходим из-за того, что <I>strtok </I>модифицирует анализируемую строку. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Благодаря SEH 
+эта обманчиво простая функция справляется с любыми неожидан ностями. Давайте 
+посмотрим, как она работает в некоторых ситуациях </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, 
+если ей передастся NULL (или любой другой недопустимый адрес), переменная 
+<I>nHowManyTokens </I>сохраняет исходное значение -1. Вызов <I>strlen </I>внутри 
+блока <I>try </I>приводит к нарушению доступа. Тогда управление передается 
+фильтру ис ключений, а от него — блоку <I>except, </I>который ничего не делает. 
+После блока <I>except </I>вызывается <I>free</I>, чтобы удалить временный буфер 
+в памяти. Однако он не был создан, и в данной ситуации мы вызываем/гее с 
+передачей ей NULL Стандарт ANSl С допус кает вызов/me с передачей NULL, в 
+каковом случае эта функция просто возвращает управление, так что ошибки здесь 
+нет. В итоге <I>RobustHowManyToken </I>возвращает зна чение -1, сообщая о 
+неудаче, и аварийного завершения процесса нс происходит, </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-вторых, 
+если функция получает корректный адрес, но вызов <I>malloc </I>(внутри блока 
+<I>try) </I>заканчивается неудачно и дает NULL, то обращение к <I>strcpy 
+</I>опять приво дит к нарушению доступа. Вновь активизируется фильтр исключений, 
+выполняется блок <I>ехсерг </I>(который ничего не делает), вызывается 
+<I>free</I> с передачей NULL (из-за чего она тоже ничего не делает), и 
+<I>RobustHowManyToken </I>возвращает -1, сообщая о неуда че. Аварийного 
+завершения процесса не происходит. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наконец, 
+допустим, что функции передан корректный адрес и вызов <I>malloc </I>про шел 
+успешно. Тогда преуспеет и остальной код, а в переменную <I>nHowManyTokens 
+</I>бу дет записано число лексем в строке, В этом случае выражение в фильтре 
+исключений (в конце блока <I>try) </I>не оценивается, код в блоке <I>except 
+</I>не выполняется, временный буфер нормально удаляется, и <I>nHowManyTokens 
+</I>сообщает количество лексем в строке. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функция 
+<I>RobustHowManyToken </I>демонстрирует, как обеспечить гарантированную очистку 
+ресурса, не прибегая к <I>try-finally. </I>Также гарантируется выполнение любого 
+кода, расположенного за обработчиком исключения (если, конечно, функция не воз 
+вращает управление из блока <I>try, </I>но таких вещей Вы должны избегать) 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Атеперь 
+рассмотрим последний, особенно полезный пример использования SEH. Вот функция, 
+которая дублирует блок памяти:</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PBYTE 
+  RobustMemDup(PBYTE pbSrc, size_t cb) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PBYTE pbDup 
+    = NULL; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// заранее 
+    предполагаем неудачу </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+      буфер для дублированного блока памяти <BR>pbDup = (PBYTE) malloc(cb); 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>memcpy(pbDup, pbSrc, cb); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (EXCEPTION_EXECUTE_HANDLER) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>free(pbDup); </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>pbDup = 
+      NULL;</FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(pbDup); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+создает буфер в памяти и копирует в него байты из исходного бло ка. Затем она 
+возвращает адрес этого дубликата (или NULL, если вызов закончился неудачно). 
+Предполагается, что буфер освобождается вызывающей функцией — ког да 
+необходимость в нем отпадает Это первый пример, где в блоке <I>except 
+</I>понадобится какой-то код. Давайте проанализируем работу этой функции в 
+различных ситуациях. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• Если в 
+пираметр <I>pbSrc</I> передается некорректный адрес или если вызов <I>malloc 
+</I>завершается неудачно (и дает NULL), <I>memcpy </I>возбуждает нарушение 
+доступа А это приводит к выполнению фильтра, который передает управление блоку 
+<I>except. </I>Код в блоке <I>except </I>освобождает буфер памяти и 
+устанавливает <I>pbDup</I> в NULL, чтобы вызвавший эту функцию поток узнал о cc 
+неудачном завершении. (Не забудьте, что стандарт ANSI С допускает передачу NULL 
+функции <I>free</I>.) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• Если в 
+параметрер <I>pbSrc</I> передается корректный адрес и вызов <I>malloc 
+</I>проходит успешно, функция возвращает адрес только что созданного блока 
+памяти </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t2p2></A>Глобальная раскрутка </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда фильтр 
+исключений возвращает EXCEPTION_EXECUTE_HANDLER, системе при ходится проводить 
+глобальную раскрутку Она приводит к продолжению обработки всех незавершенных 
+блоков <I>try-finally, </I>выполнение которых началось вслед за блоком 
+<I>try-except, </I>обрабатывающим данное исключение. Блок-схема на рис. <I>24-2 
+</I>поясняет, как система осуществляет глобальную раскрутку Посматривайте на эту 
+схему, когда бу дете читать мои пояснения к следующему примеру </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=655 alt=rihter23-8.jpg src="images/rihter23-8.jpg" 
+width=594> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 24-2. Так система проводит глобальную раскрутку </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncOSTimpy1() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 1 Что-то 
+    делаем здесь </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 2 
+      Вызываем другую функцию <BR>FuncORen1(); </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// этот 
+      код никогда не выполняется <BR>} </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except (/* 
+    6 Проверяем фильтр исключений */ EXCEPTION_EXECUTE,HANDLER)<BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 8 После 
+      раскрутки выполняется атот обработчик </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>MessageBox(....); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 9 
+    Исключение обработано - продолжаем выполнение ... </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncORen1()<BR>{</FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dwTemp 
+    = 0; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 3. Что-то 
+    делаем здесь </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 4. 
+      Запрашиваем разрешение на доступ к защищенным данным 
+      <BR>WaitForSingleObject(g_nSem, INFINITE); </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 5. 
+      Изменяем данные, и здесь генерируется исключение </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>g_dwProtectedData = 5 / dwTemp; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally 
+    <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 7. 
+      Происходит глобальная раскрутка, так как </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// фильтр 
+      возвращает FXCFPTTON_EXECUTE_HANDLER </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// Даем и 
+      другим попользоваться защищенными данными <BR>ReleaseSemaphore(g_hScm, 1, 
+      NULL); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// сюда мы 
+    никогда не попадем </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>FuncOStimpyl </I>и <I>FuncORen1 </I>иллюстрируют самые запутанные 
+аспекты структурной обработки исключений. Номера в начале комментариев 
+показывают порядок выпол нения, в котором сходу не разберешься, но возьмемся за 
+руки и пойдем вместе. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><I>FuncOStimpy1 </I>начинает выполнение со входа в свой блок <I>try </I>и 
+вызова <I>FuncORen1. </I>Последняя тоже начинает со входа в свой блок <I>try 
+</I>и ждет освобождения семафора. Завладев им, она пытается изменить значение 
+глобальной переменной <I>g_dwProtected Data. </I>Деление на нуль возбуждает 
+исключение. Система, перехватив управление, ищет блок <I>try, </I>которому 
+соответствует блок <I>except. </I>Поскольку блоку <I>try </I>функции 
+<I>FuncORenl </I>соответствует 6лок<I> finally, </I>система продолжает поиск и 
+находит блок <I>try </I>в <I>FuncOStim py1, </I>которому как раз и соответствует 
+блок <I>except.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Тогда система 
+проверяет значение фильтра исключений в блоке <I>except </I>функции 
+<I>FuncOStimpy1. </I>Обнаружив, что оно — EXCEPTION_EXECUTE_HANDLER, система 
+начи нает глобальную раскрутку с блока <I>finally</I> в функции <I>FuncORen1. 
+</I>Заметьте: раскрутка происходит до выполнения кода из блока <I>except </I>в 
+<I>FuncOStimpy1. </I>Осуществляя глобаль ную раскрутку, система возвращается к 
+последнему незавершенному блоку <I>try </I>и ищет теперь блоки <I>try, 
+</I>которым соответствуют блоки <I>finally. </I>В нашем случае блок <I>finally 
+</I>находится в функции <I>FuncORen1.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Мощь SEH 
+по-настоящему проявляется, когда система выполняет код <I>finally</I> в <I>Func 
+ORen1. </I>Из-за его выполнения семафор освобождается, и поэтомудругой поток 
+полу чает возможность продолжить работу. Если бы вызов <I>ReleaseSemapbore </I>в 
+блоке<I> finally </I>отсутствовал, семафор никогда бы не освободился. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Завершив 
+выполнение блока <I>finally, </I>система ищет другие незавершенные блоки 
+<I>finally. </I>В нашем примере таких нет. Дойдя до блока <I>except, 
+</I>обрабатывающего исклю чение, система прекращает восходящий проход по цепочке 
+блоков. В этой точке гло бальная раскрутка завершается, и система может 
+выполнить код в блоке <I>except,</I> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот тук и 
+работает структурная обработка исключений. Вообще-то, SEH — штука весьма трудная 
+для понимания: в выполнение Вашего кода вмешивается операцион ная система Код 
+больше не выполняется последовательно, сверху вниз; система уста навливает свой 
+порядок — сложный, но все же предсказуемый. Поэтому, следуя блок схемам на рис, 
+24-1 и 24-2, Вы сможете уверенно применять SEH. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы лучше 
+разобраться в порядке выполнения кода, посмотрим на происходя щее под другим 
+углом зрения. Возвращая EXCEPTION_EXECUTE_HANDLER, фильтр сообщает операционной 
+системе, что регистр указателя команд данного потока дол жен быть установлен на 
+код внутри блока <I>except </I>Однако зтот регистр указывал на код внутри блока 
+<I>try </I>функции <I>FuncORen1. </I>А из главы 23 Вы должны помнить, что всякий 
+раз, когда поток выходит из блока <I>try, </I>соответствующего блок <I>finally, 
+</I>обязательно вы полняется код в этом блоке <I>finally. </I>Глобальная 
+раскрутка как раз и является тем меха низмом, который гарантирует соблюдение 
+этого правила при любом исключении. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t2p3></A>Остановка глобальной раскрутки </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Глобальную 
+раскрутку, осуществляемую системой, можно остановить, если в блок <I>finally 
+</I>включить оператор <I>return. </I>Взгляните:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncMonkey() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>FuncFish(); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (EXCEPTION_EXECUTE_HANDLER) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>MessageBeep(0); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>MessageBox(...); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncFish() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>FuncPheasant(); </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>MessageBox(...); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncPheasant() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>strcpy(NULL, NULL); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__finally 
+    <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>return; 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При вызове 
+<I>strcpy </I>в блоке <I>try </I>функции <I>FuncPheasant </I>из-за нарушения 
+доступа к памяти генерируется исключение Как только это происходит, система 
+начинает про сматривать код, пытаясь найти фильтр, способный обработать данное 
+исключение. Обнаружив, что фильтр в <I>FuncMonkey </I>готов обработать его, 
+система приступает к глобальной раскрутке Она начинается с выполнения кода в 
+блоке <I>finally </I>функции <I>FuncPheasant. </I>Ho этот блок содержит оператор 
+<I>return. </I>Он заставляет систему прекра тить раскрутку, и <I>FuncPheasant 
+</I>фактически завершается возвратом в <I>FuncFish, </I>кото рая выводит 
+сообщение на экран Затем <I>FuncFish </I>возвращает управление <I>FuncMonkey, 
+</I>и та вызывает <I>MessageBox.</I> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте: код 
+блока <I>except </I>в <I>FuncMonkey </I>никогда не вызовет <I>MessageBeep. 
+</I>Опера тор <I>return </I>в блоке <I>finally </I>функции <I>FuncPheasant 
+</I>заставит систему вообще прекратить раскрутку, и поэтому выполнение 
+продолжичся так, будто ничего не произошло. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+намеренно вложила в SEH такую логику Иногда всдь нужно прекратить раскрутку и 
+продолжить выполнение программы. Хотя в большинстве случаев так все же не делают 
+А значит, будьте внимательны и избслайте операторов <I>return </I>в блоках 
+<I>finally.</I> </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t3></A>EXCEPTION_CONTINUE_EXECUTION </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Давайте 
+приглядимся к юму, как фильтр исключений получает один из трсх иденти фикаторов, 
+определенных в файле Excpt.h В <I>Funcmeister2 </I>идентификатор EXCEP 
+TION_EXECUTE_HANDLER «зашит» (простоты ради) в код самого фильтра, но Вы могли 
+бы вызывать там функцию, которая определяла бы нужный идентификатор 
+Взгляните:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+  g_szBuffer[100]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FunclinRoosevfilt1() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int x = 0; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>Char 
+    *pchBuffer = NULL; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try<BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>*pchBuffer 
+      = 'J'; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>x = 5 / x; 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (OilFilter1(&amp;pchBuffer)) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>MessageBox(NULL, "An exception occurred", NULL, MB_OK); 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>MessageBox(NULL, Function completed , NULL, MB_OK), 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  OilFilter1(char **ppchBuffer} <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (*ppchBuffer == NULL) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>*ppchBuffer = g_szBuffer; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>return(FXCEPTION_CONTINUE EXECUTION); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(EXCEPTION_EXECUTE_HANDLER); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В первый раз 
+проблема возникает, когда мы пытаемся поместить <I>J </I>в буфер, на который 
+указывает<I> pchBuffer </I>К сожалению, мы не определили <I>pchBuffer</I> как 
+указатель на наш глобальный буфер <I>g_szBuffer — </I>вместо этою он указывает 
+на NULL. Процес сор генерирует исключение и вычисляет выражение в фильтре 
+исключений в блоке <I>except, </I>связанном с блоком <I>try, </I>в котором и 
+произошло исключение. В блоке <I>cxcept </I>адрес переменной <I>pchBuffer</I> 
+передается функции <I>OilFilter1,</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Получая 
+управление, <I>OilFilter1 </I>проверяет, не равен ли <I>*ppchBuffer </I>значению 
+NULL, и, если да, устанавливает его так, чтобы он указывал на глобальный буфер 
+<I>g_szBuffer. </I>Тогда фильтр возвращает EXCEPTION_CONTINUE_EXECUTION. 
+Обнаружив гакое зна чение выражения в фильтре, система возвращается к 
+инструкции, вызвавшей исклю чение, и пытается выполнить ее снова. IIa этот раз 
+все проходит успешно, и <I>J</I> будет записана в первый байт буфера 
+<I>g_szBuffer.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+выполнение кода продолжится, мы опять столкнемся с проблемой в блоке <I>try — 
+</I>теперь это деление на нуль. И вновь система вычислит выражение фильтра ис 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ключений. На 
+этот раз <I>*ppchBuffer </I>не равен NULL, и поэтому <I>OilFttterl </I>вернет 
+EXCEP TION_EXECUTE_HANDLER, что подскажет системе выполнить код в блоке 
+<I>excepf, </I>и на экране появится окно с сообщением oб исключении. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+внутри фильтра исключений можно проделать массу всякой работы Но. разумеется, в 
+итоге фильтр должен вернуть один из трех идентификаторов. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t3p1></A>Будьте осторожны с EXCEPTION_CONTINUE_EXECUTION 
+</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Будет ли 
+удачной попытка исправить ситуацию в только что рассмотренной функ ции и 
+заставить систему продолжить выполнение программы, зависит от типа про цессора, 
+от того, как компилятор генерирует машинные команды при трансляции операторов 
+С/С++, и от параметров, заданных компилятору </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Компилятор 
+мог сгенерировать две машинные команды для оператора *pchBuffer = 'J'; которые 
+выглядят так:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV EAX, 
+  [pchBuffer] // адрес помещается в регистр EAX </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>MOV [EAX], 'J' 
+  // символ J записывается по адресу из регистра LAX</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последняя 
+команда и возбудила бы исключение. Фильтр исключений, перехватив его, исправил 
+бы значение <I>pchBuffer </I>и указал бы системе повторить эту команду. Но 
+проблема в том, что содержимое регистра не изменится так, чтобы отразить новое 
+значение <I>pchBuffer, </I>и поэтому повторение команды снова приведет к 
+исключению. Вот и бесконечный цикл! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выполнение 
+программы благополучно возобновится, если компилятор оптими зирует код, но может 
+прерваться, если компилятор код не оптимизирует. Обнаружить такой «жучок» очень 
+трудно, и — чтобы определить, откуда он взялся в программе, — придется 
+анализировать ассемблерный текст, сгенерированный для исходного кода. Вывод: 
+будьте крайне осторожны, возвращая EXCEPTION_CONTINUE_EXECUTION из фильтра 
+исключений. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>EXCEPTION_CONTINUE_EXECUTION всегда срабатывает лишь в одной ситуации: 
+при передаче памяти зарезервированному региону. О том, как зарезервировать боль 
+шую область адресного пространства, а потом передавать ей память лишь по мере 
+необходимости, я рассказывал в главе 15 Соответствующий алгоритм демонстриро 
+вала программа-пример VMAlloc. На основе механизма SEH то же самое можно было бы 
+реализовать гораздо эффективнее (и не пришлось бы все время вызывать функ цию 
+<I>VirtualAtloc).</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В главе l6 мы 
+говорили о стеках потоков, В частности, я показал, как система ре зервирует для 
+стека потока регион адресного пространства размером 1 Мб и как она автоматически 
+передает ему новую память по мере разрастании стека. С этой целью система 
+создает SEH-фрейм. Когда поток пытается задействовать несуществующую часть 
+стека, генерируется исключение. Системный фильтр определяет, что исключе ние 
+возникло из-за попытки обращения к адресному пространству, зарезервирован ному 
+под стек, вызывает функцию <I>VirtualAlloc</I> для передачи дополнительной 
+памяти стеку потока и возвращает EXCEPTION_CONTINUE_EXECUTION. После этого машин 
+ная команда, пытавшаяся обратиться к несуществующей части стека, благополучно 
+выполняется, и поток продолжает свою работу. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Механизмы 
+использования виртуальной памяти в сочетании со структурной об работкой 
+исключений позволяют создавать невероятно «шустрые* приложения Про грамма-пример 
+Spreadsheet в следующей главе продемонстрирует, как на основе SEH </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>эффективно 
+реализовать управление памятью в электронной таблице. Этот код вы полняется 
+чрезвычайно быстро. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t4></A>EXCEPTION_CONTINUE_SEARCH </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Приведенные 
+до сих пор примеры были ну просто детскими Чтобы немного встрях нуться, добавим 
+вызов функции:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+  g_szBuffer[100]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FunclinRoosevelt2() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+    *pchBuffer = NULL; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>FuncAtude2(pchBuffer); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (OilFilter2(&amp;pchBuffer)) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>MessageBox(...); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncAtude2(char *sz) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>*sz = 0; 
+  <BR>}</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  OilFilter2(char **ppchBuffer) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (*ppchBuffer == NULL) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>*ppchBuffer = g_szBuffer;<BR>return(EXCEPTION_CONTINUE_EXECUTION); 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(EXCEPTION_EXECUTE HANDLER); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+выполнении <I>FunclinRoosevelt2 </I>вызывается <I>FuncAtude2, </I>которой 
+передается NULL. Последняя приводит к исключению. Как и раньше, система 
+проверяет выраже ние в фильтре исключений, связанном с последним исполняемым 
+блоком <I>try. </I>В на шем примере это блок <I>try </I>в <I>FunclinRoosevelt2, 
+</I>поэтому для оценки выражения в филь тре исключений система вызываег 
+<I>OilFilter2 </I>(хотя исключение возникло в <I>FuncAtude2</I>)<I>.</I> 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Замесим 
+ситуацию еще круче, добавив другой блок <I>try-except</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+  g_szBuffer[100]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FunclinHoosevelt3() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+    *pchBuffer = NULL; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>FuncAtude3(pchBuffer); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (OilFilter3(&amp;pch8uffer)) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>Message8ox(...); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncAtude3(char *sz) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>*sz = 0; 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    (EXCEPTION_CONTINUE_SEARCH) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// этот 
+      код никогда не выполняется </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  OilFilter3(Utar **ppchBuffer) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (*ppchBuffer == NULL) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>*ppchBuffer = g_szBuffer; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>return(EXCEPTION CONTINUE_EXECUTION); </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return(EXCEPTIQN_EXECUTE_HANDLER); </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь, когда 
+<I>FuncAtude3 </I>пытается занести 0 по адресу NULL, по-прежнему возбуж дается 
+исключение, но в работу вступает фильтр исключений из <I>FuncAtude3. </I>Значе 
+ние этого очень простого фильтра — EXCEPTIUN_CONTINUE_SEARCH. Данный иден 
+тификатор указывает системе перейти к предыдущему блоку <I>tty, </I>которому 
+соответ ствует блок <I>except, </I>и обработать его фильтр. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так как 
+фильтр в <I>FuncAtude3 </I>дает EXCEPTION_CONTINUE_SEARCH, система пере ходит к 
+предыдущему блоку <I>try </I>(в функции <I>FunclinRoOsevelt3</I>)<I> </I>и 
+вычисляет eго фильтр <I>OilFilter3. </I>Обнаружив, что значение <I>pchBuffer 
+</I>равно NULL, <I>OilFilter3 </I>меняет его так, чтобы оно указывало на 
+глобальный буфер, и сообщает системе возобновить выпол нение с инструкции, 
+вызвавшей исключение Это позволяет выполнить код в блоке <I>try </I>функции 
+<I>FuncAtude3, </I>но, увы, локальная переменная <I>sz </I>в этой функции не 
+измене на, и возникает новое исключение Опять бесконечный цикл! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, я 
+сказал, что система переходит к последнему исполнявшемуся блоку <I>try, 
+</I>которому соответствует блок <I>except, </I>и проверяет его фильтр Это 
+значит, что система пропускает при просмотре цепочки блоков любые блоки <I>try, 
+</I>которым соответствуют блоки <I>finally</I> (а не <I>except). </I>Причина 
+этого очевидна, в блоках <I>finally </I>нет фильтров ис ключений, а потому и 
+проверять в них нечего. Если бы в последнем примере <I>Func Atude3 </I>содержала 
+вместо <I>except, </I>система начала бы проверять фильтры исключений с 
+<I>OilFilter3 </I>в <I>FunclinRroosevelt3</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Дополнительную информацию об EXCEPTION_CONTINUE_SEARCH см. в главе 25. 
+</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t5></A>Функция GetExceptionCode </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Часто фильтр 
+исключений должен проанализировать ситуацию, прежде чем опреде лить, какое 
+значение ему вернуть. Например, Ваш обработчик может знать, что делать при 
+делении на нуль, по не знать, как обработать нарушение доступа к памяти Имен но 
+поэтому фильтр отdечает за анализ ситуации и возврат соответствующего значения 
+Этот фрагмент иллюстрирует метод, позволяющий определять тип исключения: 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>x = 0; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>У = 4 / x; 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+  ((GetExceptionCode() == EXCEPTION_INT_DIVIDE_BY_ZERO) ? 
+  EXCEPTlON_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обработка 
+    деления иа нуль </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Встраиваемая 
+функция <I>GetExceptionCode </I>возвращает идентификатор типа исклю 
+чения.</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GotExceptionCode();</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ниже приведен 
+список всех предопределенных идентификаторов исключений с пояснением их смысла 
+(информация взята из докуметации Platform SDK) Эти иден тификаторы содержатся в 
+заголовочном файле WinBase.h. Я сгруппировал исключе ния по категориям. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>Исключения, связанные с памятью</B> </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_ACCESS_VIOLATION </B>Поток пьтался считать или записать по 
+  виртуальному адресу, не имея на то необходимых прав. Это самое распрост 
+  раненное исключение. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_DATATYPE_MISALIGNMENT </B>Поток пытался считать или запи 
+  сать невыровненные данные на оборудовании, которое не поддерживает ав 
+  томатическое выравнивание. Например, 16-битные значения должны быть вы ровнены 
+  по двухбайтовым границам, 32-битные — по четырехбайтовым и т. д, </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_ARRAY_ROUNDS_EXCEEDED </B>Поток пытался обратиться к эле 
+  менту массива, индекс которого выходит за границы массива; при этом обо 
+  рудование должно поддерживать такой тип контроля. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_INPAGE_ERROR </B>Ошибку страницы нельзя обработать, так 
+  как файловая система или драйвер устройства сообщили об ошибке чтения. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_GUARD_PAGE </B>Поток пытался обратиться к странице памяти 
+  с атрибутом защиты FAGE_GUARD. Страница становится доступной, и генериру ется 
+  данное исключение </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_STACK_OVERFLOW </B>Стек, отведенный потоку, исчерпан. 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_ILLEGAL_INSTRUCTION </B>Поток выполнил недопустимую инст 
+  рукцию Это исключение определяется архитектурой процессора; можно ли 
+  перехватить выполнение неверной инструкции, зависит от типа процессора. 
+</FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_PRIV_INSTRUCTION </B>Поток пытался выполнить инструкцию, 
+  не допустимую в данном режиме работы процессора. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>Исключения, связанные с обработкой самих исключений</B> </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_INVALID_DISPOSITION </B>Фильтр исключений вернул значение, 
+  огличное от EXCEPTION_EXECUTE_HANDLER, EXCEPTION_CONTINUE_SEARCH или 
+  EXCEPTION_CONTINUE_FXECUTION. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_NONCONTINUABLEEXCEPTION </B>Фильтр исключений вернул 
+  EXCEPTION_CONTINUE_EXECUTION в ответ па невозобновляемое исключение 
+  (noncontinuable exception). </FONT></LI></UL>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>Исключения, связанные с отладкой</B> </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_BREAKPOINT </B>Встретилась точка прерывания (останова). 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_SINGLE_STEP </B>Трассировочная ловушка или другой механизм 
+  пошагового исполнения команд подал сигнал о выполнении одной команды. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_INVALID_HANDLE </B>В функцию передан недопустимый 
+  описатель. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>Исключения, связанные с операциями над целыми числами</B> </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_INT_DIVIDE_BY_ZERO </B>Поток пытался поделить число целого 
+  типа на делитель того же типа, равный 0 </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_INT_OVERFLOW </B>Операция над целыми числами вызвала пере 
+  ног старшего разряда результата. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><B>Исключения, связанные с операциями над вещественными числами</B> 
+</FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_DENORMAL_OPERAND </B>Один из операндов в операции над 
+  числами с плавающей точкой (вещественного типа) не нормализован. Ненор 
+  мализованными являются значения, слишком малые для стандартного пред ставления 
+  числа с плавающей точкой. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_DIVIDE_BY_ZERO </B>Поток пытался поделить число веще 
+  ственного типа на делитель того же типа, равный 0. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_INEXACT_RESULT </B>Результат операции над числами с 
+  пла вающей точкой нельзя точно представить я виде десятичной дроби </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_INVALID_OPERATION</B> Любое другое исключение, относя 
+  щееся к операциям над числами с плавающей точкой и нс включенное в этот список 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_OVERFLOW </B>Порядок результата операции над числами с 
+  плавающей точкой превышает максимальную величину для указанного типа данных. 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_STACK_CHECK </B>Переполнение стека или выход за его 
+  ниж нюю границу в результате выполнения операции над числами с плавающей 
+  точкой. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><B>EXCEPTION_FLT_UNDERFLOW </B>Порядок результата операции над числами 
+  с плавающей точкой меньше минимальной величины для указанного типа дан ных. 
+  </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Встраиваемую 
+функцию <I>GetExceptionCode </I>можно вызвать только из фильтра ис ключений 
+(между скобками, которые следуют за _<I>except) </I>или из обработчика исклю 
+чений. Скажем, такой код вполне допустим: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>У = 0; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>x = 4 / у; 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>_except <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>{(GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION) || 
+    (GetExceptionCode() == EXCEPTION_INT_DIVIDE_BY_ZERO)) ? 
+    EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEAHCH) <BR>{ </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+    (GetExceptionCode()) <BR>{ </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    EXCEPTION_ACCESS_VIOLATION: </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      обработка нарушения доступа к памяти <BR>... <BR>break; 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+    EXCEPTION_INT_DIVIDE_BY_ZERO: </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+      обработка деления целого числа на нуль <BR>... <BR>break; 
+    </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Однако 
+<I>GetExceptionCode </I>нельзя вызывать из функции фильтра исключений. Ком 
+пилятор помогает вылавливать такие ошибки и обязательно сообщит о таковой, если 
+Вы попытаетесь скомпилировать, например, следующий код: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>У = 0; 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>x = 4 / у; 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+  (CoffeeFilter()) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обрабогка 
+    исключения <BR>... </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  CoffeeFilter(void) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// ошибка 
+    при компиляции: недопустимый вызов GetExceptionCode </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return((GetExceptionCode() == EXCFPTION_ACCESS_VIOLATION) ? 
+    EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH); 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>Нужного 
+  эффекта можно добиться, переписав код так: </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>y = 0; <BR>x 
+    = 4 / у; </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+  (CoffeeFi]ter(GetExceptionCode())) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// обработка 
+    исключения <BR>... </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  CoffeeFilter(DWORD dwExceptionGode) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+    size=2>return((dwExceptionCode == EXCEPTION_ACCESS_VIOLATION) ? 
+    EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH); 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Коды 
+исключений формируются по тем же правилам, что и коды ошибок, опре деленные в 
+файле WinError.h. Каждое значение типа UWORD разбивается на поля, как показано в 
+таблице 24-1. </FONT></P>
+<TABLE height=155 cellSpacing=0 cellPadding=0 rules=all width=737 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=84 height=28>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Биты 
+      </FONT></P></TD>
+    <TD vAlign=top align=left width=156 height=28>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>31-30 </FONT></P></TD>
+    <TD vAlign=top align=left width=130 height=28>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>29 </FONT></P></TD>
+    <TD vAlign=top align=left width=112 height=28>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>28</FONT></P></TD>
+    <TD vAlign=top align=left width=108 height=28>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>27-16 </FONT></P></TD>
+    <TD vAlign=top align=left width=111 height=28>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15-0 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=84 height=57>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Содержимое </FONT></P></TD>
+    <TD vAlign=top align=left width=156 height=57>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код 
+      степени "тяжести" (severity) </FONT></P></TD>
+    <TD vAlign=top align=left width=130 height=57>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Кем 
+      определен — Microsoft или пользователем </FONT></P></TD>
+    <TD vAlign=top align=left width=112 height=57>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Зарезервирован </FONT></P></TD>
+    <TD vAlign=top align=left width=108 height=57>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код 
+      подсистемы (facility code) </FONT></P></TD>
+    <TD vAlign=top align=left width=111 height=57>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код 
+      исключения </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=84 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD>
+    <TD vAlign=top align=left width=156 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>0 = 
+      успех 1 = информация <I>2 </I>= предупреждение 3 = ошибка </FONT></P></TD>
+    <TD vAlign=top align=left width=130 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>0 = 
+      Microsoft 1 = пользователь </FONT></P></TD>
+    <TD vAlign=top align=left width=112 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Должен 
+      быть 0 (см таблицу ниже) </FONT></P></TD>
+    <TD vAlign=top align=left width=108 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяется Microsoft </FONT></P></TD>
+    <TD vAlign=top align=left width=111 height=43>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Определяется Microsoft или пользовате лем 
+</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 24-1, Поля кода ошибки </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>На 
+сегодняшний день определены такие коды подсистемы. </FONT></P>
+<TABLE height=196 cellSpacing=0 cellPadding=0 rules=all width=417 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код 
+      подсистемы </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Код 
+      подсистемы </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Значение </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_NULL </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_CONTROL </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>10 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_RPC </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_CERT </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>11 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_DISPATCH </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>2 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_INTERNET </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>12 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_STORAGE </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>3 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_MEDIASERVER </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>13 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_ITF </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>4 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_MSMQ </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>11 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_WIN32 </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>7 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_SETUPAPI </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=20>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>15 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_WINDOWS </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>8 </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_SCARD </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>16 </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=155 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_SECURITY </FONT></P></TD>
+    <TD vAlign=top align=left width=56 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2><I>9</I> </FONT></P></TD>
+    <TD vAlign=top align=left width=279 height=22>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>FACILITY_COMPLUS </FONT></P></TD>
+    <TD vAlign=top align=left width=58 height=22>
+      <P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>17 </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Разберем на 
+части, например, код исключения EXCEPTION_ACCESS_VIOLATlON. Если Вы посмотрите 
+его значение в файле WinBase.h, то увидите, что оно равно 0xC0000005: 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С 0 0 0 0 0 0 
+5 (в шестнадцатеричном виде) 1100 0000 0000 0000 0000 0000 0000 0101 (в двоичном 
+виде) </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Биты 30 и 31 
+установлены в 1, указывая, что нарушение доступа является ошиб кой (поток не 
+может продолжить выполнение) Бит 29 равен 0, а это значит, что дан ный код 
+определен Microsoft. Бит 28 равен 0, так как зарезервирован на будущее. Биты 
+16-27 равны 0, сообщая код подсистемы FACILITY_NULL (нарушение доступа может 
+произойти в любой подсистеме операционной системы, а нс в какой-то одной). Биты 
+0-15 дают значение 5, которое означает лишь то, что Microsoft присвоила исключе 
+нию, связанному с нарушением доступа, код 5. </FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t6></A>Функция GetExceptionlnformation </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда 
+возникает исключение, операционная система заталкивает в стек соответству ющего 
+потока структуры EXCEPTION_RECORD, CONTEXT и EXCEPTION_POINTERS </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>EXCEPTlON_RECORD содержит информацию об исключении, независимую от типа 
+процессора, a CONTEXT — машинно-зависимую информацию об этом исключении В 
+структуре EXCEPTIONPOINTERS всего два элемента — указатели на помещенные в стек 
+структуры EXCEPTlON_RECORD и CONTEXT. </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _EXCEPTION_POINTERS <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PEXCEPTION_RECORD ExceptionRecord; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PCONTEXT 
+  ConlexlRecofd; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  EXCEPTTON_POINTERS, *PEXCEPTION_POINTERS; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+получить эту информацию и использовать ее в программе, вызовите <I>GetEx 
+ceptionInformatton-.</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>PEXCEPTION_POINTERS GetExceptionInformation(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта 
+встраиваемая функция возвращает' указатель на структуру EXCEPTION_POINTERS. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Самое важное 
+в <I>GetExceptionInformatton </I>то, что ее можно вызывать только в филь тре 
+исключений и больше нигде, потому что структуры CONTEXT, EXCEPTION_RE CORD и 
+EXCEPTION_POINTERS существуют лишь во время обработки фильтра исклю чений. Когда 
+управление переходит к обработчику исключений, эти данные в стеке разрушаются. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вам 
+нужно получить доступ к информации об исключении из обработчика, сохраните 
+струкчуру EXCEPTION_RECORD и/или CONTEXT (на которые указывают элементы 
+структуры EXCEPTIONPOINTERS) в объявленных Вами переменных Вот пример сохранения 
+этих структур: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  FuncSkunk() <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// объявляем 
+    переменные, которые мы сможем потом использовать <BR>// для сохранения 
+    информации об исключении (если оно произойдет) <BR>EXCEPTION_RECORD 
+    SavedExceptRec; <BR>CONTEXT SavedContext; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try <BR>{ 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+    <BR>(SavedExceptRec = 
+    *(GetExceptionInformation())-&gt;ExceptionRecord;<BR>SavedContext = 
+    *(GetExceptionInformation())-&gt;ContextRecord;<BR>EXCEPTION_EXECUTE_HANDIER) 
+    <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// мы 
+      можем теперь использовать переменные SavedExceptRec <BR>// и SavedContext 
+      в блоке обработчика исключений <BR>switch (SavedExceptRec ExceptionCode) 
+      <BR>{ </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В фильтре 
+исключений применяется оператор-запятая (,) — мало кто из програм мистов знает о 
+нсм. Он указывает компилятору, что выражения, отделенные запяты ми, следует 
+выполнять слева направо После вычисления всех выражений возвраща ется результат 
+последнего из них — крайнего справа. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В 
+<I>FuncSkunk </I>сначала вычисляется выражение слева, что приводит к сохранению 
+находящейся в стеке структуры EXCEPTION_RECORD в локальной переменной <I>Saved 
+ExceptRec. </I>Результат этого выражения является значением <I>SavedExceptRec 
+</I>IIo он от брасывается, и вычисляется выражение, расположенное правее Это 
+приводит к со хранению размещенной в стеке структуры CONTEXT в локальной 
+переменной <I>Saved-</I> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>Context. 
+</I>И снова результат — значение <I>SavedContexl </I>— отбрасывается, и 
+вычисляется третье выражение. Оно равно EXCEPTION_EXECUTE_HANDLER — это и будет 
+резуль татом всего выражения в скобках. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Так как 
+фильтр возвращает EXCEPTION_EXECUTE_HANDLER, выполняется код в блоке <I>except. 
+</I>К этому моменту переменные <I>SavedExceptRec </I>и <I>SavedContext </I>уже 
+иници ализированы, и их можно использовать в данном блоке. Важно, чтобы 
+переменные <I>SavedExceptRec </I>и <I>SavedContext </I>были объявлены вне блока 
+<I>try</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вероятно, Вы 
+уже догадались, что элемент <I>ExceptionRecord </I>структуры EXCEP TION_POINTERS 
+указывает на структуру EXCEPTION_RECORD:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _EXCEPTION_RECORD <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  ExceptionCode; <BR>DWORD ExcepLionFlags; <BR>struct _EXCEPTION_RECORD 
+  *ExceptionRecord; <BR>PVOID ExceptionAddress; <BR>DWORD NurrberParameters; 
+  <BR>ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  EXCEPTION_RECORD;</FONT><FONT face="Times New Roman, Times, serif" 
+  color=#000000 size=3> </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Структура 
+EXCEPTIONRECORD содержит подробную машинно-независимую ин формацию о последнем 
+исключении. Вот что представляют собой ec элементы. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><I>ExceptionCode </I>— код исключения . Это информация, возвращаемая 
+  функцией <I>GetExceptionCode.</I> </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><I>ExceptionFlags </I>— флаги исключения. На данный момент определено 
+  только два значения: 0 (возобновляемое исключение) и EXCEPTION_NONCONTINUABLE 
+  (невозобновляемое исключение). Любая попытка возобновить работу програм мы 
+  после невозобновляемого исключения генерирует исключение EXCEP 
+  TION_NONCONTINUABLE_EXCEPTION. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><I>ExceptionRecord - </I>указатель на структуру EXCEPTION_RECORD, 
+  содержащую информацию о другом необработанном исключении При обработке одного 
+  исключения может возникнуть другое. Например, код внутри фильтра исклю чений 
+  может попытаться выполнить деление на нуль. Когда возникает серия вложенных 
+  исключений, записи с информацией о них могут образовывать связанный список 
+  Исключение будет вложенным, если оно генерируется при обработке фильтра. В 
+  отсутствие необработанных исключений <I>ExceptionRecord </I>равен NULL. 
+</FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><I>ExceptionAddress </I>— адрес машинной команды, при выполнении 
+  которой про изошло исключение </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><I>NumberParameters — </I>количество параметров, связанных с 
+  исключением (0-15). Это число заполненных элементов в массиве 
+  <I>ExceptionInformation. </I>Почти для всех исключений значение этого элемента 
+  равно 0. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3><I>ExceptionInformation — </I>массив дополнительных аргументов, 
+  описывающих ис ключение. Почти для всех исключений элементы этого массива не 
+  определены. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последние два 
+элемента структуры EXCEPTION_RECORD сообщают фильтру до полнительную информацию 
+об исключении. Сейчас такую информацию дает только один тип исключений 
+EXCEPTION_ACCESS_VIOLATION. Все остальные дают нулевое значение в элементе 
+<I>NumberParameters. </I>Проверив его, Вы узнаете, надо ли присмат ривать массив 
+<I>ExceptionInformation.</I> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+исключении EXCEPTION_ACCESS_VIOLATION эелемент <I>ExceplionInformation[0] 
+</I>содержит флаг, указывающий тип операции, которая вызвала нарушение доступа. 
+Если его значение равно 0, поток пытался читать недоступные ему данные; Т — 
+записы вать данные по недоступному ему адресу. Элемент 
+<I>ExceptionInformation[l] </I>определяет адрес недоступных данных. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта структура 
+позволяет писать фильтры исключений, сообщающие значительный объем информации о 
+работе программы. Можно создать, например, такой фильтр: </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__try<BR>{ 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>__except 
+  (ExpFltr(GetExceptionInformation()-&gt;ExceptionRecord)) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  ExpFltr(PEXCEPTION_RECORD pER) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>char 
+  szBuf[300], *p; <BR>DWORD dwExceptionCode = pER-&gt;ExceptionCode; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>sprintf(szBuf, 
+  "Code = %x, Address = %p", dwExceptionCode, pER-&gt;ExceptionAddress); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// находим 
+  конец строки<BR>p = strchr(szBuf, 0); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// я 
+  использовал оператор switch на тот случай, если Microsoft <BR>// в будущем 
+  добавит информацию для других исключений </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>switch 
+  (dwExceptionCode) <BR>{ </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>case 
+  EXCEPTION_ACCESS_VIOLATION: </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>sprintf(p, 
+    "Attempt to %s data at address %p", pER-&gt;ExceptionInformation[0] ? 
+    "write" : "read", pER-&gt;ExceptionInformation[1]); <BR>break; 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>default; 
+  </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>break; 
+    </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>MessageBox(NULL, szBuf, "Exception", MB_OK | MB_ICONEXCLAMATION); 
+  </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>return(EXCEPTION_CONTINUE_SEARCH); }</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Элемент 
+<I>ContextRecord </I>структуры EXCEPTION_POINTERS указывает на структуру CONTEXT 
+(см. главу 7), содержимое которой зависит от типа процессора. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>С помощью 
+этой структуры, в основном содержащей по одному элементу для каж дого регистра 
+процессора, можно получить дополнительную информацию о возник шем исключении. 
+Увы, это потребует написания машинно-зависимого кода, способ ного распознавать 
+тип процессора и использовать подходящую для пего структуру CONTEXT. При этом 
+Вам придется включить в код набор директив <I>#ifdef </I>для<I> </I>разных типов 
+процессоров. Структуры CONTEXT для различных процессоров, поддерживае мых 
+Windows, определены в заголовочном файле WinNT.h, </FONT></P>
+
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h24t7></A>Программные исключения </FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>До сих пор мы 
+рассматривали обработку аппаратных исключений, когда процессор перехватывает 
+некое событие и возбуждает исключение. Но Вы можете и сами гене рировать 
+исключения. Это еще один способ для функции сообщить о неудаче выз вавшему ее 
+коду, Традиционно функции, которые могут закончиться неудачно, воз вращают некое 
+особое значение — признак ошибки. При этом предполагается, что код, вызвавший 
+функцию, проверяет, не вернула ли она это особое значение, и, если да, выполняет 
+какие-то альтернативные операции. Как правило, вызывающая функция проводит в 
+таких случаях соответствующую очистку и в свою очередь тоже возвра щает код 
+ошибки. Подобная передача кодов ошибок по цепочке вызовов резко услож няет 
+написание и сопровождение кода. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Альтернативный подход заключается в том, что при неудачном вызове функции 
+возбуждают исключения. Тогда написание и сопровождение кода становится гораздо 
+проще, а программы работают намного быстрее. Последнее связано с тем, что та 
+часть кода, которая отвечает за контроль ошибок, вступает в действие лишь при 
+сбоях, т. e. в исключительных ситуациях. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>К сожалению, 
+большинство разработчиков не привыкло пользоваться исключени ями для обработки 
+ошибок. На то есть двс причины Во-первых, многие просто не знакомы с SEH. Если 
+один разработчик создаст функцию, которая генерирует исклю чение, а другой не 
+сумеет написать SEH-фрейм для перехвата этого исключения, его приложение при 
+неудачном вызове функции будет завершено операционной системой </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вторая 
+причина, по которой разработчики избегают пользоваться SEH, — невоз можность его 
+переноса на другие операционные системы. Ведь компании нередко выпускают 
+программные продукты, рассчитанные на несколько операционных сис тем, и, 
+естественно, предпочитают работать с одной базой исходного кода для каж дого 
+продукта. А структурная обработка исключений — это технология, специфич ная для 
+Windows. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы все 
+же решились на уведомление об ошибках через исключения, я аппло дирую этому 
+решению и пишу этот раздел специально для Вас. Давайте для начала посмотрим на 
+семейство <I>Неар-функции (HeapCreate, НеарАllос </I>и т. д.). Наверное, Вы 
+помните из главы 18, что они предлагают разработчику возможность выбора. Обыч 
+но, когда их вызовы заканчиваются неудачно, они возвращают NULL, сообщая об 
+ошибке. Но Вы можете передать флаг HEAP_GENERATE_EXCEPTIONS, и тогда при не 
+удачном вызове <I>Неар-функция </I>не станет возвращать NULL; вместо этого она 
+возбу дит программное исключение STATUS_NO_MEMORY, перехватываемое с помощью 
+SEH-фрейма. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+использовать это исключение, напишите код блока <I>try </I>так, будто выделе ние 
+памяти всегда будет успешным; затем — в случае ошибки при выполнении дан ной 
+операции Вы сможете либо обработать исключение в блоке <I>except, </I>либо зас 
+тавить функцию провести очистку, дополнив блок <I>try </I>блоком<I> finally. 
+</I>Очень удобно! </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Программные 
+исключения перехватываются точно так же, как и аппаратные, Ина че говоря, все, 
+что я рассказывал об аппаратных исключениях, в полной мере отно сится и к 
+программным исключениям. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В этом 
+разделе основное внимание мы уделим тому, как возбуждать программные исключения 
+в функциях при неудачных вызовах. В сущности, Вы можете реализовать свои функции 
+по аналогии с<I> Heap</I>-функциями: пусть вызывающий их код передаст 
+специальный флаг, который сообщает функциям способ уведомления об ошибках. 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Возбудить 
+программное исключение несложно — достаточно вызвать функцию 
+<I>RaiseException:</I> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>VOTD 
+  RaiseException( OWORD dwExceptionCode, DWORD dwExceptionFlags, DWORD 
+  nNumberOfArguments, CONST ULONG_PTR *pArguments); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ее первый 
+параметр, <I>dwExceptionCode, — </I>значение, которое идентифицирует ге 
+нерируемое исключение. <I>HeapAlloc </I>передает в нем STATUS_NO_MEMORY. Если Вы 
+определяете собственные идентификаторы исключений, придерживайтесь формата, 
+применяемого для стандартных кодов ошибок в Windows (файл WinError.h) Не забудь 
+те, что каждый такой код представляет собой значение типа DWORD, его поля описа 
+ны в таблице 24-1. Определяя собственные коды исключений, заполните все пять его 
+полей </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>биты 31 и 
+  30 должны содержать код степени «тяжести»; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>бит 29 
+  устанавливается в 1 (0 зарезервирован для исключений, определяемых Microsoft, 
+  вроде STATUS_NO_MEMORY для <I>HeapAlloc);</I> </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>бит 28 
+  должен быть равен 0; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>биты 27-l6 
+  должны указывать один из кодов подсистемы, предопределенных Microsoft; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>биты 15-0 
+  Moгут содержать произвольное значение, идентифицирующее ту часть Вашего 
+  приложения, которая возбуждает исключение. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+параметр функции <I>RaiseException — dwExceptionFlags — </I>должен быть либо 0, 
+либо EXCEPTION_NONCONTINUABLE. В принципе этот флаг указывает, может ли фильтр 
+исключений вернуть EXCEPTION_CONTINUE_EXECUTION в ответ на дан ное исключение. 
+Если Вы передаете в этом параметре нулевое значение, фильтр мо жет вернуть 
+EXCEPTION_CONTlNTJE_EXECUTION В нормальной ситуации это заста вило бы поток 
+снова выполнить машинную команду, вызвавшую программное исклю чение Однако 
+Microsoft пошла на некоторые ухищрения, и поток возобновляет вы полнение с 
+оператора, следующего за вызовом <I>RaiseExcepiton</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но, передав 
+функции <I>RaiseException </I>флаг EXCEPTION_NONCONTINUABLE, Вы со общаете 
+системе, что возобновить выполнение после данного исключения нельзя. 
+Операционная система использует этот флаг, сигнализируя о критических (фаталь 
+ных) ошибках. Например, <I>HeapAlloc </I>устанавливает этот флаг при возбуждении 
+про граммного исключения STATUS_NO_MEMORY, чтобы указать системе: выполнение 
+продолжить нельзя Ведь если вся память занята, выделить в нсй новый блок и про 
+должить выполнение программы не удастся. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+возбуждается исключение EXCEPTION_NONCONTINUABLE, а фильтр все же возвращает 
+EXCEPTION_CONTINUE EXECUTION, система генерирует новое исключе ние 
+EXCEPTION_NONCONTINUABLE_EXCEPTION. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При обработке 
+программой одного исключения вполне вероятно возбуждение нового исключения И 
+смысл в этом есть. Раз уж мы остановились на этом месте, за мечу, что нарушение 
+доступа к памяти возможно и в блоке<I> finally, </I>и в фильтре исклю чений, и в 
+обработчике исключений. Когда происхидит нечто подобное, система со здает список 
+исключений. Помните функцию <I>GetExceptionlnformation? </I>Она возвращает адрес 
+структуры EXCEPTION_POINTERS Ее элемент <I>ExceptionRecord</I> указывает на 
+струк туру EXCEPTION_RECORD, которая в свою очередь тоже содержит элемент 
+<I>Exception-</I> </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3><I>Record. 
+</I>Он указывает на другую структуру EXCEPTION_RECORD, где содержится ин 
+формация о предыдущем исключении. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно 
+система единовременно обрабатывает только одно исключение, и эле мент 
+<I>ExceptionRecord </I>равен NULL. Ho если исключение возбуждается при обработке 
+другого исключения, то в первую структуру EXCEPTION_RECORD помещается инфор 
+мация о последнем исключении, а ее элемент <I>ExecptionRecord</I> указывает на 
+аналогич ную структуру с аналогичными данными о предыдущем исключении. Если есть 
+и дру гие необработанные исключения, можно продолжить просмотр этого связанного 
+списка структур EXCEPTION_RECORD, чтобы определить, как обработать конкретное 
+исключение. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третий и 
+четвертый параметры <I>(nNumberOfArguments</I> и <I>pArguments) </I>функции 
+<I>Raise Exception </I>позволяют передать дополнительные данные о генерируемом 
+исключении Обычно это не нужно, и <I>pArguments </I>передается NULL; тогда 
+<I>RaiseException </I>игнори рует параметр <I>nNumberOfArguments. </I>А если Вы 
+передаете дополнительные аргументы, <I>nNumberOfArguments </I>должен содержать 
+число элементов в массиве типа ULONGPTR, на который указываетр 
+<I>pArguments</I>. Значение <I>nNumberOfArguments </I>не может быть боль ше 
+EXCEPTION_MAXIMUM_PARAMETERS (в файле WinNT.h этот идентификатор опре делен 
+равным 15)<I>.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При обработке 
+исключения написанный Вами фильтр — чтобы узнать значения <I>nNumberOfArguments 
+</I>и <I>pArguments </I>— может ссылаться на элементы <I>NumberParameters </I>и 
+<I>Exceptionlnformation </I>структуры EXCEPTION_RECORD </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Собственные 
+программные исключения генерируют в приложениях по целому ряду причин. Например, 
+чтобы посылать информационные сообщения в системный журнал событий. Как только 
+какая-нибудь функция в Вашей программе столкнется с той или иной проблемой, Вы 
+можете вызвать <I>RaiseException; </I>при этом обработчик исключений следует 
+разместить выше по дереву вызовов, тогда — в зависимости от типа исключения — он 
+будет либо заносить его в журнал событий, либо сообщать о нем пользователю. 
+Вполне допустимо возбуждать программные исключения и для уведомления о 
+внутренних фатальных ошибках в приложении. </FONT></P>
+<HR>
+
+<P>
+<A href="head23.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head25.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>

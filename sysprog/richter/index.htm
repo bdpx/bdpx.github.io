@@ -1,0 +1,533 @@
+<HTML><HEAD>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<base target="_self">
+<BODY>
+
+<script language="JavaScript">docopen();</script>
+
+<P><FONT face="Arial, Helvetica, sans-serif"><B><FONT color=#009900>Джеффри РИХТЕР</FONT></B></FONT></P>
+<P><FONT size=5><B><FONT face="Arial, Helvetica, sans-serif" color=#990000>ADVANCED WINDOWS</FONT></B> </FONT></P>
+
+<!--
+<P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>Создание эффективных WIN32-приложений с учетом специфики 64-разрядной версии Windows</FONT></P>
+-->
+
+
+<P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>Создание эффективных WIN32-приложений: проблемы системного программирования</FONT></P>
+<HR>
+
+<!--
+<P><FONT size=1><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff><A href="bb.htm">Выходные данные</A></FONT></B></FONT></P>
+-->
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="intro.htm">Введение</A></FONT></B></P>
+<BR>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=3>ЧАСТЬ 1 Материалы для обязательного чтения</FONT></B></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head01.htm#head1">Глава 1 Обработка ошибок</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head01.htm#head1top1">Вы тоже можете это сделать</A></FONT></B></H2>
+  <P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head01.htm#head1top2">Программа-пример ErrorShow</A></FONT></B></P>
+</BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head02.htm#head2">Глава 2 Unicode</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top1">Наборы символов</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top1p1">Одно- и двухбайтовые наботы символов</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top1p2">Unicode: набор "широких" символов</A></FONT></I></H2></BLOCKQUOTE>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top2">Почему Unicode?</A></B></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top3">Windows 2000 и Unicode</A></B></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top4">Windows 98 и Unicode</A></B></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top5">Windows CE и Unicode</A></B></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top6">В чью пользу счет?</A></B></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top7">Unicode и COM</A></B></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head02.htm#head2top8">Как писать программу с использованием Unicode</A></B></FONT></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top8p1">Unicode и библиотека С</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top8p2">Типы данных, определенные в Windows для Unicode</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top8p3">Unicode- и ANSI-функции в Windows</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top8p4">Строковые функции Windows</A></FONT></I></H2></BLOCKQUOTE>
+    <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top9">Создание программ, способных использовать и ANSI, и Unicode</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top9p1">Ресурсы</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top9p2">Текстовые файлы</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head02.htm#head2top9p3">Перекодировка строк из Unicode в ANSI и обратно</A></FONT></I></H2>
+  </BLOCKQUOTE>
+  </BLOCKQUOTE>
+  <P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head03.htm#head3">Глава 3 Объекты ядра</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top1">Что такое объект ядра</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top1p1">Учет пользователей объектов ядра</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top2">Защита</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top2">Таблица описателей объектов ядра</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top2p1">Создание объекта ядра</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top2p2">Закрытие объекта ядра</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top3">Совместное использование объектов ядра несколькими процессами</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top3p1">Наследование описателей объекта</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top3p2">Именованные объекты</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head03.htm#head3top3p3">Дублирование описателей объектов</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P>&nbsp;</P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=3>ЧАСТЬ 2 НАЧИНАЕМ РАБОТАТЬ</FONT></B><BR></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head04.htm#h1">ГЛАВА 4 Процессы</A><BR></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1">Ваше первое Windows-приложение</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p1">Описатель экземпляра процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p2">Описатель предыдущего экземпляра процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p3">Командная строка процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p4">Переменные окружения</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p5">Привязка к процессорам</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p6">Режим обработки ошибок</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p7">Текущие диск и каталог для процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t1p8">Определение версии системы</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2">Функция CreateProcess</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p1">Параметр pszAppticationName и pszCommandLine</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p2">Параметр psaProcess, psaThread и bInhentHaneiles</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p3">Параметр fdwCreate</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p4">Параметр pvEnviroment</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p5">Параметр pszCurDir</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p7">Параметр pszStartlnfo</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t2p8">Пapaметр ppiProcInfo</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t3">Завершение процесса</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t3p1">Возврат управления входной функцией первичного потока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t3p2">Функция ExitProcess</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t3p3">Функция TerminateProcess</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t3p4">Когда все потоки процесса уходят</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t3p5">Что происходит при завершении процесса</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t4">Дочерние процессы</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t4p1">Запуск обособленных дочерних процессов</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t5">Перечисление процессов, выполняемых всистеме</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head04.htm#h1t5p1">Программа-пример ProcessInfo</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head05.htm#h5">ГЛАВА 5 Задания</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head05.htm#h5t1">Определение ограничений налагаемых на процессы взадании</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head05.htm#h5t2">Включение процесса в задание</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head05.htm#h5t3">Завершение всех процессов в задании</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head05.htm#h5t4">Получение статистической информации о задании</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head05.htm#h5t5">Уведомления заданий</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head05.htm#h5t6">Программа-пример JobLab</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head06.htm#h6">ГЛАВА 6 Базовые сведения о потоках</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t1">В каких случаях потоки создаются</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t2">И в каких случаях потоки не создаются</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t3">Ваша первая функция потока</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t4">Функция <I>СrеаtеThread</I></A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t4p1">Параметр psa</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t4p2">Параметр cbStack</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t4p3">Параметры pfnStartAddr и pvParam</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t4p4">Параметр fdwCreate</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t4p5">Параметр pdwThreadID</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t5">Завершение потока</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t5p1">Возврат управления функцией потока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t5p2">Функция ExitThread</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t5p3">Функция TerminateThread</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t5p4">Если завершается процесс</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t5p5">Что происходит при завершении потока</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t6">Кое-что о внутреннем устройстве потока</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t7">Некоторые соображения по библиотеке С/С++</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t7p1">Ой, вместо _beginthreadex я по ошибке вызвал CreateThread</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t7p2">Библиотечные функции, которые лучше не вызьшать</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t8">Как узнать о себе</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head06.htm#h6t8p1">Преобразование псевдоописателя в настоящий описатель</A></FONT></I></H2>
+</BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head07.htm#h1">ГЛАВА 7 Планирование потоков, приоритет и привязка к процессорам</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h1t1">Приостановка и возобновление потоков</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h1t2">Приостановка и возобновление процессов</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h1t3">Функция Sleep</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h1t4">Переключение потоков</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h1t5">Определение периодов выполнения потока</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t6">Структура CONTEXT</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t7">Приоритеты потоков</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t8">Абстрагирование приоритетов</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t9">Программирование приоритетов</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t9p1">Динамическое изменение уровня приоритета потока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t9p2">Подстройка планировщика для активного процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t9p3">Программа-пример Scheduling Lab</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head07.htm#h7t10">Привязка потоков к процессорам</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head08.htm#h8">ГЛАВА 8 Синхронизация потоков в пользовательском режиме</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t1">Атомарныйдоступ: семейство Interlocked-функций</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t2">Кэш-линии</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t3">Более сложные методы синхронизации потоков</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t3p1">Худшее, что можно сделать</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t4">Критические секции</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t4p1">Критические секции: важное дополнение</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t4p2">Критические секции и спин-блокировка</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t4p3">Критические секции и обработка ошибок</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head08.htm#h8t4p4">Несколько полезных приемов</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head09.htm#h9">ГЛАВА 9 Синхронизация потоков с использованием объектов ядра</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t1">Wait-функции</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t2">Побочные эффекты успешного ожидания</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t3">События</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t3p1">Программа-пример Handshake</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t4">Ожидаемые таймеры</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t4p1">Ожидаемые таймеры и АРС-очередь</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t4p2">И еще кое-что о таймерах</A></FONT></I></H2>
+</BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t5">Семафоры</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t6">Мьютексы</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t6p1">Мьютексы и критические секции</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t6p2">Программа-пример Queue </A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t7">Сводная таблица объектов, используемых для синхронизации потоков</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t8">Другие функции, применяемые в синхронизации потоков</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t8p1">Асинхронныйввод-выводнаустройствах</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t8p2">Функция WaitForlnputIdle</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t8p3">Функция MsgWatiForMultipleObjects(Ex)</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t8p4">Функция WaitForDebugEvent</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head09.htm#h9t8p5">Функция SignalObjectAndWait</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head10.htm#h10">ГЛАВА 10 Полезные средства для синхронизации потоков</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head10.htm#h10t1">Реализация критической секции: объект-оптекс</A></B></FONT></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t1p1">Программа-пример Optex</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t2">Создание инверсных семафоров и типов данных, безопасных в многопоточной 
+  среде</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t2p1">Программа-пример InterlockedType</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t3">Синхронизация в сценарии "один писатель/группа читателей"</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t3p1">Программу-пример SWMRG</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t4">Реализация функции WaitForMultipleExpressions</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head10.htm#h10t4p1">Программа-пример WaitForMultExp</A></FONT></I></H2>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head11.htm#h11">ГЛАВА 11 Пулы потоков</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head11.htm#h11t1">Сценарий 1: асинхронный вызов функций</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head11.htm#h11t2">Сценарий 2: вызов функций через определенные интервалы времени</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head11.htm#h11t2p1">Программа-пример TimedMsgBox</A></FONT></I></H2>
+</BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head11.htm#h11t3">Сценарий 3: вызов функций при освобождении отдельных объектов ядра</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head11.htm#h11t4">Сценарий 4: вызов функций по завершении запросов на асинхронный 
+  ввод-вывод</A></FONT></B></H2></BLOCKQUOTE>
+<P><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><B><A href="head12.htm#h12">ГЛАВА 12 Волокна</A></B></FONT></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head12.htm#h12t1">Работа с волокнами</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head12.htm#h12t1p1">Программа-пример Counter</A></FONT></I></H2>
+</BLOCKQUOTE></BLOCKQUOTE>
+<P></P>
+<P><FONT face=Arial color=#990000 size=3><B>ЧАСТЬ III УПРАВЛЕНИЕ ПАМЯТЬЮ</B></FONT><BR></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head13.htm#h13">ГЛАВА 13 Архитектура памяти в Windows</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head13.htm#h13t1">Виртуальное адресное пространство процесса</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head13.htm#h13t2">Как адресное пространство разбивается на разделы</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t2p1">Раздел для выявления нулевых указателей (Windows 2000 и Windows 98)</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t2p2">Раздел для совместимости с программами DOS и 16-разрядной Windows (только Windows 98)</A></FONT></I>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t2p3">Раздел для кода и данных пользовательского режима (Windows 2000 и Windows 98)</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t2p4">Зaкpытый paздeл paзмеpoм 64Kб (тoлько Windows2000)</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t2p5">Раздел для общих MMF (только Windows 98)</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t2p6">Раздел для кода и данных режима ядра (Windows 2000 и Windows 98)</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t3">Регионы в адресном пространстве</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t4">Передача региону физической памяти</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t5">Физическая память и страничный файл</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t5p1">Физическая память в страничном файле не хранится</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t6">Атрибуты защиты</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t6p1">Защита типа «копирование при записи»</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t6p2">Специальные флаги атрибутов защиты</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t7">Подводя итоги</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t7p1">Блоки внутри регионов</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t7p2">Ocoбeнности адресного пространства в Windows98</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head13.htm#h13t8">Выравнивание данных</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head14.htm#h14">ГЛАВА 14 Исследование виртуальной памяти</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head14.htm#h14t1">Системная информация</A></B></FONT></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head14.htm#h14t1p1">Программа-пример SysInfo</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head14.htm#h14t2">Статус виртуальной памяти</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head14.htm#h14t2p1">Программа-пример VMStat</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head14.htm#h14t3">Определение состояния адресного пространства</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A     href="head14.htm#h14t3p1">Функция VMQuery</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A     href="head14.htm#h14t3p2">Программа-пример VММар</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head15.htm#h15">ГЛАВА 15 Использование виртуальной памяти в приложениях</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head15.htm#h15t1">Резервирование региона в адресном пространстве</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head15.htm#h15t2">Передача 
+  памяти зарезервированному региону</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head15.htm#h15t3">Резервирование региона с одновременной передачей физической памяти</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head15.htm#h15t4">В какой момент региону передают физическую память</A></FONT></B></H2>
+  <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A   href="head15.htm#h15t5">Возврат физической памяти и освобождение региона</A></B></FONT></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A     href="head15.htm#h15t5p1">В какой момент физическую память возвращают системе</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A     href="head15.htm#h15t5p2">Программа-пример VMAlloc</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head15.htm#h15t6">Изменение атрибутов защиты</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head15.htm#h15t7">Сброс содержимого физической памяти</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A     href="head15.htm#h15t7p1">Программа-пример MemReset</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A   href="head15.htm#h15t8">Механизм Address Windowing Extensions (только Windows 2000)</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head15.htm#h15t8p1">Программа-пример AWE</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head16.htm#h16">ГЛАВА 16 Стек потока</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head16.htm#h16t1">Стек потока в Windows 98</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head16.htm#h16t2">Функция из библиотеки С/С++ для контроля стека</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head16.htm#h16t3">Программа-пример Summation</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head17.htm#h17">ГЛАВА 17 Проецируемые в память файлы</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t1">Проецирование в память EXE- и DLL-файлов</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t1p1">Статические данные нс разделяются несколькими экземплярами EXE или 
+    DLL</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t1p2">Статические данные разделяются несколькими экземплярами EXE или DLL</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t1p3">Программа-пример AppInst</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t2">Файлы данных, проецируемые в память</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t2p1">Метод 1; один файл, один буфер</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t2p2">Метод 2. два файла, один буфер</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t2p3">Метод 3: один файл, два буфер</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t2p4">Метод 4: один файл и никаких буферов</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3">Использование проецируемых в память файлов</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3p1">Этап 1: создание или открытие объекта ядра «файл»</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3p2">Этап 2: создание объекта ядра «проекция файла»</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3p3">Этап 3: проецирование файловых данных па адресное пространство 
+    процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3p4">Этап 4: отключение файла данных от адресного пространства процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3p5">Этапы 5 и 6: закрытие объектов «проекция файла» и «файл"</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t3p6">Программа-пример FileRev</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t4">Обработка больших файлов</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t5">Проецируемые файлы и когерентность</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t6">Базовый адрес файла, проецируемого в память</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t7">Особенности проецирования файлов на разных платформах</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t8">Совместный доступ процессов к данным через механизм проецирования</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t9">Файлы, проецируемые на физическую память из страничного файла</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t9p1">Программа-пример MMFShare</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t10">Частичная передача физической памяти проецируемым файлам</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head17.htm#h17t10p1">Программа-пример MMFSparse</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head18.htm#h18">ГЛАВА 18 Динамически распределяемая память</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t1">Стандартная куча процесса</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t2">Дополнительные кучи в процессе</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t2p1">Защита компонентов</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t2p2">Более эффективное управление памятью</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t2p3">Локальный доступ</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t2p4">Исключение издержек, связанных с синхронизацией потоков</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t2p5">Быстрое освобождение всей памяти в куче</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3">Создание дополнительной кучи</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3p1">Выделение блока памяти из кучи</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3p2">Изменение размера блока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3p3">Определение размера блока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3p4">Освобождение блока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3p5">Уничтожение кучи</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t3p6">Использование куч в программах на С++</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head18.htm#h18t4">Другие функции управления кучами</A></FONT></B></H2></BLOCKQUOTE>
+<P></P>
+<P><FONT face=Arial size=3><B><FONT color=#990000>ЧАСТЬ IV</FONT></B></FONT> 
+<FONT color=#990000><B><FONT face=Arial size=3>ДИНАМИЧЕСКИ ПОДКЛЮЧАЕМЫЕ БИБЛИОТЕКИ</FONT></B></FONT></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head19.htm#h19">ГЛАВА 19 DLL основы</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t1">DLL и адресное пространство процесса</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t2">Общая картина</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t3">Создание DLL-модуля</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t3p1">Что такое экспорт</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t3p2">Создание DLL для использования с другими средствами разработки (отличными от Visuai 
+    С++)</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t4">Создание ЕХЕ-модуля</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t4p1">Что такое импорт</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head19.htm#h19t5">Выполнение ЕХЕ-модуля</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head20.htm#h20">ГЛАВА 20 DLL: более сложные методы программирования</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t1">Явная загрузка DLL и связывание идентификаторов</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t1p1">Явная загрузка DLL</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t1p2">Явная выгрузка DLL</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t1p3">Явное подключение экспортируемого идентификатора</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2">Функция входа/выхода</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2p1">Уведомление DLL_PROCESS_ATTACH</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2p2">Уведомление DLL_PROCESS_DETACH</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2p3">Уведомление DLL_THREAD_ATTACH</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2p4">Уведомление DLL_THREAD_DETACH</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2p5">Как система упорядочивает вызовы DllMain</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t2p6">Функция DllMain и библиотека С/С++</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t3">Отложенная загрузка DLL</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t3%E71">Программа-пример DelayLoadApp</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t4">Переадресация вызовов функций</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t5">Известные DLL</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t6">ПepeнaпpaвлeниeDLL</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t7">Модификация базовых адресов модулей</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head20.htm#h20t8">Связывание модулей</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head21.htm#h21">ГЛАВА 21 Локальная память потока</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head21.htm#h21t1">Динамическая локальная память потока</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head21.htm#h21t1p1">Использование динамической TLS</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head21.htm#h21t2">Статическая локальная память потока</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head22.htm#h22">ГЛАВА 22 Внедрение DLL и перехват API-вызовов</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t1">Пример внедрения DLL</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t2">Внедрение DLL с использованием реестра</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t3">Внедрение DLL с помощью ловушек</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t3p1">Утилита для сохранения позиций элементов на рабочем 
+  столе</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t4">Внедрение DLL спомощьюудаленныхпотоков</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t4p1">Программа-пример InjLib</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t4p2">Библиотека ImgWalk.dll</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t5">Внедрение троянской DLL</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t6">Внедрение DLL как отладчика</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t7">Внедрение кода в среде Windows 98 через проецируемый в память файл</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t8">Внедрение кода через функцию CreateProcess</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t9">Перехват API-вызовов: пример</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t9p1">Перехват API-вызовов подменой кода</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t9p2">Перехват API-вызовов с использованием раздела импорта</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head22.htm#h22t9p3">Программа-пример LastMsgBoxInfo</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P></P>
+<P><FONT face="Times New Roman" color=#990000 size=3><B><FONT face="Arial, Helvetica, sans-serif">ЧАСТЬ V </FONT></B></FONT>
+<FONT face="Arial, Helvetica, sans-serif"><B><FONT color=#990000 size=3>СТРУКТУРНАЯ ОБРАБОТКА ИСКЛЮЧЕНИЙ</FONT></B></FONT></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head23.htm#h23">ГЛАВА 23 Обработчики завершения</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1">Примеры использования обработчиков завершения</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p1">Funcenstein1</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p2">Funcenstein2</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p3">Funcenstein3</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p4">Funcfurter1</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p5">Проверьте себя: FuncaDoodleDoo</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p6">Funcenstein4</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p7">Funcaramal</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p8">Funcarama2</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p9">Funcarama3</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p10">Funcarama4- 
+    последний рубеж</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p11">И еще о блоке finally</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p12">Funcfurter2</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head23.htm#h23t1p13">Программа-пример SEHTerm</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head24.htm#h24">ГЛАВА 24 Фильтры и обработчики исключений</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head24.htm#h24t1">Примеры использования фильтров и обработчиков исключений</A></B></FONT></H2>
+  <BLOCKQUOTE>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><I><A href="head24.htm#h24t1p1">Funcmeisterl</A></I></FONT></H2>
+    <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><I><A href="head24.htm#h24t1p2">Funcmeister2</A></I></FONT></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t2">EXCEPTION_EXECUTE_HANDLER</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t2p1">Некоторые полезные примеры</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t2p2">Глобальная раскрутка</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t2p3">Остановка глобальной раскрутки</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t3">EXCEPTION_CONTINUE_EXECUTION</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t3p1">Будьте осторожны с EXCEPTION_CONTINUE_EXECUTION</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t4">EXCEPTION_CONTINUE_SEARCH</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t5">Функция GetExceprtonCode</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t6">Функция GetExceptionlnformation</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head24.htm#h24t7">Программные исключения</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head25.htm#h25">ГЛАВА 25 Необработанные исключения и исключения С++</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t1">Отладка по запросу</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t2">Отключениевыводасообщенийобисключении</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t2p1">Принудительное завершение процесса</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t2p2">Создание оболочки вокруг функции потока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t2p3">Создание оболочки вокруг всех функций потоков</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t2p4">Автоматический вызов отладчика</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t3">Явный вызов функции <I>UnhandledExceptionFilter</I></A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t4">Функция <I>UnhandledExceptionFilter</I> изнутри</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t5">Исключения и отладчик</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t5p1">Программа-пример Spreadsheet</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A href="head25.htm#h25t6">Исключения С++ и структурные исключения</A></B></FONT></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head25.htm#h25t6p1">Перехват структурных исключений в С++</A></FONT></I></H2>
+</BLOCKQUOTE></BLOCKQUOTE>
+<P></P>
+<P><FONT face=Arial color=#990000 size=3><B>ЧАСТЬ VI ОПЕРАЦИИ С ОКНАМИ</B></FONT></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head26.htm#h26">ГЛАВА 26 Оконные сообщения</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t1">Очередь сообщений потока</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t2">Посылка асинхронных сообщений в очередь потока</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t3">Посылка синхронных сообщений окну</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t4">Пробуждение потока</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t4p1">Флаги состояния очереди</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t4p2">Алгоритм выборки сообщений из очереди потока</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t4p3">Пробуждение потока с использованием объектов ядра или флагов состояния 
+    очереди</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t5">Передача данных через сообщения</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t5p1">Программа-пример CopyData</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head26.htm#h26t6">Как Windows манипулирует с ANSI/Unicode-символами и строками</A></FONT></B></H2></BLOCKQUOTE>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A href="head27.htm#h27">ГЛАВА 27 Модель аппаратного ввода и локальное состояние ввода</A></FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t1">Поток необработанного ввода</A></FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t2">Локальное состояние ввода</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t2p1">Ввод с клавиатуры и фокус</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t2p2">Управление курсором мыши</A></FONT></I></H2></BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t3">Подключение к очередям виртуального ввода и переменным локального состояния 
+  ввода</A></FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t3p1">Программа-пример LISLab</A></FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A href="head27.htm#h27t3p2">Программа-пример LISWatch</A></FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P></P>
+
+<!--
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3>ПРИЛОЖЕНИЕ А Среда разработки</FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Заголовочный файл CmnHdr.h</FONT></B></H2>
+  <BLOCKQUOTE>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Раздел Windows Version Build Option</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Раздел Unicode Build Option</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Раздел Windows Definitions и диагностика уровня 4</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Вспомогательный макрос Pragma Message</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макросы chINRANGE и chDIMOF</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макросы BEGINTHREADEX</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Моя реализация DebugBreak для платформы x86</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Определение кодов программных исключений</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макрос chMB</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макросы chASSERT и chVERIFY .</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макрос chHANDLE_DLGMSG</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макрос chSETDLGTCONS</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Встраиваемые функции для проверки версии операционной системы</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Проверка на поддержку Unicode</FONT></I></H2>
+    <H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Принудительное указание компоновщику входной функции (w)WinMain</FONT></I></H2></BLOCKQUOTE></BLOCKQUOTE>
+<P></P>
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3>ПРИЛОЖЕНИЕ Б Распаковщики сообщений, макросы для дочерних элементов управления и API-макросы</FONT></B></P>
+<BLOCKQUOTE>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макросы — распаковщики сообщений</FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Макросы для дочерних элементов управления</FONT></B></H2>
+  <H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>API-макросы</FONT></B></H2></BLOCKQUOTE>
+-->
+
+<P><A href="richter.zip">ZIP: Скачать архив целиком</A></P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

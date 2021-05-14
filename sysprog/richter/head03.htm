@@ -1,0 +1,1336 @@
+<HTML><HEAD>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<TITLE>Системное программирование</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=utf-8">
+<META content="MSHTML 6.00.3790.1039" name=GENERATOR></HEAD>
+<BODY>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=head3></A>ГЛАВА 3 Объекты ядра<BR></FONT></B></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Изучение 
+Windows API мы начнем с объектов ядра и их описателей (handles). Эта глава 
+посвящена сравнительно абстрактным концепциям, т. e. мы, не углубляясь в 
+специфику тех или иных объектов ядра, рассмотрим их общие свойства.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я бы 
+предпочел начать с чего-то более конкретного, но без четкого понимания объектов 
+ядра Вам не стать настоящим профессионалом в области разработки 
+Windows-программ. Эти объекты используются системой и нашими приложениями для 
+управления множеством самых разных ресурсов процессами, потоками, файлами и т. 
+д. Концепции, представленные здесь, будут встречаться на протяжении всей книги. 
+Однако я прекрасно понимаю, что часть материалов не уляжется у Вас в голове до 
+тех пор, пока Вы не приступите к работе с объектами ядра, используя реальные 
+функции. И при чтении последующих глав книги Вы, наверное, будете время от 
+времени возвращаться к этой главе.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top1></A>Что такое объект ядра</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создание, 
+открытие и прочие операции с объектами ядра станут для Вас, как разработчика 
+Windows-приложений, повседневной рутиной. Система позволяет создавать и 
+оперировать с несколькими типами таких объектов, в том числе, маркерами доступа 
+(access token objects), файлами (file objects), проекциями файлов (file-mapping 
+objects), портами завершения ввода-вывода (I/O completion port objects), 
+заданиями (job objects), почтовыми ящиками (mailslot objects), мьютсксами (mutex 
+objects), каналами (pipe objects), процессами (process objects), семафорами 
+(semaphore objects), потоками (thread objects) и ожидаемыми таймерами (waitable 
+timer objects). Эти объекты создаются Windows-функциями Например, 
+CreateFtleMapping заставляет систему<BR>сформировать объект "проекция файла". 
+Каждый объект ядра — на самом деле просто блок памяти, выделенный ядром и 
+доступный только ему. Этот блок представляет собой структуру данных, в элементах 
+которой содержится информация об объекте. Некоторые элементы (дескриптор защиты, 
+счетчик числа пользователей и др.) присутствуют во всех объектах, но большая их 
+часть специфична для объектов конкретного типа. Например, у объекта "процесс" 
+есть идентификатор, базовый приоритет и<BR>код завершения, а у объекта "файл" — 
+смещение в байтах, режим разделения и режим открытия</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+структуры объектов ядра доступны только ядру, приложение не может самостоятельно 
+найти эти структуры в памяти и напрямую модифицировать их содержимое Такое 
+ограничение Microsoft ввела намеренно, чтобы ни одна программа не нарушила 
+целостность структур объектов ядра. Это же ограничение позволяет Microsoft 
+вводить, убирать или изменять элементы структур, нс нарушая работы каких-либо 
+приложений.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но вот 
+вопрос: если мы не можем напрямую модифицировать эти структуры, то как же наши 
+приложения оперируют с объектами ядра? Ответ в том, что в Windows</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>предусмотрен 
+набор функций, обрабатывающих структуры объектов ядра по строго определенным 
+правилам. Мы получаем доступ к объектам ядра только через эти функции. Когда Вы 
+вызываете функцию, создающую объект ядра, она возвращает описатель, 
+идентифицирующий созданный объект, Описатель следует рассматривать как 
+"непрозрачное" значение, которое может быть использовано любым потоком Вашего 
+процесса. Этот описатель Вы передаете Windows-функциям, сообщая системе, 
+какой<BR>объект ядра Вас интересует. Но об описателях мы поговорим позже (в этой 
+главе).</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для большей 
+надежности операционной системы Microsoft сделала так, чтобы значения описателей 
+зависели от конкретного процесса. Поэтому, если Вы передадите такое значение (с 
+помощью какого-либо механизма межпроцессной связи) потоку другого процесса, 
+любой вызов из того процесса со значением описателя, полученного в Вашем 
+процессе, даст ошибку. Но не вользуйтесь, в конце главы мы рассмотрим три 
+механизма корректного использования несколькими процессами одного объекта 
+ядра.</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top1p1></A>Учет пользователей объектов ядра</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты ядра 
+принадлежат ядру, а не процессу. Иначе говоря, если Ваш процесс вызывает 
+функцию, создающую объект ядра, а затем завершается, объект ядра может быть не 
+разрушен. В большинстве случаев такой объект все же разрушается; но если 
+созданный Вами объект ядра используется другим процессом, ядро запретит 
+разрушение объекта до тех пор, пока от него не откажется и тот 
+процесс.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ядру 
+известно, сколько процессов использует конкретный объект ядра, посколь ку в 
+каждом объекте есть счетчик числа его пользователей. Этот счетчик — один из 
+элементов данных, общих для всех типов объектов ядра. В момепт создания объекта 
+счетчику присваивается 1. Когда к существующему объекту ядра обращается другой 
+процесс, счетчик увеличивается на 1. А когда какой-то процесс завершается, 
+счетчики всех используемых им объектов ядра автоматически уменьшаются на 1. Как 
+только счетчик какого-либо объекта обнуляется, ядро уничтожает этот 
+объект.</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top2></A>Защита</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Объекты ядра 
+можно защитить дескриптором защиты (security descriptor), который описывает, кто 
+создал объект и кто имеет права на доступ к нему. Дескрипторы защиты обычно 
+используют при написании серверных приложений; создавая клиентское приложение, 
+Вы можете игнорировать это свойство объектов ядра.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>WIN98:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>В Windows 98 дескрипторы защиты отсутствуют, так как она не 
+  предназначена для выполнения серверных приложений. Тем не менее Вы должны 
+  знать о тонкостях, связанных с защитой, и реализовать соответствующие 
+  механизмы, чтобы Ваше приложение корректно работало и в Windows 
+  2000.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Почти все 
+функции, создающие объекты ядра, принимают указатель на структуру 
+SECURITY_ATTRIBUTES как аргумент, например:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateFileMapping(<BR>HANDLE hFile.<BR>PSECURITY_ATTRIBUTES psa,<BR>DWORD 
+  flProtect,<BR>DWORD dwMaximumSizeHigh,<BR>DWORD dwMaximuniSizeLow,<BR>PCTSTR 
+  pszNarne);</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Большинство 
+приложений вместо этого аргумента передает NULL и гоздает объект с защитой по 
+умолчанию. Такая защита подразумевает, что создатель объекта и любой член группы 
+администраторов получают к нему полный доступ, а все прочие к объекту не 
+допускаются Однако Вы можете создать и инициализировать структуру 
+SECURITY_ATTRIBUTES, а затем передать ее адрес. Она выглядит так:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _SECURITY_ATTRIBUTES {<BR>DWORD nLength,<BR>LPVOID 
+  lpSecurityDescriptor;<BR>BOOL bInherttHandle;<BR>} 
+  SECURITY_ATTRIBUTES;</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Хотя 
+структура называется SECURITY__ATTRIBUTES, лишь один cc элемент имеет отношение 
+к защите — lpSecuntyDescnptor. Если надо ограничить доступ к созданному Вами 
+объекту ядра, создайте дескриптор защиты и инициализируйте структуру 
+SECURITY_ATTRIBUTES следующим образом:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SECURITY_ATTRIBUTES sa;</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>sa.nLength = 
+  sizeof(sa); // используется для выяснения версий<BR>sa.lpSecuntyDescriptor = 
+  pSD, // адрес инициализированной SD<BR>sa.bInheritHandle = FALSE; // об этом 
+  позже<BR>HANDLE hFileMapping = CreateFileMapping(INVALID_HANDLE_VALUE, 
+  &amp;sa, PAGE_REAOWRITE, 0, 1024, "MyFileMapping");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрение 
+элемента bInheritHandle я отложу до раздела о наследовании, так как этот элемент 
+не имеет ничего общего с защитой.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Желая 
+получить доступ к существующему объекту ядра (вместо того чтобы создавать 
+новый), укажите, какие операции Вы намерены проводить над обьектом. Например, 
+если бы я захотел считывать данные из существующей проекции файла, то вызвал бы 
+функцию OpenFileMapping таким образом;<BR></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  hFileMapping = OpenFileMapping(FILE_MAP_READ, FALSE, 
+  "MyFileMapping");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Передавая 
+FILE_MAPREAD первым параметром в функцию OpenFileMapping, я сообщаю, что, как 
+только мне предоставят доступ к проекции файла, я буду считывать из нее данные. 
+Функция OpenFileMapping, прежде чсм вернуть действительный описатель, проверяет 
+тип защиты объекта. Если меня, как зарегистрировавшегося пользователя, допускают 
+к существующему объекту ядра "проекция файла", OpenFileMapping возвращает 
+действительный описатель. Но если мне отказывают в доступе, 
+OpenFileMapping<BR>возвращает NULL, а вызов GetLastError дает код ошибки 5 (или 
+ERROR_ACCESS_DENIED). Но опять же, в основной массе приложений защиту не 
+используют, и поэтому я больше не буду задерживаться на этой теме</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 
+  98:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Хотя в большинстве приложений нет нужды беспокоиться о защите, 
+  многие функции Windows требуют, чтобы Вы передавали им информацию о нужном 
+  уровне защиты. Некоторые приложения, написанные для Windows 98, в Windows 2000 
+  толком не работают из-за того, что при их реализации не было уделено должного 
+  внимания защите.</FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Представьте, 
+  что при запуске приложение считывает данные из какого-то раздела реестра Чтобы 
+  делать это коррекчно, оно должно вызывать функцию RegOpenKeyEx, передавая 
+  значение KEY_QUERY_VALUE, которое разрешает операцию чтения в указанном 
+  разделе.</FONT></P></BLOCKQUOTE>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Однако 
+  многие приложения для Windows 98 создавались без учета специфики Windows 2000 
+  Поскольку Windows 98 не защищает свой реестр, разработчики часто вызывали 
+  RegQpenKeyEx со значением KEY_ALL_ACCESS. Так проще и не надо ломать голову 
+  над том, какой уровень доступа требуется на самом деле. Но проблема в том, что 
+  раздел реестра может быть доступен для чтения и блокирован для записи. В 
+  Windows 2000 вызов RegOpenKeyEx со значением KEY_ALL_ACCESS заканчивается 
+  неудачно, и без соответствующего контроля ошибок приложение может повести себя 
+  совершенно непредсказуемо.</FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2>Если бы 
+  разработчик хоть немного подумал о защите и поменял значение KEY_ALL_ACCESS на 
+  KEY_QUERY_VALUE (только-то и всего!), его продукт мог бы работать в обеих 
+  операционных системах</FONT></P>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2>Пренебрежение флагами, определяющими уровень доступа, — одна из самых 
+  крупных ошибок, совершаемых разработчиками Правильное их использование 
+  позволило бы легко перенести многие приложения Windows 98 в Windows 
+  2000</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме 
+объектов ядра Ваша программа может использовать объекты других типов — меню, 
+окна, курсоры мыши, кисти и шрифты. Они относятся к объектам User или GDI 
+Новичок в программировании для Windows может запутаться, пытаясь отличить 
+объекты User или GDI от объектов ядра. Как узнать, например, чьим объектом — 
+User или ядра — является данный значок? Выяснить, не принадлежит ли объект ядру, 
+проще всего так проанализировать функцию, создающую объект. Практически у всех 
+функций, создающих объекты ядра, есть параметр, позволяющий указать атрибуты 
+защиты, — как у CreateFileMapping.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В то же время 
+у функций, создающих объекты User или GDI, нет параметра типа 
+PSECURITY_ATTRIBUTES, и пример тому — функция CreateIcon</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HICON 
+  CreateIcon(<BR>HINSTANCE hinst.<BR>int nWidth,<BR>int nHeight,<BR>BYTE 
+  cPlanes,<BR>BYTE cBitsPixel,<BR>CONST BYTE *pbANDbits,<BR>CONST BYTE 
+  *pbXORbits);</FONT></P></BLOCKQUOTE>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top2></A>Таблица описателей объектов ядра</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+инициализации процесса система создает в нем таблицу описатслсй, используемую 
+только для объектов ядра. Сведения о структуре этой таблицы и управлении ею 
+незадокументированы Вообще-то я воздерживаюсь от рассмотрения недокументиро 
+ванных частей операционных систем. Но в данном случае стоит сделать исключение, 
+— квалифицированный Windows-программист, на мой взгляд, должен понимать, как 
+устроена таблица описателей в процессе. Поскольку информация о таблице 
+описателей незадокументирована, я не ручаюсь за ее стопроцентную достоверность и 
+к тому же эта таблица по-разному реализуется в Windows 2000, Windows 98 и 
+Windows СЕ. Таким образом, следующие разделы помогут понять, что представляет 
+собой таблица описателей, но вот что система действительно делает с ней — этот 
+вопрос я оставляю открытым.</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В таблице 3-1 
+показано, как выглядит таблица описателей, принадлежащая про цессу Как видите, 
+это просто массив структур данных Каждая структура содержит указатель на 
+какой-нибудь объект ядра, маску доступа и некоторые флаги</FONT></P>
+<TABLE height=82 cellSpacing=0 cellPadding=0 rules=all width=499 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=45 height=37><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Индекс 
+</FONT></TD>
+    <TD vAlign=top align=left width=123 height=37><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Указатель на 
+      блок памяти объекта ядра </FONT></TD>
+    <TD vAlign=top align=left width=160 height=37><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Маска доступа 
+      (DWORD с набором битовых флагов) </FONT></TD>
+    <TD vAlign=top align=left width=161 height=37><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>Флаги (DWORD с 
+      набором битовых флагов)</FONT></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=45 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>1</FONT></TD>
+    <TD vAlign=top align=left width=123 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>0х????????</FONT> </TD>
+    <TD vAlign=top align=left width=160 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>0х????????</FONT> </TD>
+    <TD vAlign=top align=left width=161 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x????????</FONT> </TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=45 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>2</FONT></TD>
+    <TD vAlign=top align=left width=123 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+    size=2>0х????????</FONT></TD>
+    <TD vAlign=top align=left width=160 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+    size=2>0x????????</FONT></TD>
+    <TD vAlign=top align=left width=161 height=24><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+    size=2>0x????????</FONT></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таблица 3-1. 
+Структура таблицы описателей, принадлежащей процессу</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top2p1></A>Создание объекта ядра</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Когда процесс 
+инициализируется в первый paз, таблица описателей еще пуста. Но стоит одному из 
+его потоков вызвать функцию, создающую объект ядра (например, 
+CreateFtleMapping), как ядро выделяет для этого объекта блок памяти и 
+инициализирует его, далее ядро просматривает таблицу описателей, принадлежащую 
+данному процессу, и отыскивает свободную запись. Поскольку таблица еще пуста, 
+ядро обнаруживает структуру с индексом 1 и инициализирует ее. Указатель 
+устанавливается на внутренний адрес структуры данных объекта, маска доступа — на 
+доступ без ограничений и, наконец, определяется последний компонент — флаги (О 
+флагах мы поговорим позжс, в разделе о наследовании )</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот некоторые 
+функции, создающие объекты ядра (список ни в коей мере на полноту не 
+претендует)</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateThread(<BR>PSECURITY_ATTRIBUTES psa,<BR>DWORD 
+  dwStackSize,<BR>PTHREAD_START_ROUTINE pfnStartAddr,<BR>PVOID pvParam,<BR>DWORD 
+  dwCreationFlags,<BR>PDWORD pdwfhreadId);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDEE 
+  CreateFile(<BR>PCTSTR pszFileName,<BR>DWORD dwDesiredAccebS,<BR>DWORD 
+  dwShareMode,<BR>PSECURITY_ATTRIBUTES psa,<BR>DWORD 
+  dwCreationDistribution,<BR>DWORD dwFlagsAndAttnbutes,<BR>HANDEE 
+  hTemplateFile);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateFileMapping(<BR>HANDLE hFile,<BR>PSECURITY_ATTRIBUTES psa,<BR>DWORD 
+  flProtect,<BR>DWORD dwMdximumSizcHigh,<BR>DWORD dwMaximumSizeLow,<BR>PCTSTR 
+  pszName);</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateSemaphore(<BR>PSECURITY_ATTRIBUTES psa,</FONT></P></BLOCKQUOTE>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>LONG 
+  lInitialCount,<BR>LONG lMaximumCount,<BR>PCTSTR 
+pszName);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Все функции, 
+создающие объекты ядра, возвращают описатели, которые привязаны к конкретному 
+процессу и могут быть использованы в любом потоке данного процесса Значение 
+описателя представляет собой индекс в таблице описателей, принадлежащей 
+процессу, и таким образом идентифицирует место, где хранится информация, 
+связанная с объектом ядра. Вот поэтому при отладке своего приложения и просмотре 
+фактического значения описателя объекта ядра Вы и видите такие малые величины: 
+1, 2 и т. д. Но помните, что физическое содержимое описателей не 
+задокументировано и может быть изменено. Кстати, в Windows 2000 это значение 
+определяет, по сути, не индекс, а скорее байтовое смещение нужной записи от 
+начала таблицы описателей.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Всякий раз, 
+когда Вы вызываете функцию, принимающую описатель объекта ядра как аргумент, Вы 
+передаете ей значение, возвращенное одной из Create-функций. При этом функция 
+смотрит в таблицу описателей, принадлежащую Вашему процессу, и считывает адрес 
+нужного объекта ядра.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+передаете неверный индекс (описатель), функция завершается с ошибкой и 
+GetLastError возвращает 6 (ERROR_INVALID_HANDLE). Это связано с тем, что на 
+самом деле описатели представляют собой индексы в таблице, их значения привязаны 
+к конкретному процессу и недейовительны в других процессах.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если вызов 
+функции, создающей объект ядра, оказывается неудачен, то обычно возвращается 0 
+(NULL). Такая ситуация возможна только при острой нехватке памяти или при 
+наличии проблем с защитой. К сожалению, отдельные функции возвращают в таких 
+случаях пе 0, а -1 (INVALID_HANDLE_VALUE) Например, если CreateFile не сможет 
+открыть указанный файл, она вернет именно INVALID_HANDLE_VALUE. Будьте очень 
+осторожны при проверке значения, возвращаемого функцией, которая создает объект 
+ядра. Так, для CreateMutex проверка на INVALID_HANDlE_VALUE 
+бессмысленна:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hMutex 
+  = CreateMutex(...);<BR>if (hMutex == lNVALID_HANDLE_VALUE) {<BR>// этот код 
+  никогда не будет выполнен, так как<BR>// при ошибке CreateMutex возвращает 
+  NLlLL<BR>}<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>Точно так же 
+  бессмыслен и следующий код:<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDIE hFile = 
+  CreateFile(.. );<BR>if (hFile — NULL} {<BR>// и этот код никогда не будет 
+  выполнен, так как<BR>// при ошибке CreateFile возвращает lNVALID_HANDLE_VALUE 
+  (-1)<BR>}</FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top2p2></A>Закрытие объекта ядра</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Независимо от 
+того, как именно Вы создали объект ядра, по окончании работы с ним его нужно 
+закрьпь вызовом CloseHandle</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>BOOL 
+CloseHandle(HANDLE hobj);</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+сначала проверяет таблицу описателей, принадлежащую вызывающему процессу, чтобы 
+убедиться, идентифицирует ли переданный ей индекс (описа</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>тель) объект, 
+к которому этот процесс действительно имеет доступ. Если переданный индекс 
+правилен, система получает адрес структуры данных объекта и уменьшает в этой 
+структуре счетчик числа пользователей; как только счетчик обнулится, ядро удалит 
+объект из памяти.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если же 
+описатель невереи, происходит одно из двух. В нормальном режиме выполнения 
+процесса CloseHandle возвращает FALSE, a GetLastError — код 
+ERROR_INVALID_HANDLE. Но при выполнении процесса в режиме отладки система просто 
+уведомляет отладчик об ошибке.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перед самым 
+возвратом управления CloseHandle удаляет соответствующую запись из таблицы 
+описателей: данный описатель тспсрь недействителен в Вашем процессе и 
+использовать его нельзя. При этом запись удаляется независимо от того, разрушен 
+объект ядра или нет! После вызова CloseHandle Вы больше не получите доступ к 
+это- <BR>му объекту ядра; но, если его счетчик не обнулен, объект остается в 
+памяти Тут все нормально, это означает лишь то, что объект используется другим 
+процессом (или процессами). Когда и остальные процессы завершат свою работу с 
+этим объектом (тоже вызвав CloseHandle), он будет разрушен.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А вдруг Вы 
+забыли вызвать CloseHandle — будет ли утечка памяти? И да, и нет. Утечка 
+ресурсов (тех же объектов ядра) вполне вероятна, пока процесс еще исполняется. 
+Однако по завершении процесса операционная система гарантированно освобождает 
+все ресурсы, принадлежавшие этому процессу, и в случае объектов ядра действует 
+так: в момент завершения процесса просматривает его таблицу описателей и 
+закрывает любые открытые описатели.</FONT></P>
+<H2><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top3></A>Совместное использование объектов ядра несколькими 
+процессами</FONT></B></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Время от 
+времени возникает необходимость в разделении объектов ядра между потоками, 
+исполняемыми в разных процессах. Причин тому может быть несколько:</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• объекты 
+"проекции файлов" позволяют двум процессам, исполняемым на одной машине, 
+совместно использовать одни и те же блоки данных;</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• почтовые 
+ящики и именованные каналы дают возможность программам обмениваться данными с 
+процессами, исполняемыми на других машинах в сети;</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>• мьютексы, 
+семафоры и события позволяют синхронизировать потоки, исполняемые в разных 
+процессах, чтобы одно приложение могло уведомитьдругое об окончании той или иной 
+операции.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Но поскольку 
+описатели объектов ядра имеют смысл только в конкретном процессе, разделение 
+объектов ядра между несколькими процессами — задача весьма непростая. У 
+Microsoft было несколько веских причин сделать описатели процессно-зависимыми", 
+и самая главная — устойчивость операционной системы к сбоям. Если бы описатели 
+объектов ядра были общесистемными, то один процесс мог бы запросто получить 
+описатель объекта, используемого другим процессом, и устроить в нем (этом 
+процессе) настоящий хаос. Другая причина — защита. Объекты ядра защищены, и 
+процесс, прежде чсм оперировать с ними, должен запрашивать разрешение на доступ 
+к ним.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Три 
+механизма, позволяющие процессам совместно использовать одни и те же объекты 
+ядра, мы рассмотрим в следующем разделе.</FONT></P>
+<HR>
+
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top3p1></A>Наследование описателя объекта</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наследование 
+применимо, только когда процессы связаны родственными отношениями 
+(родительский-дочерний). Например, родительскому процессу доступен один или 
+несколько описателей объектов ядра, и он решает, породив дочерний процесс, 
+передать ему по наследству доступ к своим объектам ядра. Чтобы такой сценарий 
+наследования сработал, родительский процесс должен выполнить несколько 
+операций.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Во-первых, 
+еще при создании объекта ядра этот процесс должен сообщить системе, что ему 
+нужен наследуемый описатель данного объекта. (Имейте в виду описатели объектов 
+ядра наследуются, но сами объекты ядра — нет.)</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы создать 
+наследуемый описатель, родительский процесс выделяет и инициализирует структуру 
+SECURITY_ATTRIBUTES, а затем передает ее адрес требуемой Create-функции. 
+Следующий код создаст объект-мьютекс и возвращает его описатель:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SECURITY_ATTRIBUTES sa;<BR>sa.nLength = 
+  sizeof(sa);<BR>sa.lpSecuntyDescriptor = NULL;<BR>sa.bInheritHandle =- TRUE; // 
+  делаем возвращаемый описатель наследуемым<BR>HANDLE hMutex = 
+  CreateMutex(&amp;sa, FALSE, NULL);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот код 
+инициализирует структуру SECURTY_ATTRIBUTES, указывая, что объект следует 
+создать с защитой по умолчанию (в Windows 98 это игнорируется) и что 
+возвращаемый описательдолжен быть наследуемым.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 size=2>WINDOWS 
+  98:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Хотя Windows 98 не полностью поддерживает защиту, она все же 
+  поддержива-<BR>ет наследование и поэтому корректно обрабатывает элемент 
+  bInheritHandle.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>А теперь 
+перейдем к флагам, которые хранятся в таблице описателей, принадлежащей процессу 
+В каждой ее записи присутствует битовый флаг, сообщающий, является данный 
+описатель наследуемым или нет. Если Вы, создавая объект ядра, передадите в 
+парамере типа PSECURITY_ATTRIBUTES значение NULL, то получите ненаследуемый 
+описатель, и этот флаг будет нулевым. А если элемент bInheritHandle равен TRUE, 
+флaгy пpиcвaивaeтcя 1.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, 
+какому-то процессу принадлежит таблица описателей, как в таблице 
+3-2.<BR></FONT></P>
+<TABLE height=103 cellSpacing=0 cellPadding=0 rules=all width=470 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=41>
+      <DIV WIDTH="61" HEIGHT="41">
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Индекс<BR></FONT></P></DIV></TD>
+    <TD vAlign=top align=left width=132 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на блок памяти объекта ядра</FONT></P></TD>
+    <TD vAlign=top align=left width=156 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маска 
+      доступа (DWORD с набором битовых флагов)</FONT></P></TD>
+    <TD vAlign=top align=left width=132 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаги 
+      (DWORD с набором битовых флагов)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=19><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>1</FONT></TD>
+    <TD vAlign=top align=left width=132 height=19><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+    size=2>0xF0000000</FONT></TD>
+    <TD vAlign=top align=left width=156 height=19><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x????????<SUP></SUP></FONT></TD>
+    <TD vAlign=top align=left width=132 height=19><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+    size=2>0x00000000</FONT></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=22><FONT 
+      face="Times New Roman, Times, serif" color=#000000 size=2>2</FONT></TD>
+    <TD vAlign=top align=left width=132 height=22><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+    size=2>0x00000000</FONT></TD>
+    <TD vAlign=top align=left width=156 height=22><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></TD>
+    <TD vAlign=top align=left width=132 height=22><FONT 
+      face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>3</FONT></P></TD>
+    <TD vAlign=top align=left width=132 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000010 </FONT></P></TD>
+    <TD vAlign=top align=left width=156 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0х????????</FONT></P></TD>
+    <TD vAlign=top align=left width=132 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000001</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 3-2. Таблица описателей с двумя действительными 
+записями<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта таблица 
+свидетельствует, что данный процесс имеет доступ к двум объектам ядра: описатель 
+1 (ненаследуемый) и 3 (наследуемый)</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующий 
+этап — родительский процесс порождает дочерний. Это делается с помощью функции 
+CreateProcess,</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  CreateProcess(<BR>PCTSTR pszApplicationName,<BR>PTSTR 
+  pszCommandLine,<BR>PSECURITY_ATTRIBUTES psaProcess,<BR>PSECURITY_ATTRIBUTES 
+  psaThread,<BR>BOOL bInheritHandles,<BR>DWORD fdwCreale,<BR>PVOIO 
+  pvEnvironment,<BR>PCTSTR pszCurDir,<BR>PSTARTUPINFO 
+  psiStartInfo,<BR>PPROCESS_INFORMATION ppiProcInfo);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Подробно мы 
+рассмотрим эту функцию в следующей главе, а сейчас я хочу лишь обратить Ваше 
+внимание на параметр blnberitHandles. Создавая процесс, Вы обычно передаете в 
+этом параметре FALSE, тем самым сообщая системе, что дочерний процесс не должен 
+наследовать наследуемые описатели, зафиксированные в таблице родительского 
+процесса. Если же Вы передаете TRUE, дочерний процесс наследует описатели 
+родительского. Тогда операционная система создает дочерний процесс, но не дает 
+ему немедленно начать свою работу. Сформировав в нем, как обычно, новую (пустую) 
+таблицу описателей, она считывает таблицу родительского процесса и копирует все 
+ее действительные записи в таблицу дочернего — причем в те же позиции. Последний 
+факт чрезвычайно важен, так как означает, что описатели будут идентичны в обоих 
+процессах (родительском и дочернем).</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Помимо 
+копирования записей из таблицы описателей, система увеличивает значения 
+счетчиков соответствующих объектов ядра, поскольку эти объекты теперь 
+используются обоими процессами. Чтобы уничтожить какой-то объект ядра, его 
+описатель должны закрыть (вызовом CloseHandle) оба процесса. Кстати, сразу после 
+возврата управления функцией CreateProcess родительский процесс может закрыть 
+свой описатель объекта, и это никак не отразится на способности дочернего 
+процесса манипулировать с этим объектом.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В таблице 3-3 
+показано состояние таблицы описателей в дочернем процессе — перед самым началом 
+его исполнения. Как видите, записи 1 и 2 не инициализированы, и поэтому данные 
+описатели неприменимы в дочсрнсм процессе Однако индекс 3 действительно 
+идентифицирует объект ядра по тому же (что и в родительском) адресу 0xF0000010. 
+При этом маска доступа и флаги в родительском и дочернем процессах тоже 
+идентичны. Так что, если дочерний процесс в свою очередь породит новый ("внука" 
+по отношению к исходному родительскому), "внук" унаследует данный описатель 
+объекта ядра с теми же значением, нравами доступа и флагами, а счетчик числа 
+пользователей этого объекта ядра вновь увеличится на 1.<BR></FONT></P>
+<TABLE height=104 cellSpacing=0 cellPadding=0 rules=all width=457 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Индекс</FONT></P></TD>
+    <TD vAlign=top align=left width=102 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на блок<BR>памяти объекта ядра</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маска 
+      доступа (DWORD<BR>с набором битовых флагов)</FONT></P></TD>
+    <TD vAlign=top align=left width=160 height=34>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаги 
+      (DWORD с набором<BR>битовых флагов)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1</FONT></P></TD>
+    <TD vAlign=top align=left width=102 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD>
+    <TD vAlign=top align=left width=160 height=21>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>2</FONT></P></TD>
+    <TD vAlign=top align=left width=102 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD>
+    <TD vAlign=top align=left width=160 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>3</FONT></P></TD>
+    <TD vAlign=top align=left width=102 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000010</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0х????????</FONT></P></TD>
+    <TD vAlign=top align=left width=160 height=19>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000001</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 3-3. Таблица описателей в дочернем процессе (после того как он 
+унаследовал от родительского один наследуемый описатель)<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наследуются 
+только описатели объектов, существующие на момент создания дочернего процесса. 
+Если родительский процесс создаст после этого новые объекты</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ядра с 
+наследуемыми описателями, то эти описатели будут уже недоступны дочернему 
+процессу.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+наследования описателей объектов характерно одно очень странное свойство: 
+дочерний процесс не имеет ни малеЙшего понятия, что он унаследовал какие-то 
+описатсли. Поэтому наследование описятелей объектов ядра полезно, только когда 
+дочерний процесс сообщает, что при его создании родительским процессом он 
+ожидает доступа к какому-нибудь объекту ядра. Тут надо заметить, что обычно 
+родительское и дочернее приложения пишутся одной фирмой, но в принципе дочернее 
+приложение может написать и сторонняя фирма, если в этой программе 
+задокументировано, чего именно она ждет от родительского процесса.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для этого в 
+дочерний процесс обычно передают значение ожидаемого им описателя объекта ядра 
+как аргумент в командной строке. Инициализирующий код дочернего процесса 
+анализирует командную строку (чаще всего вызовом sscanf), извлекает из нее 
+значение описателя, и дочерний процесс получает неограниченный доступ 
+к<BR>объекту. При этом механизм наследования срабатывает только потому, что 
+значение описателя общего объекта ядра в родительском и дочернем процессах 
+одинаково, — и именно по этой причине родительский процесс может передать 
+значение описателя как аргумент в командной строке.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+наследственной передачи описателя объекта ядра от родительского процесса 
+дочернему, конечно же, годятся и другие формы межпроцессной сяязи Один из 
+приемов заключается в том, что родительский процесс дожидается окончания 
+инициализации дочернего (через функцию WaitForInputIdle рассматриваемую в главе 
+9), а затем посылает (синхронно или асинхронно) сообщение окну, созданному 
+потоком дочернего процесса.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Еще один 
+прием: родительский процесс добавляет в свой блок переменных окружения новую 
+переменную Она должна быть "узнаваема" дочерним процессом и содержать значение 
+наследуемого описятеля объекта ядра, Далее родительский процесс создает 
+дочерний, тот наследует переменные окружения родительского процесса и, вызвав 
+GetEnvironmentVariable, получает нужный описатель. Такой прием особенно хорош, 
+когда дочерний процесс тоже порождает процессы, — ведь все переменные окружения 
+вновь наследуются.</FONT></P>
+<P><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2>Изменение 
+флагов описателя</FONT></I></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Иногда 
+встречаются ситуации, в которых родительский процесс создает объект ядра с 
+наследуемым описателем, а затем порождает два дочерних процесса. Но наследуемый 
+описатель нужен только одному из них. Иначе говоря, время от времени возникает 
+необходимость контролировать, какой из дочерних процессов наследует описатели 
+объектов ядра. Для этого модифицируйте флаг наследования, связанный с 
+описателем, вызовом SetHandleInformation</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  SetHandleInformation(<BR>HANDLE hObject,<BR>DWORD dwMask,<BR>DWORD 
+  dwFlags);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как видите, 
+эта функция принимает три параметра. Первый (bObject) идентифицирует допустимый 
+описатель. ВтороЙ (dwMask) сообщает функции, какой флаг (или флаги) Вы хотите 
+изменить На сегодняшний день с каждым описателем связано два флага:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>#define HANDLE 
+  FLAG_INHtRIT 0x00000001<BR>#define HANDLE FLAG PROTECT FROM CLOSE 
+  0x00000002</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы 
+изменить сразу все флаги объекта, нужно объединить их побитовой операцией 
+OR.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>И, наконец, 
+третий параметр функции SetHandleInformation — dwFlags — указывает, в какое 
+именно состояние следует перевести флаги. Например, чтобы установить флаг 
+наследования для описателя объекта ядра</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetHandleInformation(hobj, HANDLE_FLAG_INHERIT, 
+  HANDLE_FLAG_INHERIT);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>а чтобы 
+сбросить этот флаг:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetHandleInformation(hobj, HANDLE_FLAG_INHERIT, 
+0);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+HANDLE_FLAGPROTECT_FROM_CLOSE сообщает системе, что данный опи</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3>сатель закрывать 
+нельзя:<BR></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetHandleInformation(hobj, HANDLE_FLAG_PROTECT_FROM_CLOSE, 
+  HANDLE_FLAG_PROTECT_FROM_CLOSE);<BR>CloseHandle(hobj); // генерируется 
+  исключение</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+какой-нибудь поток попытается закрыть защищенный описатель, CloseHandle приведет 
+к исключению. Необходимость в такой защите возникает очень редко. Однако этот 
+флаг весьма полезен, когда процесс порождает дочерний, а тот в свою очередь — 
+еще один процесс. При этом родительский процесс может ожидать, что его "внук" 
+унаследует определенный описатель объекта, переданный дочернему. Но тут вполне 
+возможно, что дочерний процесс, прежде чем породить новый процесс, закрывает 
+нужный описатель. Тогда родительский процесс теряет связь с "внуком", поскольку 
+тот не унаследовал требуемый объект ядра. Защитив описатель от закрытия, Вы 
+исправите ситуацию, и "внук" унаследует предназначенный ему 
+объект.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>У этого 
+подхода, впрочем, есть один недостаток. Дочерний процесс, вызвав:<BR></FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>SetHandleInformation(hobj, HANDLE<SUB>M</SUB>FLAG_PROlECl_FROM_CLOSE, 
+  0);<BR>CloseHandle(hobj);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>может 
+сбросить флаг HANDLE_FLAG_PROTECT_FROM_CLOSE и закрыть затем соответствующий 
+описатель. Родительский процесс ставит на то, что дочерний не исполнит этот код. 
+Но одновременно он ставит и на то, что дочерний процесс породит ему "внука", 
+поэтому в целом ставки не слишком рискованны.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для полноты 
+картины стоит, пожалуй, упомянуть и функцию GetHandleInformation:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  GetHandleInformation(<BR>HANDLE hObj,<BR>PDWORD 
+pdwFlags);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Эта функция 
+возвращает текущие флаги для заданного описателя в переменной типа DWORD, на 
+которую укапывает pdwFlags. Чтобы проверить, является ли описатель наследуемым, 
+сделайте так:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  dwFlags;<BR>GetHandleInformation(hObj, &amp;dwFlags);<BR>BOOL 
+  fHandleIsInheritable = (0 != (dwFlags &amp; 
+HANDLE_FLAG_INHERIT));</FONT></P></BLOCKQUOTE>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top3p2></A>Именованные объекты</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+способ, позволяющий нескольким процессам совместно использовать одни и те же 
+объекты ядра, связан с именованием этих объектов. Именование допускают многие 
+(но не все) объекты ядра. Например, следующие функции создают именованные 
+объекты ядра</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateMutex(<BR>PSLCURITY_ATTRIBUTES psa,<BR>BOOL bInitialOwner,<BR>PCTSTR 
+  pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateEvent(<BR>PSECURITY_ATTRIBUTES psa,<BR>BOOL bManualReset,<BR>BOOL 
+  bInitialState,<BR>PCTSTR pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateSemaphore(<BR>PSECURITY_ATTRIBUTES psa,<BR>LONG lInitialCount,<BR>LONG 
+  lMaximumCount,<BR>PCTSTR pszNarne);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateWaitableTimer(<BR>PSLCURITY_ATTRIBUTES psa,<BR>BOOL 
+  bManualReset,<BR>PCTSTR pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateFileMapping(<BR>HANDLE hFile,<BR>PSECURITY_ATTRIBUTES psa,<BR>DWORD 
+  flProtect,<BR>DWORD dwMaximumSizeHigh,<BR>DWORD dwMaximumSizeLow,<BR>PCTSTR 
+  pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CreateJobObject(<BR>PSECURITY_ATTRIBUTES psa,<BR>PCTSTR 
+pszName);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+параметр, pszName, у всех этих функций одинаков. Передавая в нем NULL, Вы 
+создаете безымянный (анонимный) объект ядра. В этом случае Вы можете разделять 
+объект между процессами либо через наследование (см. предыдущий раздел), либо с 
+помощью DuplicateHandle (см. следующий раздел). А чтобы разделять объект по 
+имени, Вы должны присвоить ему какое-нибудь имя. Тогда вместо NULL в параметре 
+pszName нужно передать адрес строки с именем, завершаемой нулевым символом. Имя 
+может быть длиной до MAX_PATH знаков (это значение определено как 260). К 
+сожалению, Microsoft ничего не сообщает о правилах именования объектов ядра. 
+Например, создавая объект с именем JeffObj, Вы никак не застрахованы от того, 
+что в системе еще нет объекта ядра с таким именем. И что хуже, все эти объекты 
+делят единое пространство имен. Из-за этого следующий вызов CreateSemaphore 
+будет всегда возвращать NULL:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hMutex 
+  = CreateMutex(NULL. FALSE, "JeffObj");<BR>HANDLE hSem = CreateSemaphore(NULL, 
+  1, 1, "JeffObj");<BR>DWORD dwErrorCode = GetLastError();</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+выполнения этого фрагмента значение dwErrorCode будет равно 6 
+(ERROR_INVALID_HANDLE). Полученный код ошибки не слишком вразумителен, но 
+другого не дано.</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь, когда 
+Вы научились именовать объекты, рассмотрим, как разделять их между процессами по 
+именам. Допустим, после запуска процесса А вызывается функция:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  hMutexPronessA = CreateMutex(NULL, FALSE, "JeffMutex");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Этот вызов 
+заставляет систему создать новенький, как с иголочки, объект ядра "мъютекс" и 
+присвоить ему имя JeffMutex Заметьте, что описатель hMutexProcessA в процессе А 
+не является наследуемым, — он и не должен быть таковым при простом именовании 
+объектов.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Спустя 
+какое-то время некий процесс порождает процесс В. Необязательно, что-бы 
+последний был дочерним от процесса А; он может быть порожден Explorer или любым 
+другим приложением. (В этом, кстати, и состоит преимущество механизма именования 
+объектов перед наследованием.) Когда процесс В приступает к 
+работе,<BR>исполняется код:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  hMutexProcessB = CreateMutex(NULL, FALSE, "JeffMutex");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При этом 
+вызове система сначала проверяет, не существует ли уже объект ядра с таким 
+именем. Если да, то ядро проверяет тип этого объекта. Поскольку мы пытаемся 
+создать мьютекс и его имя тоже JeffMutex, система проверяет права доступа 
+вызывающего процесса к этому объекту. Если у него есть все права, в таблице 
+описателей, принадлежащей процессу В, создается новая запись, указывающая на 
+существующий объект ядра. Если же вызывающий процесс не имеет полных прав на 
+доступ к объекту или если типы двух объектов с одинаковыми именами не совпадают, 
+вызов CreateMutex заканчивается неудачно и возвращается NULL.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Однако, хотя 
+процесс В успешно вызвал CreateMutex, новый объект-мьютекс он не создал. Вместо 
+этого он получил свой описатель существующего объекта-мьютекса. Счетчик объекта, 
+конечно же, увеличился на 1, и теперь этот объект не разрушится, пока его 
+описатели не закроют оба процесса — А и В. Заметьте, что значения описателей 
+объекта в обоих процессах скорее всего разные, но так и должно быть, каждый 
+процесс будет оперировать с данным объектом ядра, используя свой 
+описатель.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#990000 
+  size=2>NOTE:</FONT><FONT face="Arial, Helvetica, sans-serif" color=#006600 
+  size=2><BR>Разделяя объекты ядра по именам, помните об одной крайне важной 
+  вещи.</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызывая 
+CreateMutex, процесс В передает ей атрибуты защиты и второй параметр. Так вот, 
+эти параметры игнорируются, если объект с указанным именем уже существует! 
+Приложение может определить, что оно делает: создает новый объект ядра или 
+просто открывает уже существующий, — вызвав GetLastError сразу же после вызова 
+одной из Create-функций:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE hMutex 
+  = CreateMutex(&amp;sa, FALSE, "JeffObj");<BR>if (GetLastError() == 
+  ERROR_ALREADY_EXISTS) {<BR>// открыт описатель существующего объекта 
+  sa.lpSecurityDescriptor и второй параметр (FALSE) игнорируются<BR>} else 
+  {<BR>// создан совершенно новый объект sa.lpSecurityDescriptor и второй 
+  параметр (FALSE) используются при создании объекта<BR>}</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Есть и другой 
+способ разделения объектов по именам. Вместо вызова Create-функции процесс может 
+обратиться к одной из следующих Open-функций:</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenMutex(<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>PCTSTR 
+  pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenEvent(<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>PCTSTR 
+  pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenSemaphore(<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>PCTSTR 
+  pszName),<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenWaitableTimer(<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>PCTSTR 
+  pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  OpenFileMapping(<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>PCTSTR 
+  pszName);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  Openjob0bject(<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>PCTSTR 
+  pszName);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте: все 
+эти функции имеют один прототип. Последний параметр, pszName, определяет имя 
+объекта ядра. В нем нельзя передать NULL — только адрес строки с нулевым 
+символом в конце Эти функции просматривают единое пространство имен объектов 
+ядра, пытаясь найти совпадение. Если объекта ядра с указанным именем нет, 
+функции возвращают NULL, a GetLastError — код 2 (ERROR_FILE_NOT_FOUND). Но если 
+объект ядра с заданным именем существует и если его тип идентичен тому, что Вы 
+указали, система проверяет, разрешен ли к данному объекту доступ запрошенного 
+вида (через параметр dwDesiredAccess). Если такой вид доступа разрешен, таблица 
+описателей в вызывающем процессе обновляется, и счетчик числа пользователей 
+объекта возрастает на 1 Если Вы присвоили параметру bInheritHandle значение 
+TRUE, то получше наследуемый описатель.<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Главное 
+отличие между вызовом Create- и Open-функций в том, что при отсутствии 
+указанного объекта Create-функция создает его, а Open-функция просто уведомляет 
+об ошибке.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил, Microsoft ничего не сообщает о правилах именования объектов ядра Но 
+представьте себе, что пользователь запускает две программы от разных компаний и 
+каждая программа пытается создать объект с именем "MyObject". Ничего хорошего из 
+этого не выйдет. Чтобы избежать такой ситуации, я бы посоветовал создавать GUID 
+и использовать его строковое представление как имя объекта.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Именованные 
+объекты часто применяются для того, чтобы не допустить запуска нескольких 
+экземпляров одного приложения. Для этого Вы просто вызываете одну из 
+Create-функций в своей функции main или WinMain и создаете некий 
+именованный</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>объект. Какой 
+именно — не имеет ни малейшего значения. Сразу после Create-функции Вы должны 
+вызвать GetLastError Если она вернет ERROR_ALREADY_EXISTS, значит, один 
+экземпляр Вашего приложения уже выполняется и новый его экземпляр можно закрыть. 
+Вот фрагмент кода, иллюстрирующий этот прием:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain(HINSTANCE hinstExe, HINSTANCE, PSTR pszCmdLine, int nCmdShow} 
+  {<BR>HANDLE h = CreateMutex(NULL, FALSE, 
+  "{FA531CC1-0497-11d3-A180-00105A276C3E}");<BR>lf (GetLastError() == 
+  ERROR_ALREADY_EXISTS){<BR>// экземпляр этого приложения уже 
+  выполняется<BR>return(0),<BR>}<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// запущен 
+  первый экземпляр данного приложения<BR>// перед выходом закрываем 
+  объект<BR>CloseHandle(h),<BR>return(0);<BR>}</FONT></P></BLOCKQUOTE>
+<P><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff 
+size=2>Пространства имен Terminal Server</FONT></I></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Terminal 
+Server несколько меняет описанный выше сценарий На машине с Terminal Server 
+существует множество пространств имен для объектов ядра. Объекты, которые должны 
+быть доступны всем клиентам, используют одно глобальное пространство имен. 
+(Такие объекты, как правило, связаны с сервисами, предоставляемыми клиентским 
+программам.) В каждом клиентском сеансе формируется свое пространство имен, 
+чтобы исключить конфликты между несколькими сеансами, в которых запускается одно 
+и то же приложение Ни из какого сеанса нельзя получить доступ к объектам другого 
+сеанса, даже если у их объектов идентичные имена.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Именованные 
+объекты ядра, относящиеся к какому-либо сервису, всегда находятся в глобальном 
+пространстве имен, а аналогичный объект, связанный с приложением, Terminal 
+Server по умолчанию помещает в пространство имен киентского сеанca. Однако и его 
+можно перевести в глобальное пространство имен, поставив перед именем объекта 
+префикс "Global\", как в примере ниже.</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE h = 
+  CreateEvenL(NULL, FALSE, FALSE, "Global\\MyName");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотите явно указать, что объект ядра должен находиться в пространстве имен 
+клиентского сеанса, используйте префикс "Local\":</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE h = 
+  CreateEvent(NULL, FALSE, FALSE, "Local\\MyName");</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft 
+рассматривает префиксы Global и Local как зарезервированные ключевые слова, 
+которые не должны встречаться в самих именах объектов. К числу таких слов 
+Microsoft относит и Session, хотя на сегодняшний день оно не связано ни с какой 
+функциональностью. Также обратите внимание на две вещи, все эти ключевые слова 
+чувствительны к регистру букв и игнорируются, если компьютер работает без 
+Terminal Server.</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=head3top3p3></A>Дублирование описателей объектов</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последний 
+механизм совместного использования объектов ядра несколькими процессами требует 
+функции DuplicateHandle;</FONT></P>
+<HR>
+
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  DuplicateHandle(<BR>HANDLE hSourceProcessHandle,<BR>HANDLE 
+  hSourceHandle,<BR>HANDLE hTargetProcessHandle,<BR>PHANDLE 
+  phTargetHandle,<BR>DWORD dwDesiredAccess,<BR>BOOL bInheritHandle,<BR>DWORD 
+  dwOptions);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Говоря 
+по-простому, эта функция берет запись в таблице описателей одного процесса и 
+создает ее копию в таблице другого DuplicateHandle принимает несколько 
+параметров, но на самом деле весьма незамысловата Обычно ее применение требует 
+наличия в системе трех рапных процессов.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый и 
+третий параметры функции DuplicateHandle представляют собой описатели объектов 
+ядра, специфичные для вызывающего процесса Кроме того, эти параметры должны 
+идентифицировать именно процессы — функция завершится с ошибкой, если Вы 
+передадите описатели на объекты ядра любого другого типа. Подробнее объекты ядра 
+"процессы" мы обсудим в главе 4, а сейчас Вам достаточно знать только одно- 
+объект ядра "процесс" создается при каждой инициации в системе нового 
+процесса</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+параметр, hSourceHandle, — описатель объекта ядра любого типа. Однако его 
+значение специфично нс для процесса, вызывающего DuplicateHandle, а для того, на 
+который указывает описатель hSourceProcessHandie. Параметр pbTargetHandle — это 
+адрес переменной типа HANDLE, в которой возвращается индекс записи с копией 
+описателя из процесса-источника. Значение возвращаемого описателя специфично для 
+процесса, определяемого параметром bTargetProcessHandle.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Предпоследние 
+два параметра DuplicateHandle позволяют задать маску доступа и флаг 
+наследования, устанавливаемые для данного описателя в процессе-приемнике. И, 
+наконец, параметр dwOptions может быть 0 или любой комбинацией двух флагов. 
+DUPLICATE_SAME_ACCESS и DUPLICATE_CLOSE_SOURCE </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первый флаг 
+подсказывает DuplicateHandle: у описателя, получаемого процессом-приемником, 
+должна быть та же маска доступа, что и у описателя в процессе-источнике Этот 
+флаг заставляет DuplicateHandle игнорировать параметр 
+dwDesiredAccess.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй флаг 
+приводит к закрытию описателя в процессе-источнике. Он позволяет процессам 
+обмениваться объектом ядра как эстафетной палочкой При этом счетчик объекта не 
+меняется.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Попробуем 
+проиллюстрировать работу функции Duplicatellandle на примере. Здесь S — это 
+процесс-источник, имеющий доступ к какому-то объекту ядра, Т — это 
+процесс-приемник, который получит доступ к тому же объекту ядра, а С — 
+процесскатализатор, вызывающий функцию DuplicateHandle</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таблица 
+описателей в процессе С (см таблицу 3-4) содержит два индекса - 1 и 2. Описатель 
+с первым значением идентифицирует объект ядра "процесс S", описатель со вторым 
+значением — объект ядра "процесс Т"<BR></FONT></P>
+<TABLE height=120 cellSpacing=0 cellPadding=0 rules=all width=522 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=47 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Индекс</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на блок<BR>памяти объекта ядра</FONT></P></TD>
+    <TD vAlign=top align=left width=165 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маска 
+      доступа (DWORD<BR>с набором битовых флагов)</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаги 
+      (DWORD с<BR>битовых флагов) набором</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=47 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000000 <BR>(объект ядра процесса S)</FONT></P></TD>
+    <TD vAlign=top align=left width=165 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x????????</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=47 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>2</FONT></P></TD>
+    <TD vAlign=top align=left width=145 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000010 (обьект ядра процесса Т)</FONT></P></TD>
+    <TD vAlign=top align=left width=165 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x????????</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=39>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 3-4. Таблица описателей в процессе С<BR></FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Таблица 3-5 
+иллюстрирует таблицу описателей в процессе S, содержащую единственную запись со 
+значением описателя, равным 2. Этот описатель может идентифицировать объект ядра 
+любого типа, а не только "процесс".<BR></FONT></P>
+<TABLE height=102 cellSpacing=0 cellPadding=0 rules=all width=486 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Индекс<BR></FONT></P></TD>
+    <TD vAlign=top align=left width=129 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на блок<BR>памяти объекта ядра</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маска 
+      доступа (DWORD<BR>с набором битовых флагов)</FONT></P></TD>
+    <TD vAlign=top align=left width=152 height=33>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаги 
+      (DWORD с набором<BR>битовых флагов)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1</FONT></P></TD>
+    <TD vAlign=top align=left width=129 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD>
+    <TD vAlign=top align=left width=152 height=20>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=40 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>2</FONT></P></TD>
+    <TD vAlign=top align=left width=129 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000020<BR>(объект ядра любого типа)</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x????????</FONT></P></TD>
+    <TD vAlign=top align=left width=152 height=36>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 3-5. Таблица описателей в процессе S</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В таблице 3-6 
+показано, что именно содержит таблица описателей в процессе Т перед вызовом 
+процессом С функции DuplicateHandle. Как видите, в ней всего одна запись со 
+значением описателя, равным 2, а запись с индексом 1 пока пуста.</FONT></P>
+<TABLE height=102 cellSpacing=0 cellPadding=0 rules=all width=551 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=43 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Индекс</FONT></P></TD>
+    <TD vAlign=top align=left width=152 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на блок памяти объекта ядра</FONT></P></TD>
+    <TD vAlign=top align=left width=179 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маска 
+      доступа (DWORD с набором битовых флагов)</FONT></P></TD>
+    <TD vAlign=top align=left width=167 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаги 
+      (DWORD с набором<BR>битовых флагов</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=43 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1</FONT></P></TD>
+    <TD vAlign=top align=left width=152 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD>
+    <TD vAlign=top align=left width=179 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD>
+    <TD vAlign=top align=left width=167 height=25>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>(неприменим)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=43 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>2</FONT></P></TD>
+    <TD vAlign=top align=left width=152 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000030 <BR>(объект ядра любого типа)</FONT></P></TD>
+    <TD vAlign=top align=left width=179 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x????????</FONT></P></TD>
+    <TD vAlign=top align=left width=167 height=29>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 3-6. Табпица описателей в процессе Т перед вызовом 
+DuplicateHandle </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если процесс 
+С теперь вызовет DuplicateHandle так </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>DuplicateHandle(1, 2, 2, &amp;hObj, 0, TRUE, 
+  DUPLICATE_SAME_ACCESS);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>то после 
+вызова изменится только таблица описателей в процессе Т (см. таблицу 
+3-7).<BR></FONT></P>
+<TABLE height=102 cellSpacing=0 cellPadding=0 rules=all width=551 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=50 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Индекс</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Указатель на блок памяти объекта ядра</FONT></P></TD>
+    <TD vAlign=top align=left width=168 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Маска 
+      доступа (DWORD с набором битовых флагов)</FONT></P></TD>
+    <TD vAlign=top align=left width=168 height=41>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Флаги 
+      (DWORD с набором битовых флагов)</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=50 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>1</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000020</FONT></P></TD>
+    <TD vAlign=top align=left width=168 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0х????????</FONT></P></TD>
+    <TD vAlign=top align=left width=168 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000001</FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=50 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>2</FONT></P></TD>
+    <TD vAlign=top align=left width=155 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0xF0000030<BR>(объект ядра любого типа)</FONT></P></TD>
+    <TD vAlign=top align=left width=168 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0х????????</FONT></P></TD>
+    <TD vAlign=top align=left width=168 height=40>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>0x00000000</FONT></P></TD></TR></TBODY></TABLE>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Таблица 3-7. Таблица описателей в процессе Т после вызова 
+DuplicateHandle<BR></FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вторая строка 
+таблицы описателей в процессе S скопирована в первую строку таблицы описателей в 
+процессе Т. Функция DuplicateHandle присвоила также переменной bObj процесса С 
+значение 1 — индекс той строки таблицы в процессе Т, в которую занесен новый 
+описатель.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+функции DuplicateHandle передан флаг DUPLICATE_SAME_ACCESS, маска доступа для 
+этого описателя в процессе Т идентична маске доступа в процессе S. Кроме того, 
+данный флаг заставляет DuplicateHandle проигнорировать параметр dwDesiredAccess. 
+Заметьте также, что система установила битовый флаг наследования, так как в 
+параметре bInberitHandle функции DuplicateHandle мы передали TRUE.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Очевидно, Вы 
+никогда не станете передавать в DuplicateHandle жестко зашитые значения, как это 
+сделал я, просто демонстрируя работу функции. В реальных программах значения 
+описателей хранятся в переменных и, конечно же, именно эти переменные передаются 
+функциям.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как и 
+механизм наследования, функция DuplicateHandle тоже обладает одной странностью: 
+процесс-приемник никак не уведомляется о том, что он получил доступ к новому 
+объекту ядра. Поэтому процесс С должен каким-то образом сообщить</FONT></P>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>процессу Т, 
+что тот имеет теперь доступ к новому объекту; для этого нужно воспользоваться 
+одной из форм межпроцессной связи и передать в процесс Т значение описателя в 
+переменной bObj. Ясное дело, в данном случае не годится ни командная строка, ни 
+изменение переменных окружения процесса Т, поскольку этот процесс уже 
+выполняется. Здесь придется послать сообщение окну или задействовать 
+какой-нибудь другой механизм межпроцессной связи.</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я рассказал 
+Вам о функции DuplicateHandle в самом общем виде. Надеюсь, Вы увидели, насколько 
+она гибка. Но эта функция редко используется в ситуациях, требующих участия трех 
+разных процессов Обычно ее вызывают применительно к двум процессам. Представьте, 
+что один процесс имеет доступ к объекту, к которому хочет обратиться другой 
+процесс, или что один процесс хочст предоставить другому доступ к "своему" 
+объекту ядра. Например, если процесс S имеет доступ к объекту ядра и Вам нужно, 
+чтобы к этому объекту мог обращаться процесс Т, используйте DuplicateHandle 
+так:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// весь 
+  приведенный ниже код исполняется процессом S<BR>// создаем объект-мьютекс, 
+  доступный процессу S<BR>HANDLE hObjProcessS = CreateMutex(NULL, FALSE, 
+  NULL);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// открываем 
+  описатель объекта ядра "процесс Т"<BR>HANDLE hProcessT = 
+  OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwProcessIdT);<BR>HANDLE hObjProcessT; 
+  // неинициализированный описатель,<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// связанный с 
+  процессом Т<BR>// предоставляем процессу Т доступ к 
+  объекту-мьютексу<BR>DuplicateHandle(GetCurrentProcess(), hObjProcessS, 
+  hProcessT,<BR>&amp;hObjProcessT, 0, FALSE, 
+  DUPLICATE_SAME_ACCESS);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// используем 
+  какую-нибудь форму межпроцессной связи, чтобы передать<BR>// значение 
+  описателя из hOb]ProcessS в процесс Т<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// связь с 
+  процессом Т больше не нужна<BR>CloseHandle(hProcessT),<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// если 
+  процессу S не нужен объект-мьютекс, он должен закрыть 
+  его<BR>CloseHandle(hObjProcessS);</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызов 
+GetCurrentProcess возвращает псевдоописатель, который всегда идентифицирует 
+вызывающий процесс, в данном случае — процесс S Как только функция 
+DuplicateHandle возвращает управление, bObjProcessT становится описателем, 
+связанным с процессом Т и идентифицирующим тот же объект, что и описатель 
+bObjProcessS (когда на него ссылается код процесса S). При этом процесс S ни в 
+коем случае не должен исполнять следующий код:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// процесс S 
+  никогда не должен пытаться исполнять код,<BR>// закрывающий продублированный 
+  описатель<BR>CloseHandle(hObjProcessT);</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если процесс 
+S выполнит этот код, вызов может дать (а может и не дать) ошибку Он будет 
+успешен, если у процесса S случайно окажется описатель с тем же значением, что и 
+в hObjProcessT При этом процесс S закроет неизвестно какой объект, и что будет 
+потом — остается только гадать</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь о 
+другом способе применения DuplicateIlandle Допустим, некий процесс имеет полный 
+доступ (для чтения и записи) к объекту "проекция файла" и из этого процесса 
+вызывается функция, которая должна обратиться к проекции файла и считать из нее 
+какие-то данные Так вот, если мы хотим повысить отказоустойчивость приложения, 
+то могли бы с помощью DuplicateHandle создать новый описатель существующего 
+объекта и разрешить доступ только для чтения. Потом мы передали бы этот 
+описатель функции, и та уже не смогла бы случайно что-то записать в проекцию 
+файла. Взглянше на код, который иллюсгрирует этот пример:</FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>int WINAPI 
+  WinMain(HINSTANCE hinstExe, HINSTANCE, <BR>PSTR pszCmdLine, int nCmdShow) 
+  {<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  объект "проекция файла",<BR>// его описатель разрешает доступ как для чтения, 
+  так и для записи<BR>HANDLE hFileMapRW = 
+  CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGF_READWRITE, 0, 10240, 
+  NULL);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// создаем 
+  другой описатель на тот же обьект;<BR>// этог описатель разрешает дocтyп 
+  только для чтения<BR>HANDLE hFileMapRO;<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+  size=2>DuplicateHandle(GetCurrentProcess(), hFileMapRW, GetCurrentProcess(), 
+  &amp;hFileMdpRO, FILE_MAP_READ, FALSE, 0);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// вызываем 
+  функцию, которая не должна ничего записывать в проекцию 
+  файла<BR>ReadFromTheFileMapping(hFileMapRO);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// закрываем 
+  объект "проекция файла" , доступный только для 
+  чтения<BR>CloseHandle(hFileMapRO);<BR></FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// проекция 
+  файла нам по-прежнему полностью доступна через hFileMapRW<BR>.<BR>.<BR>.<BR>// 
+  если проекция файла больше не нужна основному коду, закрываем 
+  ее<BR>CloseHandle(hFileMapRW);<BR>}</FONT></P></BLOCKQUOTE>
+<HR>
+
+<P>
+<A href="head02.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A>
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A>
+<A href="head04.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A></P>
+<P>
+
+<script language="JavaScript">docclose();</script>
+</BODY></HTML>

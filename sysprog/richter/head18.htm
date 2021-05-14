@@ -1,0 +1,874 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<SCRIPT src="engine.js" LANGUAGE="JavaScript" type="text/javascript"></SCRIPT>
+<title>Системное программирование</title>
+</head>
+<body>
+<script language="JavaScript">docopen();</script>
+
+<P><B><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=3><A 
+name=h18></A>ГЛАВА 18 Динамически распределяемая память</FONT></B></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Третий, и 
+последний, мехянизм управления памятью — динамически распределяемые области 
+памяти, или кучи (heaps). Они весьма удобны при создании множества не больших 
+блоков данных. Например, связанными списками и деревьями проще мани пулировать, 
+используя именно кучи, а не виртуальную память (глава 15) или файлы, 
+проецируемые в память (глава 17) Преимущество динамически распределяемой па мяти 
+в том, что она позволяет Вам игнорировать гранулярность выделения памяти и 
+размер страниц и сосредоточиться непосредственно на своей задаче. А недостаток — 
+выделение и освобождение блоков памяти проходит мсдлсннсс, чсм при использова 
+нии других механизмов, и, кроме того, Вы теряете прямой контроль над передачей 
+физической памяти и ее возвратом системе. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Куча — это 
+регион зарезервированного адресного пространства. Первоначально большей его 
+части физическая память не передается. По мере того, как программа занимает эту 
+область под данные, специальный диспетчер, управляющий кучами (heap manager), 
+постранично передаст ей физическую память (из страничного файла). А при 
+освобождении блоков в куче диспетчер возвращает системе соответствующие стра 
+ницы физической памяти. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Microsoft не 
+документирует правила, по которым диспетчер передает или отбира ет физическую 
+память. Эти правила различны в Windows 98 и Windows 2000. Могу сказать Вам лишь 
+следующее; Windows. 98 больше озабочена эффективностью исполь зования памяти и 
+поэтому старается как можно быстрее отобрать у куч физическую память. Однако 
+Windows 2000 нацелена главным образом на максимальное быстро действие, в связи с 
+чем возвращает физическую память в страничный файл, только если страницы не 
+используются в течение определенного времени. Microsoft посто янно проводит 
+стрессовое тестирование своих операционных систем и прогоняет разные сценарии, 
+чтобы определить, какие правила в большинстве случаев работают лучше. Их 
+приходится менять по мере появления как нового программного обеспе чения, так и 
+оборудования. Если эти правила важны Вашим программам, использо вать динамически 
+распределяемую память пе стоит — работайте с функциями вирту альной памяти (т. 
+e. <I>VirtualAlloc </I>и <I>VirtualFree), </I>и тогда Вы сможете сами контролиро 
+вать эти правила. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h18t1></A>Стандартная куча процесса</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При 
+инициализации процесса система создает в его адресном пространстве стандарт ную 
+кучу (process's default heap) Ее размер по умолчанию — 1 Мб Но система позво 
+ляет увеличивать этот размер, для чего надо указать компоновщику при сборке про 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>граммы ключ 
+/HEAP (Однако при сборке DLL этим ключом пользоваться нельзя, так какдля DLL 
+куча не создается.)</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#9900ff 
+  size=2>/HEAP:reserve[,commit] </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Стандартная 
+куча процесса необходима многим Windows-функциям. Например, функции ядра Windows 
+2000 выполняют все операции с использованием Unicode символов и строк Если 
+вызвать ANSI-версию какой-нибудь Windows-функции, ей придется, преобразовав 
+строки ил ANSI в Unicode, вызывать свою Unicode-версию. Для преобразования строк 
+ANSI-функции нужно выделить блок памяти, в котором она размещает Unicode-версию 
+строки. <I>Этот </I>блок памяти заимствуется из стандартной кучи вызывающего 
+процесса. Есть и другие функции, использующие временные бло ки памяти, которые 
+тоже выделяются из стандартной кучи процесса Из нее же чер пают себе память и 
+функции 16~разрядной Windows, управляющие кучами <I>(LocalAlloc </I>и 
+<I>GlobalAlloc).</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поскольку 
+стандартную кучу процесса используют многие Windows-функции, а потоки Вашего 
+приложения могут одновременно вызвать массу таких функций, дос туп к этой куче 
+разрешается только по очереди. Иными словами, система гарантиру ет, что в каждый 
+момент времени только один поток сможет выделить или освобо дить блок памяти в 
+этой куче. Если же два потока попытаются выделить в ней блоки памяти 
+одновременно, второй поток будет ждать, пока первый поток не выделит свой блок. 
+Принцин последовательного доступа потоков к кучс немного снижает произ 
+водительность многопоточной программы. Если в программе всего один поток, для 
+быстрейшего доступа к кучс нужно создать отдельную кучу и нс использовать стан 
+дартную. Но Windows-функциям этого, увы, не прикажешь — они работают с кучей 
+только последнего типа. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как я уже 
+говорил, куч у одного процесса может быть несколько. Они создаются и разрушаются 
+в период его существования. Но стандартная куча процесса создается в начале его 
+исполнения и автоматически уничтожается по его завершении — сами уничтожить ее 
+Вы нс можете. Каждую кучу идентифицирует своЙ описатель, и все Windows-функции, 
+которые выделяют и освобождают блоки в ее пределах, требуют передавать им этот 
+описатель как параметр. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Описатель 
+стандартной кучи процесса возвращает функция <I>GеtProcessHeap.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  GelProcessHeap(); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h18t2></A>Дополнительные кучи в процессе</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В адресном 
+пространстве процесса допускается создание дополнительных куч. Для чего они 
+нужны? Тому может быть несколько причин: </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>защита 
+  компонентов; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>более 
+  эффективное управление памятью; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>локальный 
+  доступ; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>исключение 
+  издержек, связанных с синхронизацией потоков; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>быстрое 
+  освобождение всей памяти в куче. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Рассмотрим 
+эти причины подробнее. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t2p1></A>Защита компонентов </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Допустим, 
+программа должна обрабатывать два компонента- связанный список струк тур NODE и 
+двоичное дсрсво структур BRANCH. Представим также, что у Вас есть 
+два</FONT><FONT face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>файла 
+исходного кода: LnkLst.cpp, содержащий функции для обработки связанного списка, 
+и BinTree.cpp с функциями для обработки двоичного дерева </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+структуры NODE и BRANCH хранятся в одной куче, то она может выглядеть примерно 
+так, как показано на рис. 18-1. </FONT></P>
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=340 alt=rihter18-1.jpg src="images/rihter18-1.jpg" 
+width=120> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 18-1. Единая куча, в которой размещены структуры NODE и BRANCH 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Теперь 
+предположим, что в коде, обрабатывающем связанный список, «сидит жу чок", 
+который приводит к случайной перезаписи 8 байтов после NODE 1 А это в свою 
+очередь влечет порчу данных в BRANCH 3 Впоследствии, когда код из файла Bin 
+Tree.cpp пьтается «пройти" по двоичному дереву, происходит сбой из-за того, что 
+часть данных в памяти испорчена. Можно подумать, что ошибка возникает из-за «жуч 
+ка» в коде двоичного дерева, тогда как на самом деле он — в коде связанного 
+списка. А поскольку разные типы объектов смешаны в одну кучу (в прямом и 
+переносном смысле), то отловить «жучков» в коде становится гораздо труднее. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Создав же две 
+отдельные кучи — одну для NODE, другую для BRANCH, — Вы ло кализуете место 
+возникновения ошибки. И тогда «жучок» в коде связанного списка не испортит 
+целостности двоичного дерева, и наоборот. Конечно, всегда остается веро ятность 
+такой фатальной ошибки в коде, которая приведет к записи данных в посто роннюю 
+кучу, но это случается значительно реже. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t2p2></A>Более эффективное управление памятью </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кучами можно 
+управлять гораздо эффективнее, создавая в них объекты одинакового размера. 
+Допустим, каждая структура NODE занимает 24 байта, а каждая структура BRANCH — 
+32. Памятьдля всех этих объектов выделяется из одной кучи. На рис. 18-2 
+показано, как выглядит полностью занятая куча с несколькими объектами NODE и 
+BRANCH. Если объекты NODE 2 и NODE 4 удаляются, память в куче становится фраг 
+ментированной И если после этого попытаться выделить в ней память для структу ры 
+BRANCH, ничего не выйдет — даже несмотря на то что в куче свободно 48 байтов, а 
+структура BRANCH требует всего 32. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если бы в 
+каждой куче содержались объекты одинакового размера, удаление од ного из них 
+позволило бы в дальнейшем разместить другой объект того же типа. </FONT></P>
+
+<P align=center><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3><IMG height=341 alt=rihter18-2.jpg src="images/rihter18-2.jpg" 
+width=115> </FONT></P>
+<P align=center><FONT face="Arial, Helvetica, sans-serif" color=#009900 
+size=2>Рис. 18-2. Фрагментированная куча, содержащая несколько объектов NODE и 
+BRANCH </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t2p3></A>Локальный доступ </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Перекачка 
+страницы ил оперативной памяти в страничный файл занимает ощутимое время. Та же 
+задержка происходит и в момент загрузки страницы данных обратно в оперативную 
+память. Обращаясь в основном к памяти, локализованной в небольшом диапазоне 
+адресов, Вы снизите вероятность перекачки страниц между оперативной памятью и 
+страничным файлом. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Поэтому при 
+разработке приложения старайтесь размещать объекты, к которым необходим частый 
+доступ, как можно плотнее друг к другу. Возвращаясь к примеру со связанным 
+списком и двоичным деревом, отмечу, что просмотр списка не связан с просмотром 
+двоичного дерева Разместив все структуры NODE друг за другом в од ной куче, Вы, 
+возможно добьетесь того, что по крайней мере несколько структур NODE умесгятся в 
+пределах одной страницы физической памяти. И тогда просмотр связанного списка не 
+потребует от процессора при каждом обращении к какой-либо структуре NODE 
+переключаться с одной страницы на другую. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если же 
+«свалить" оба типа cтpyктyp в одну кучу, обьекты NODE необязательно будут 
+размещены строго друг за другом. При самом неблагоприятном стечении об 
+стоятельств на странице окажется всего одна структура NODE, a остальное место 
+зай мут структуры BRANCH. B этом случае просмотр связанного списка будет 
+приводить к ошибке страницы (page fault) при обращении к каждой структуре NODE, 
+что в ре зультате может чрезвычайно замедлить скорость выполнения Вашего 
+процесса. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t2p4></A>Исключение издержек, связанных с синхронизацией потоков 
+</FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Доступ к 
+кучам упорядочивается по умолчанию, поэтому при одновременном обра щении 
+нескольких потоков к куче данные в ней никогда не повреждаются. Однако для этого 
+функциям, работающим с кучами, приходится выполнять дополнительный код. Если Вы 
+интенсивно манипулируете с динамически распределяемой памятью, выпол нение 
+дополнительного кода может заметно снизить быстродействие Вашей програм мы. 
+Создавая новую кучу, Вы можете сообщить системе, что единовременно к этой кучс 
+обращается только один поток, и тогда дополнительный код выполняться не 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>будет. Но 
+береритесь: теперь Вы берете всю ответственность за целостность этой кучи на 
+себя. Система не станет присматривать за Вами. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t2p5></A>Быстрое освобождение всей памяти в куче </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Наконец, 
+использование отдельной кучи для какой-то структуры данных позволяет освобождать 
+всю кучу, не перебирая каждый блок памяти. Например, когда Windows Explorer 
+перечисляет иерархию каталогов на жестком диске, он формирует их дере во в 
+памяти. Получив команду обновить эту информацию, он мог бы просто разру шить 
+кучу, содержащую это дерево, и начать все заново (если бы, конечно, он исполь 
+зовал кучу, выделенную только для информации о дереве каталогов). Бо многих при 
+ложениях это было бы очень удобпо, да и быстродействие тоже возросло бы. 
+</FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h18t3></A>Создание дополнительной кучи</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Дополнительные кучи в процессе создаются вызовом 
+<I>HeapCreate</I></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  HeapCreate( DWORD fdwOptions, SIZE_T dwInitialSize, SIZE_T dwMaximumSize); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>fdwOptions </I>модифицирует способ выполнения операций над кучей. В нем можно 
+указать 0, HEAP_NO_SERIALIZE, HEAP_GENERATE_EXCEPTIONS или комбинацию последних 
+двух флагов. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>По умолчанию 
+действует принцип последовательного доступа к куче, что позво ляет не опасаться 
+одновременного обращения к ней сразу нескольких потоков. При попытке выделения 
+из кучи блока памяти функция <I>HeapAlloc </I>(ее параметры мы обсу дим чуть 
+позже) делает следующее: </FONT></P>
+<OL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Просматривает связанный список выделенных и свободных блоков памяти. 
+  </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Находит 
+  адрес свободного блока. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выделяет 
+  новый блок, помечая свободный как занятый. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Добавляет 
+  новый элемент в связанный список блоков памяти. </FONT></LI></OL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+HEAP_NO_SERIALIZE использовать нс следует, и вот почему. Допустим, два потока 
+одновременно пытаются выделить блоки памяти из одной кучи. Первый по ток 
+выполняет операции по пп 1 и 2 и получает адрес свободного блокз памяти. Но 
+только он соберется перейти к третьему этапу, как сго вытеснит второй поток и 
+тоже выполнит операции по пп. 1 и 2. Поскольку первый поток не успел дойти до 
+этапа 3, второй поток обнаружит тот же свободный блок памяти, </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Итак, оба 
+потока считают, что они нашли свободный блок памяти в куче. Поэтому поток 1 
+обновляет связанный список, помечая новый блок как занятый. После этого и поток 
+2 обновляет связанный список, помечая <I>тот же </I>блок как занятый. Ни один из 
+потоков пока ничего не подозревает, хотя оба получили адреса, указывающие на 
+один и тот же блок памяти. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Ошибку такого 
+рода обнаружить очень трудно, поскольку она проявляется не сра зу. Но в конце 
+концов сбой произойдет и, будьте уверены, это случится в самый не подходящий 
+момент, Вот какие проблемы это может вызвать. </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 
+  size=3>Повреждение связанного списка блоков памяти. Эта проблема не проявится 
+  до попытки выделения или освобождения блока. </FONT></LI></UL>
+
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Оба потока 
+  делят один и тот же блок памяти. Оба записывают в него свою информацию Когда 
+  поток 1 начнет просматривать содержимое блока, он не поймет данные, записанные 
+  потоком 2. </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Один из 
+  потоков, закончив работу с блоком, освобождает его, и это приводит к тому, что 
+  другой поток записывает данные в невыделенную память Проис ходит повреждение 
+  кучи. </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Решение этих 
+проблем — предоставить одному из потоков монопольный доступ к куче и ее 
+связанному списку (пока он не закончит все необходимые операции с кучей) Именно 
+так и происходит в отсутствие флага HEAP_NO_SERIALIZE Этот флаг можно 
+использовать без опаски только при выполнении следующих условий' </FONT></P>
+<UL>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>в процессе 
+  существует лишь один поток; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>в процессе 
+  несколько потоков, но с кучей работает лишь один из них; </FONT>
+  <LI><FONT face="Times New Roman, Times, serif" color=#000000 size=3>в процессе 
+  несколько потоков, но он сам регулирует доступ потоков к кучс, применяя 
+  различные формы взаимоисключения, например критические сек ции, 
+  объекты-мьютексы или семафоры (см. главы 8 и 9). </FONT></LI></UL>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы не 
+уверены, нужен ли Вам флаг HEAP_NO_SERIALIZE, лучше не пользуй тесь им. В его 
+отсутствие скорость работы многопоточной программы может чуть снизиться из-за 
+задержек при вызовах функций, управляющих кучами, но зато Вы избежите риска 
+повреждения кучи и ее данных. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Другой флаг, 
+HEAP_GENERATE_EXCEPTIONS, заставляет систему генерировать ис ключение при любом 
+провале попытки выделения блока в куче Исключение (см. гла вы 23, 24 и 25) — еще 
+один способ уведомления программы об ошибке. Иногда при ложение удобнее 
+разрабатывать, полагаясь на перехват исключений, а не на провер ку значений, 
+возвращаемых функциями. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Второй 
+параметр функции <I>HeapCreate — dwlnilialSize — </I>определяет количество 
+байтов, первоначально передаваемых куче. При необходимости функция округляет это 
+значение до ближайшей большей величины, кратной размеру страниц И после дний 
+параметр, <I>clwMaximumSize, </I>указывает максимальный объем, до которого может 
+расширяться куча (предельный объем адресного пространства, резервируемого под 
+кучу). Если он больше 0, Вы создадите кучу именно такого размера и не сможете 
+его увеличить. А если этот параметр равен 0, система резервирует регион и, если 
+надо, расширяет его до максимально возможного объема При успешном создании кучи 
+<I>HeapCreate </I>возвращает описатель, идентифицирующий новую кучу Он 
+используется и другими функциями, работающими с кучами. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t3p1></A>Выделение блока памяти из кучи </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для этого 
+достаточно вызвать<B> </B>функцию <I>HeapAlloc</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  HeapAlloc( HANDLE hHeap, DWORD fdwFlags, SIZE_T dwBytes); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hHeap </I>идентифицирует описатель кучи, из которой выделяется память. 
+Параметр <I>dwBytes </I>определяет число выделяемых в куче байтов, а параметр 
+<I>fdwFlags </I>позволяет указывать флаги, влияющие на характер выделения памяти 
+В настоящее время поддерживается только три флага. HEAP_ZERO_MEMORY, 
+HEAP_GENERATE_EX CEPTIONS и HEAP_NO_SERIALIZE. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Назначение 
+флага HEAP_ZERO_MEMORY очевидно Он приводит к заполнению содержимого блока 
+нулями перед вовратом из <I>HeapAlloc. </I>Второй флаг заставляет эту функцию 
+генерировать программное исключение, если в куче не хватает памяти для 
+удовлетворения запроса. Вспомните, этот флаг можно указывать и при создании кучи 
+функцией <I>HeapCreate, </I>он сообщает диспетчеру, управляющему кучами, что при 
+невоз можности выделения блока в куче надо генерировать соответствующее 
+исключение. Если Вы включили данный флаг при вызове <I>HeapCreate, </I>то при 
+вызове <I>HeapAlloc </I>ука зывать его ужс не нужно С другой стороны, Вы могли 
+создать кучу без флага HEAP_GE NERATE_EXCEPTIONS. В таком случае, если Вы 
+укажете его при вызове <I>HeapAlloc, </I>он повлияет лишь на данный ее вызов. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если функция 
+<I>HeapAlloc </I>завершилась неудачно и при этом разрешено генериро вать 
+исключения, она может вызвать одно из двух исключений, перечисленных в сле 
+дующей таблице </FONT></P>
+<TABLE height=89 cellSpacing=0 cellPadding=0 rules=all width=584 align=center 
+border=1 frame=box>
+  <TBODY>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=188 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Идентификатор </FONT></P></TD>
+    <TD vAlign=top align=left width=390 height=24>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>Описание </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=188 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STATUS_NO_MEMORY </FONT></P></TD>
+    <TD vAlign=top align=left width=390 height=23>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Попытка 
+      выделения памяти не удалась из-за ее нехватки </FONT></P></TD></TR>
+  <TR vAlign=top align=left>
+    <TD vAlign=top align=left width=188 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 
+      size=2>STATUS_ACCESS_VIOLATION </FONT></P></TD>
+    <TD vAlign=top align=left width=390 height=42>
+      <P><FONT face="Times New Roman, Times, serif" color=#000000 size=2>Попытка 
+      выделения памяти не удалась из-зa повреждения кучи или неверных параметров 
+      функции </FONT></P></TD></TR></TBODY></TABLE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>При успешном 
+выделении блока <I>HeapAlloc </I>возвращает егo адрес Если памяти не достаточно 
+и флаг HEAP_GENERATE_EXCEPTIONS не указан, функция возвращает NULL. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+HEAP_NO_SERIALIZE заставляет <I>HeapAlloc </I>при данном вызове нс применять 
+принцип последовательного доступа к куче Этим флагом нужно пользоваться с ве 
+личайшей осторожностью, так как куча (особенно стандартная куча процесса) может 
+быть повреждена при одновременном доступе к ней нескольких потоков</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>WINDOWS 98</FONT> <BR>Вызов <I>HeapAlloc </I>с требованием 
+  выделить блок размером более 256 Мб Win dows 98 считает ошибкой. Заметьте, что 
+  в этом случае функция всегда возвра щает NULL, a исключение никогда не 
+  генерируется, даже если при создании кучи или попытке выделить блок Вы указали 
+  флаг HEAP_GENERATE_EXCEPTIONS, </FONT></P><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3></FONT>
+  <P><FONT face="Arial, Helvetica, sans-serif" color=#006600 size=2><FONT 
+  color=#990000>NOTE:</FONT> <BR>Для выделения больших блоков памяти (от 1 Мб) 
+  рекомендуется использовать функцию <I>VirtualAlloc, </I>а не функции, 
+  оперирующие с кучами. </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t3p2></A>Изменение размера блока </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Часто бывает 
+необходимо изменить размер блока памяти. Некоторые приложения изначально 
+выделяют больший, чем нужно, блок, а затем, разместив в нем данные, уменьшают 
+его Но некоторые, наоборот, сначала выделяют небольшой блок памяти и потом 
+увеличивают его по мере записи новых данных. Для изменения размера бло ка памяти 
+вызывается функция <I>HeapReAlloc:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+  HeapReAlloc( HANDLE hHeap, DWORD fdwFlags, PVOID pvMem, SIZE_Т dwBytes); 
+  </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Как всегда, 
+параметр <I>hHeap </I>идентифицирует кучу, в которой содержится изменя емый 
+блок. Параметр <I>fdwFlags</I> указывает флаги, используемые при изменении разме 
+</FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>pa блока 
+HEAP_GENERATE_EXCEPTIONS, HEAP_NO_SERIALIZE, HEAP_ZEROMEMORY или 
+HEAP_REALLOC_IN_PLACE_ONLY. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Первые два 
+флага имеют тот же смысл, что и при использовании с <I>HeapAlloc. </I>Флаг 
+HEAPZEROMEMORY полезен только при увеличении размера блока памяти. В этом случае 
+дополнительные байты, включаемые в блок, предварительно обнуляются. При 
+уменьшении размера блока этот флаг не действует. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Флаг 
+HEAP_REALLOC_IN_PLACE_ONLY сообщает <I>HeapReAlloc, </I>что данный блок памяти 
+перемещать внутри кучи не разрешается (а именно это и может попытаться сделать 
+функция при расширении блока). Если функция сможет расширить блок без его 
+перемещения, она расширит его и вернет исходный адрес блока. С другой сторо ны, 
+ссли для расширения блока его надо переместить, оня возвращает адрес нового, 
+большего по размеру блока. Если блок затем снова уменьшается, функция вновь воз 
+вращает исходный адрес первоначального блока. Флаг HEAP_REALLOC_IN_PLACE_ ONLY 
+имеет смысл указывать, когдя блок является частью связанного списка или де рева. 
+В этом случае в других узлах списка или дерева могут содержаться указатели на 
+данный узел, и его перемещение в куче непременно приведет к нарушению целост 
+ности связанного списка </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Остальные два 
+параметра (<I>pvMem </I>и <I>dwBytes</I>)<I> </I>определяют текущий адрес 
+изменяе мого блока и сго новый размер (в байтах). Функция <I>HeapReAlloc 
+</I>возвращает либо ад рес нового, измененного блока, либо NULL, ссли размер 
+блока изменить не удалось. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t3p3></A>Определение размера блока </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Выделив блок 
+памяти, можно вызвать <I>HeapSize </I>и узнать сго истинный размер</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>SIZE_T 
+  HeapSize( HANDLE hHeap, DWORD fdwFlags, LPCVOlD pvMem); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Параметр 
+<I>hHeap </I>идентифицирует кучу, а параметр <I>pvMem </I>сообщает адрес блока. 
+Параметр <I>dfwFlags</I> принимает два значения: 0 или HEAP_NO_SERIALIZE 
+</FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t3p4></A>Освобождение блока </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для этого 
+служит функция <I>HeapFree.</I></FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL HeapFree( 
+  HANDLE hHeap, DWORD fdwFlags, PVOID pvMem); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+освобождает блок памяти и при успешном вызове возвращает TRUE. Параметр 
+<I>fdwFlags </I>принимает два значения 0 или HEAP_NO_SFRIALIZE Обращение к этой 
+фун кции может привести к тому, что диспетчер, управляющий кучами, вернет часть 
+фи зической памяти системе, но это не обязательно. </FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t3p5></A>Уничтожение кучи </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кучу можно 
+уничтожить вызовом <I>HeapDestroy-.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  HeapDestroy(HANDLE hHeap); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обращение к 
+этой функции приводит к освобождению всех блоков памяти внут ри кучи и возврату 
+системе физической памяти и зарезервированного региона адрес </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>ного 
+пространства, занятых кучей При успешном выполнении функция возвращает TRUE. 
+Если при завершении процесса Вы не уничтожаете кучу, это делает система, но — 
+подчеркну еще раз — только в момент завершения процесса. Если куча создана 
+потоком, она будет уничтожена лишь при завершении всего процесса </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Система не 
+позволит уничтожить стандартную кучу процесса — она разрушается только при 
+завершении процесса. Если Вы передадите описатель этой кучи функции 
+<I>HeapDestroy, </I>система просто проигнорирует Ваш вызов. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3></FONT></P>
+<H2><I><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><A 
+name=h18t3p6></A>Использование куч в программах на С++ </FONT></I></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Чтобы в 
+поЛной мере использовать преимущества динамически распределяемой па мяти, 
+следует включить ее поддержку в существующие программы, написанные па С++. В 
+этом языке выделение памяти для объекта класса выполняется вызовом оператора 
+<I>new, </I>а не функцией <I>malloc, </I>как в обычной библиотеке С. Когда 
+необходимость в дан ном объекте класса отпадает, вместо библиотечной 
+С-функции<I> frее </I>следует применять оператор <I>delete. </I>Скажем, у нас 
+есть класс CSomeClasb, и мы хотим создать экземпляр этого класса. Для этого 
+нужно написать что-то вроде.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>CSomeClass* 
+  pSorneClass = new CSomeClass; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Дойдя до этой 
+строки, компиляюр С++ сначала проверит, содержит ли класс CSomeClass 
+функцию-член, переопределяющую оператор <I>new. </I>Если да, компилятор 
+генерирует код для вызова этой функции Нет — создает код для вызова стандартно 
+го С++-оператора <I>new.</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Созданный 
+объект уничтожается обращением к оператору <I>delete</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>delete 
+  pSomeClass; </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Переопределяя 
+операторы <I>new </I>и <I>delete </I>для нашегоC++ - класса, мы получаем воз 
+можность использовать преимущества функций, управляющих кучами. Для этого оп 
+ределим класс CSomeClass в заголовочном файле, скажем, так:</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>class 
+  CSomeClass <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>private 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>static 
+      HANDLE s_hHeap; <BR>static UINT s_uNumAllocsInHeap; </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+      располагаются закрытые данные и функции-члены </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>public: 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void* 
+      operator new (size_t size); <BR>void operator delete (void* p); 
+</FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// здесь 
+      располагаются открытые данные и функции-члены 
+  </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>... 
+</FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>};</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Я объявил два 
+элемента данных, <I>s_hHeap </I>и <I>s_uNumAllocs!nHeap, </I>как статические 
+переменные А раз так, то компилятор С++ заставит все экземпляры класса 
+CSomeClass использовать одни и те же переменные. Иначе говоря, он не станет 
+выделять отдель ные переменные <I>s_hHeap </I>и <I>s_uNumAllocsInHeap </I>для 
+каждого создаваемого экземпля ра класса. Это очень важно: ведь мы хотим, чтобы 
+все экземпляры класса CSomeClass были созданы в одной куче. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Переменная 
+s_<I>hHeap </I>будет содержать описатель кучи, в которой создаются объек ты 
+CSomeClass. Переменная <I>s_uNumAllocsInHeap — </I>просто счетчик созданных в 
+куче </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>объектов 
+CSomeClass. Она увеличивается на 1 при создании в куче нового объекта CSomeClass 
+и соответственно уменьшается при его уничтожении. Когда счетчик об нуляется, 
+куча освобождается. Для управления кучей в СРР-файл следует включить примерно 
+такой код:</FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  CSomeClass::s_hHeap = NULL;<I> </I><BR>UINT CSomeClass::s_uNumAllocsInHeap = 
+  0; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void* 
+  CSomnClass::operator new (size_t size) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (s_hHeap 
+    == NULL) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// куча не 
+      существует, создаем ее <BR>s_hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0); 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+      (s_hHeap == NULL) </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+        size=2>return(NULL); </FONT></P></BLOCKQUOTE></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// куча для 
+    объектов CSomeClass существует <BR>void* p = HeapAlloc(s hHeap, 0, size); 
+    </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (p != 
+    NULL) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// память 
+      выделена успешно; увеличиваем счетчик объектов CSomeClass в куче 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc 
+      size=2>s_uNumAllocsInHeap++; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+    возвращаем адрес созданного объекта CSomeClass <BR>return(p); 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Заметьте, что 
+сначала я объявил два статических элемента данных, <I>s_hHeap </I>и 
+<I>s_uNumAllocsInHeap, </I>а затем инициализировал их значениями NULL и 0 
+соответственно. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Оператор 
+<I>new </I>принимает один параметр — <I>size, </I>указывающий число байтов, нуж 
+ных для хранения CSomeClass Первым делом он создает кучу, если таковой нет Для 
+проверки анализируется значение переменной <I>s_bHeap: </I>если оно NULL, кучи 
+нет, и тогда она создается функцией <I>HeapCreate, </I>а описатель, возвращаемый 
+функцией, со храняется в переменной <I>s_bHeap, </I>чтобы при следующем вызове 
+оператора <I>new </I>ис пользовать существующую кучу, а не создавать еще одну. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вызывая 
+<I>HeapCreate, </I>я указал флаг HEAP_NO_SERIALIZE, потому что данная про грамма 
+построена как однопоточная. Остальные параметры, указанные при вызове 
+<I>HeapCreate, </I>определяют начальный и максимальный размер кучи. Я подставил 
+на их место по нулю. Первый нуль означает, что у кучи нет начального размера, 
+второй — что куча должна расширяться по мере необходимости. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Hе исключено, 
+что Вам показалось, будто параметр <I>size </I>оператора <I>new </I>стоит пе 
+редать в <I>HeapCreatc </I>как второй параметр. Вроде бы тогда можно 
+инициализировать кучу так, чтобы она была достаточно большой для размещения 
+одного экземпляра класса. И в таком случае функция <I>HeapAlloc </I>при первом 
+вызове работала бы быстрее, так как не пришлось бы изменять размер кучи под 
+экземпляр класса. Увы, мир устро ен не так, как хотелось бы. Из-за того, что с 
+каждым выделенным внутри кучи блоком памяти связан свой заголовок, при вызове 
+<I>HeapAlloc </I>все равно пришлось бы менять размер кучи, чтобы в нее 
+поместился не только экземпляр класса, но и связанный с ним загловок. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>После 
+создания кучи из нее можно выделять память под новые объекты CSomeClass с 
+помощью функции <I>HeapAlloc. </I>Первый параметр — описатель кучи, второй — раз 
+мер объекта CSomeClass. Функция возвращает адрес выделенного блока. </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если 
+выделение прошло успешно, я увеличиваю переменную-счетчик <I>s_uNum 
+AllocsInHeap, </I>чтобы знать число выделенных блоков в куче. Наконец, оператор 
+<I>new </I>возвращает адрес только что созданного объекта CSomeClass. 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Вот так 
+происходит создание нового объекта CSomeClasb. Теперь рассмотрим, как этот 
+объект разрушается, — если он больше не нужен программе. Эта задача возлага ется 
+на функцию, переопределяющую оператор <I>delete.</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>void 
+  CSomeClass::operator delete (void* p) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (HeapFrce(s_hHcap, 0, p)) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// объект 
+      удален успешно <BR>s_uNumAllocsInKeap--; </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+</FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if 
+    (s_uNumAllocsInHeap == 0) <BR>{ </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// если в 
+      куче больше нет объектов, уничтожаем ее <BR>if (HeapDestroy(s_hHeap)) 
+      <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// 
+        описатель кучи приравниваем NULL, чтобы оператор new <BR>// мог создать 
+        новую кучу при создании нового объекта <BR>CSomeClass s_hHeap = NULL; 
+        </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Оператор 
+<I>delete </I>принимает только один параметр: адрес удаляемого объекта. Сна чала 
+он вызывает <I>HeapFree </I>и передает ей описатель кучи и адрес высвобождаемого 
+объекта. Если объект освобожден успешно, <I>s_uNumAllocslnHeap </I>уменьшается, 
+показы вая, что одним объектом CSomeClass в куче стало меньше. Далее оператор 
+проверяет: не равна ли эта переменная 0, и, если да, вызывает <I>HeapDestroy, 
+</I>передавая ей описа тель кучи. Если куча уничтожена, <I>s_hHeap 
+</I>присваивается NULL. Это важно: ведь в бу дущем наша программа может 
+попытаться создать другой объект CSomeClass. При этом будет вызван оператор 
+<I>new, </I>который проверит значение <I>s_hHeap, </I>чтобы опре делить, нужно 
+ли использовать существующую кучу или создать новую. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Данный пример 
+иллюстрируеn очень удобную схему работы с несколькими куча ми. Этот код легко 
+подстроить и включить в Ваши классы. Но сначала, может быть, стоит поразмыслить 
+над проблемой наследования. Если при создании нового класса Вы используете класс 
+CSomeClass как базовый, то производный класс унаследует опе раторы <I>new </I>и 
+<I>delete, </I>принадлежащие классу CSomeClass. Новый класс унаследует и его 
+кучу, а это значит, что применение оператора <I>new </I>к производному классу 
+повлечет выделение памяти для объекта этого класса из той же кучи, которую 
+использует и класс CSomeClass. Хорошо это или нет, зависит от конкретной 
+ситуации. Если объек ты сильно различаются размерами, это может привести к 
+фрагментации кучи, что зятруднит выявление таких ошибок в коде, о которых я 
+рассказывал в разделах «За щита компонентов» и «Более эффективное управление 
+памятью». </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы 
+хотите использовать отдельную кучу для производных классов, нужно продублировать 
+все, что я сделал для класса CSomeClass. Л конкретнее - включить еще один набор 
+переменных <I>s_hHeap </I>и <I>s_uNumAllocsInHeap </I>и повторить еще раз код 
+для операторов <I>new </I>и <I>delete. </I>Компилятор увидит, что Вы 
+переопределили в производном классе операторы <I>new </I>и <I>delete, </I>и 
+сформирует обращение именно к ним, а не к тем, которые содержатся в базовом 
+классе. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Если Вы не 
+будете создавать отдельные кучи для каждого класса, то получите един ственное 
+преимущество: Вам не придется выделять память под каждую кучу и соот ветствующие 
+заголовки. Но кучи и заголовки не занимают значительных объемов </FONT></P>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>памяти, так 
+что даже это преимущество весьма сомнительно Неплохо, конечно, если каждый 
+класс, используя свою кучу, в то же время имеет доступ к куче базового клас са. 
+Но делать так стоит лишь после полной отладки приложения. И, кстати, проблему 
+фрагментации куч это не снимает. </FONT></P>
+<H2><FONT face="Arial, Helvetica, sans-serif" color=#0000ff size=2><B><A 
+name=h18t4></A>Другие функции управления кучами</B> </FONT></H2>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Кроме уже 
+упомянутых, в Windows есть еще несколько функций, предназначенных для управления 
+кучами. В этом рязделс я вкратце расскажу Вам о них. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>ToolHelp-функции (упомянутые в конце главы 4) дают возможность 
+перечислять кучи процесса, а также выделенные внутри них блоки памяти. За более 
+подробной информацией я отсылаю Вас к документации Plarform SDK: ищите разделы 
+по функ циям <I>Heap32Ftrst, Heap32Next, Heap32ListFirst </I>и 
+<I>Heap32ListNext. </I>Самое ценное в этих функциях то, что они доступны как в 
+Windows 98, так и в Windows 2000. Прочие функ ции, о которых пойдет речь в этом 
+разделе, есть только в Windows 2000. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>В адресном 
+пространстве процесса может быть несколько куч, и функция <I>GetPro cessHeaps 
+</I>позволяет получить их описатели "одним махом":</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+  GetProcessHeaps( DWORD dwNumHeaps, PHANDLE pHeaps); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3>Предварительно Вы должны создать массив описателей, а затем вызвать 
+функцию так, как показано ниже.</FONT><FONT face="Times New Roman, Times, serif" 
+color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+  hHeaps[25]; </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD dwHeaps 
+  = GetProcessHeaps(25, hHeaps); </FONT></P>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>if (dwHeaps 
+  &gt; 25) <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// у 
+    процесса больше куч, чем мы ожидали </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} <BR>else 
+  <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>// элеметы 
+    от hHeaps[0] до hHeaps[dwHeaps -<I> </I>1] <BR>// идентифицируют 
+    существующие кучи </FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>}</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Имейте в 
+виду, что описатель стандартной кучи процесса тоже включается в этот массив 
+описателей, возвращаемый функцией <I>GetProcessHeaps. </I>Целостность кучи 
+позволяет проверить функция <I>HeapValidate:</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  HeapValidate( HANDLE hHeap, DWORD fdwFlags, LPCVOID pvMem); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно ее 
+вызывают, передавая в <I>hHeap </I>описатель кучи, в <I>dwFlags </I>— 0 (этот па 
+раметр допускает еще флаг HEAP_NO_SERIALIZE), а в <I>pvMem — </I>NULL. Функция 
+про сматривает все блоки в куче, чтобы убедиться в отсутствии поврежденных 
+блоков. Чтобы она работала быстрее, в параметре <I>pvMem </I>можно передать 
+адрес конкретного блока, Тогда функция проверит только этот блок. </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Для 
+объединения свободных блоков в куче, а также для возврата системе любых страниц 
+памяти, на которых нет выделенных блоков, предназначена функция <I>Heap 
+Compact:</I></FONT><FONT face="Times New Roman, Times, serif" color=#000000 
+size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>UINT 
+  HeapCompact( HANDLE hHeap, DWORD fdwFlags); </FONT></P></BLOCKQUOTE>
+
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно в 
+параметре <I>fdwFlags </I>передают 0, но можно передать и HEAP_NO_SE RIALIZE 
+</FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Следующие две 
+функции — <I>HeapLock </I>и <I>HeapUnlock — </I>используются парно</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL 
+  Hpaplock(HANDLE hHeap); <BR>BOOL HeapUnlock(HANDLE hHeap); 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Они 
+предназначены для синхронизации потоков После успешного вызова <I>Heap Lock 
+</I>поток, который вьзывал эту функцию становится владельцем указанной кучи Ьсли 
+другой поток обращается к этой куче, указывая тот же описатель кучи, система 
+приостанавливает его выполнение до тех пор, пока куча не будет разблокирована 
+вызовом <I>HeapUnlock</I> </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Функции 
+<I>HeapAlloc, HeapSize, HeapFree </I>и другие — все обращаются к <I>HeapLock 
+</I>и <I>HeapUnlock, </I>чтобы обеспечить последовательный доступ к куче 
+Самостоятельно вы зывать эти функции Вам вряд ли понадобится </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Последняя 
+функция, предназначенная для работы с кучами, — <I>HeapWalk</I></FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>BOOL HeapWalk( 
+  HANDLE hHeap, PPROCESS_HEAP_ENTRY pHoapEntry); </FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Она 
+предназначена только для отладки и позволяет просматривать содержимое кучи 
+Обычно ее вызывают по несколько paз, передавая адрес структуры PROCESS_ 
+HEAP_ENTRY (Вы должны сами создать ее экземпляр и инициализировать)</FONT><FONT 
+face="Times New Roman, Times, serif" color=#000000 size=3> </FONT></P>
+<BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>typedef struct 
+  _PROCESS_HEAP_ENTRY <BR>{ </FONT></P>
+  <BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>PVOID 
+    lpData; <BR>DWORD cbData; <BR>BYlE cbOverhead;<I> </I><BR>BYTE iRegionIndex; 
+    <BR>WORD wFlags; </FONT></P>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>union <BR>{ 
+    </FONT></P>
+    <BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>struct 
+      <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>HANDLE 
+        hMem; DWORD dwReserved[ 3 ]; </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} Block; 
+      </FONT></P>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>struct 
+      <BR>{ </FONT></P>
+      <BLOCKQUOTE>
+        <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>DWORD 
+        dwCornmittedSize; <BR>DWORD dwUnCommittedSize; <BR>LPVOID lpFirstBlock; 
+        <BR>LPVOID lpLastBlock; </FONT></P></BLOCKQUOTE>
+      <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} Region; 
+      </FONT></P></BLOCKQUOTE>
+    <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>};<I> 
+    </I></FONT></P></BLOCKQUOTE>
+  <P><FONT face="Courier New, Courier, mono" color=#0000cc size=2>} 
+  PROCESS_HEAP_ENTRY, *LPPROCESS_HEAP_ENTRY, *PPROCESS_HEAP_ENTRY;</FONT><FONT 
+  face="Times New Roman, Times, serif" color=#000000 size=3> 
+</FONT></P></BLOCKQUOTE>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Прежде чем 
+перечислять блоки в куче, присвойте NULL элементу <I>lpData, </I>и это заставит 
+функцию <I>HeapWalk </I>инициализировать все элементы структуры Чтобы пе рейти к 
+следующему блоку, вызовите <I>HeapWalk </I>еще раз, переддв сй тот же описатель 
+кучи и адрес той же структуры PROCESS_HFAPENTRY Если <I>HeapWalk </I>вернет 
+FALSE, значит, блоков в куче больше нет Подробное описание элементов структуры 
+PRO CESS_HEAP_ENTRY см. в документации PlatformSDK </FONT></P>
+<P><FONT face="Times New Roman, Times, serif" color=#000000 size=3>Обычно вызовы 
+функции <I>HeapWalk</I> "обрамляют" вызовами <I>HeapLock </I>и <I>HeapUnlock, 
+</I>чтобы посторонние потоки не портили картину, создавая или удаляя блоки в 
+просматриваемой куче </FONT></P>
+<HR>
+
+<P>
+<A href="head17.htm"><IMG height=20 src="images/blupresa.gif" width=100 border=0></A> 
+<A href="index.htm"><IMG height=20 src="images/bluupsa.gif" width=100 border=0></A> 
+<A href="head19.htm"><IMG height=20 src="images/blunexsa.gif" width=100 border=0></A>
+</P>
+<p>
+
+<script language="JavaScript">docclose();</script>
+</body>
+</html>
