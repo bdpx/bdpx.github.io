@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dmytro Buvailo CV</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta http-equiv="content-language" content="en"/>
+<meta name="viewport" content="width=device-width"/>
+<meta name="language" content="en"/>
+<meta name="description" content="resume/cv Dmitro Buvailo, Senior Software Engineer/Developer" />
+<link rel="stylesheet" href="/styles.css" type="text/css" />
+</head>
+<body>
+<p class="docname">Dmitro Buvailo, Senior Software Engineer/Developer</p>
+
+<h1>Summary of Qualifications</h1>
+
+<p>My career has led me to specialize increasingly in the application and system programming at international levels.
+I have experience in: enterprise systems programming, low level programming, making architecture decisions on enterprise applications level,
+working as dedicated specialist and developing different Windows and Linux drivers, hook/injection systems, packet sniffers, data inspection.
+</p>
+
+<p>My <!-- <a href="https://www.linkedin.com/in/dmitry-buvaylo-b51a582a/">Linkedin</a> account, -->
+<a href="https://github.com/bdpx">Github</a> account.
+</p>
+
+<h1>Technical environment, experience</h1>
+
+<table>
+<thead>
+<tr>
+<th style="width:25%">Type</th>
+<th style="width:75%">Tools, libs, techs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Operating systems</td>
+<td>Windows, Linux</td>
+</tr>
+<tr>
+<td>Programming languages</td>
+<td>Preferred: С/С++.<br/>
+Auxiliary: Assembler, Bash, Python.<br/>
+Obsolete: Fortran, Delphi.</td>
+</tr>
+<tr>
+<td>Technologies</td>
+<td>C++ (98-20), STL, WDM, minifilters, filesystem drivers, filter drivers, NT/Win32 API, windows internals, IPC,
+RPC, multithreading, sockets, remote/kernel debugging, crash dump analysis, reverse engineering, POSIX, API hooks, OOP,
+design patterns, unit testing, cross-platform development
+</td>
+</tr>
+<tr>
+<td>Libraries</td>
+<td>Boost, GTest, GMock, CryptoPP, ZLib, OpenSSL, Detours/MHook/EasyHook</td>
+</tr>
+<tr>
+<td>Dev tools</td>
+<td>Visual Studio, WinDbg, IDA, Gcc, Clang, GDB, Cmake</td>
+</tr>
+<tr>
+<td>Scripts</td>
+<td>Windows/Linux shell, bash, Python</td>
+</tr>
+<tr>
+<td>Source control</td>
+<td>Preferred: Git, GitHub<br/>
+Obsolete: SVN</td>
+</tr>
+<tr>
+<td>Installers</td>
+<td>WIX, MSI, Deb packaging</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>Notion, Confluence, Fisheye, Bamboo, reStructuredText, XML/XSLT</td>
+</tr>
+<tr>
+<td>Issue tracking systems</td>
+<td>Jira, Asana</td>
+</tr>
+<tr>
+<td>Databases</td>
+<td>MSSQL, MySQL, SQLite</td>
+</tr>
+<tr>
+<td>Containers</td>
+<td>Docker (a bit)</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>Wireshark, scapy</td>
+</tr>
+</tbody>
+</table>
+
+<h1>Projects and customers</h1>
+
+<p>I have worked on several big enterprise projects (Korea, Israel, Canada, USA) all mostly about data security:
+endpoint detection and response, data monitoring, digital right management, data leak prevention, antiviruses and exploits.
+</p>
+
+<table>
+<thead>
+<tr>
+<th style="width:20%">Customer</th>
+<th style="width:80%">Project description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>ThreatLocker<br/>(USA)</td>
+<td>
+<p>The Endpoint Detection and Response security product for Windows.
+Process monitor-ing, file system filtering, network filtering, registry monitoring, elevation control.
+</p>
+<p>
+Windows kernel driver (C++) and service (C#), web portal and cloud database for managing and analysis.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>Accedian<br/>(Canada, France)</td>
+<td><p>
+Canadian customer with the local office in Paris.
+The project for the network performance analysis and deep packet inspection.
+</p>
+<p>Server side of the project is in the cloud: web infrastructure, databases, analysis, etc.
+</p>
+<p>The customer-side scalable Linux farm for packet sniffing and parsing:
+taps the whole office/net traffic, parses packets (various protocols supported), compresses data and feeds the cloud.
+</p>
+<p>Experimental: the user-agents on the Windows end-points in customer network for TLS-1.3 session keys stealing: dll injection, user-mode hooks.
+</p></td>
+</tr>
+
+<tr>
+<td>Anonimous<br/>(USA)</td>
+<td><p>
+The researching project about the Windows exploit security.
+Metasploit payloads, mimikatz, code injections, exploits, code/behavior obfuscation, ROP gadgets, antivirus bypassing.
+</p></td>
+</tr>
+
+<tr>
+<td>Checkpoint<br/>(Israel)</td>
+<td>
+<p>Israel-based company and product (capsule docs) for Microsoft Office and Adobe Acrobat with worldwide auditoria.
+The <q>capsuled</q> documents from the moment of creation are encrypted/secured and can't be unintentionally shared.
+</p>
+<p>The access is provided only to authorized individuals or group, custom policies specify how documents can be used by authorized recipients,
+sharing and uploads without risk of data loss.
+</p>
+<p>Cloud-based authorization infrastructure, client-side user-mode virtualization, code hooks, MS Office add-in, Adobe Acrobat plugin.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>IQPAD<br/>(South Korea)</td>
+<td>
+<p>The Endpoint Detection and Response and data-leak-prevention product for Windows.
+The product control access, encrypts valuable files to protect the client data from leakage.
+Only trusted apps installed on trusted computers (for example working place in a firm office) may decrypt and use content.
+</p>
+<p>The system controls all possible ways of leaking valuable content via copy-pasting, file exporting, screenshotting, e-mailing, etc.
+The system has a big client base in Eastern Asia.
+Any chosen file and even any content produced by the managed app may be forced to be the encrypted container with additional access control information.
+</p>
+<p>Support for MS Office, Korean local HWP office, Adobe Acrobat, Autodesk AutoCAD, DS CATIA Solution, Siemens NX, etc as managed apps.
+</p>
+<p>Windows kernel drivers (C/C++) and services, managing apps. Minifilter, kernel-side file system and registry virtualization,
+fake file system drivers, network/bluetooth filtering, registry monitoring, dll injection, user-mode hooks,
+authorization infrastructure, MS Office add-ins, Adobe Acrobat plugins, Siemens NX plugins, etc.
+</p>
+</td>
+</tr>
+
+</tbody>
+</table>
+
+<h1>Work history</h1>
+
+<table>
+<thead>
+<tr>
+<th style="width:15%">Position</th>
+<th style="width:15%">Place</th>
+<th style="width:15%">Years</th>
+<th style="width:55%">Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>Senior Software Engineer, Developer</td>
+<td>ThreatLocker<br/>(USA, remote)</td>
+<td>2024–2025<br/>1 year</td>
+<td>
+<p>Windows, kernel driver and services, C++/C#.
+Endpoint Detection and Response security systems - process monitoring, file system filtering, network filtering, registry monitoring, elevation control.</p>
+</td>
+</tr>
+
+<tr>
+<td>Senior Software Engineer, Developer</td>
+<td>Underdefense<br/>(Ukraine, Lviv)</td>
+<td>2020–2023<br/>3 years</td>
+<td>
+<p>Linux, packet sniffer, protocol parsers, C/C++, Windows client-side user-agent, usermode hooks, TLS decryption.
+</p>
+</td>
+</tr>
+
+<tr>
+<td>Software Engineer, Developer</td>
+<td>Apriorit<br/>(Ukraine, Dnipro)</td>
+<td>2016–2020<br/>5 years</td>
+<td><p>Windows kernel, C/C++, kernel/userspace file system virtualization, storage data encryption – C/C++,
+       Windows minifilter and FS drivers, encryption, usermode hooks, APC injection, COM interfaces and hooks.</p>
+    <p>Security systems - process monitoring, registry, user activity monitoring.</p>
+</td>
+</tr>
+
+<tr>
+<td>Contract researcher, developer</td>
+<td>Zaporozhian National University, Zaporozhian local factories<br/>(Ukraine)</td>
+<td>1999-2014<br/>15 years</td>
+<td><p>The collaboration of university and local factories.
+    Researching/modeling for the various constructions like the transformator oil-tanks, the lodgments, beams, etc.
+    </p>
+    <p>Custom software for the mathematical modelling of electrical transformer oil tanks damages/destruction,
+       mathematical modelling of building structures, rubberized details, etc: Fortran/C/C++.
+    </p>
+</td>
+</tr>
+
+<tr>
+<td>Docent, associated professor</td>
+<td>Zaporozhian National University<br/>(Ukraine)</td>
+<td>2000-2016<br/>16 years</td>
+<td>Various computer science courses</td>
+</tr>
+
+<tr>
+<td>Teacher, assistent</td>
+<td>Zaporozhian National University<br/>(Ukraine)</td>
+<td>1998-2000<br/>2 years</td>
+<td>Various computer science courses</td>
+</tr>
+
+</tbody>
+</table>
+
+<h1>Education</h1>
+
+<table>
+<thead>
+<tr>
+<th style="width:15%">Level</th>
+<th style="width:15%">Place</th>
+<th style="width:15%">Years</th>
+<th style="width:55%">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PhD</td>
+<td>Zaporozhian National University<br/>(Ukraine)</td>
+<td>1998-2000<br/>2 years</td>
+<td><p>Mathematical modelling and computational methods (finite-element modelling)
+</p></td>
+</tr>
+<tr>
+<td>Postgraduate study</td>
+<td>Zaporozhian National University<br/>(Ukraine)</td>
+<td>1995-1998<br/>3 years</td>
+<td><p>Fortran/C/C++ development of finite-element modelling and data visualization for building structures, rubberized details, electro/elasticity/termal fields
+</p></td>
+</tr>
+<tr>
+<td>bachelor, magister</td>
+<td>Zaporozhian National University<br/>(Ukraine)</td>
+<td>1990-1995<br/>5 years</td>
+<td><p>Applied mathematic
+</p></td>
+</tr>
+</tbody>
+</table>
+
+<h1>Hobbies</h1>
+
+<p><dfn>Sport programming</dfn>:
+I like to solve hard tasks from competitions.
+I was an active member of Ukrainian community.
+I had maximum 4 place sometime ago in local ukrainian rating at local competition site <a href="https://www.eolymp.com/en/users/bdp">https://www.eolymp.com/en/users/bdp</a>,
+had been former trainer of local zaporozhian university ACM team.
+</p>
+
+<p><dfn>The projects just for fun</dfn>:
+I'm developing tools for my own processor architecture with the original instruction set <a href="https://github.com/bdpx/postrisc">https://github.com/bdpx/postrisc</a>.
+The tools are: emulator, LLVM compiler backend, ported libc (MUSL), ported apps like Doom-1.
+</p>
+
+</body>
+</html>
