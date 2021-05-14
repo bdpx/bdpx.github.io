@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="language" content="ru"/>
+<meta name="viewport" content="width=device-width"/>
+<meta name="description" content="Трансформация из XML в PDF с помощью XSL-FO"/>
+<link rel="stylesheet" href="/styles.css" type="text/css" />
+<title>XSL-FO</title>
+</head>
+
+<body>
+<h1>Трансформация из XML в PDF с помощью XSL-FO</h1>
+
+<p><strong>Тема:</strong> Использование языка XSLT для преобразования XML документа в форматы представления электронных документов в Интернет: HTML, PDF.</p>
+
+<p><strong>Задание:</strong> Взять в качестве исходного документа XML документ.
+Используя Пример, представленый ниже, написать коммандный файл для получения из XML документа, согласно XSL правил (необходимо также Вам создать),
+документа PDF, хранящих указаную в первоначальном документе информацию.</p>
+
+<p><strong>Замечание</strong>. Для работы потребуются инструментальные средства: любой текстовый редактор,
+парсер XSLT шаблонов (xsltproc),
+транслятор XSL-FO в PDF - FOP (<a href="https://xmlgraphics.apache.org/fop">Apache FOP</a>).
+Информацию про XSL-FO можно прочитать<a href="https://www.w3.org/TR/xsl"> здесь.</a></p>
+
+<h2>Практический пример.</h2>
+
+<p>Пусть имеется XML документ <q>sonnet.xml</q>:
+</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0"?>
+<sonnet type="Shakespearean">
+  <author>
+    <lastName>Shakespeare</lastName>
+    <firstName>William</firstName>
+    <nationality>British</nationality>
+    <yearOfBirth>1564</yearOfBirth>
+    <yearOfDeath>1616</yearOfDeath>
+  </author>
+  <title>Sonnet 130</title>
+  <lines>
+    <line>My mistress' eyes are nothing like the sun,</line>
+    <line>Coral is far more red than her lips red.</line>
+    <line>If snow be white, why then her breasts are dun,</line>
+    <line>If hairs be wires, black wires grow on her head.</line>
+    <line>I have seen roses damasked, red and white,</line>
+    <line>But no such roses see I in her cheeks.</line>
+    <line>And in some perfumes is there more delight</line>
+    <line>Than in the breath that from my mistress reeks.</line>
+    <line>I love to hear her speak, yet well I know</line>
+    <line>That music hath a far more pleasing sound.</line>
+    <line>I grant I never saw a goddess go,</line>
+    <line>My mistress when she walks, treads on the ground.</line>
+    <line>And yet, by Heaven, I think my love as rare</line>
+    <line>As any she belied with false compare.</line>
+  </lines>
+</sonnet>
+]]></div>
+
+<p>Для преобразования в HTML мы создали шаблон</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0" ?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+
+<xsl:template match="/sonnet">
+ <html><head><title>Shakespearean sonnet</title></head>
+ <body>
+ <xsl:apply-templates/>
+ </body>
+ </html>
+</xsl:template>
+
+<xsl:template match="author">
+ <h1><xsl:value-of select="lastName"/>,<xsl:value-of select="firstName"/>
+ (<xsl:value-of select="yearOfBirth"/>-<xsl:value-of select="yearOfDeath"/>),
+ <xsl:value-of select="nationality"/></h1><br/><hr/>
+</xsl:template>
+
+<xsl:template match="lines">
+  <xsl:for-each select="line">
+    <xsl:value-of select="."/><br/>
+  </xsl:for-each>
+</xsl:template>
+
+</xsl:stylesheet>
+]]></div>
+
+<p>Для преобразования в XSL-FO мы создали шаблон</p>
+
+<div class="lang-xml"><![CDATA[
+<?xml version="1.0" ?>
+<xsl:stylesheet
+   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+   xmlns:fo="http://www.w3.org/1999/XSL/Format"
+   version="1.0">
+
+<xsl:template match="/sonnet">
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="simpleA4"
+      page-height="29.7cm" page-width="21cm"
+      margin-top="2cm" margin-bottom="2cm" margin-left="2cm" margin-right="2cm">
+      <fo:region-body/>
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+  <fo:page-sequence master-reference="simpleA4">
+    <fo:flow flow-name="xsl-region-body">
+     <xsl:apply-templates/>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>
+</xsl:template>
+
+<xsl:template match="author">
+ <fo:block>
+ <xsl:value-of select="lastName"/>,<xsl:value-of select="firstName"/>
+ (<xsl:value-of select="yearOfBirth"/>-<xsl:value-of select="yearOfDeath"/>),
+ <xsl:value-of select="nationality"/>
+</fo:block>
+</xsl:template> 
+
+<xsl:template match="lines">
+  <xsl:for-each select="line">
+     <fo:block><xsl:value-of select="."/></fo:block>
+  </xsl:for-each>
+</xsl:template>
+
+</xsl:stylesheet>
+]]></div>
+
+<p>Пусть исходный XML документ, а также XSL шаблоны находятся в одной текущей директории.
+Соответсвенно в поддиректории <em>classes</em> находятся классы <strong>xalan</strong> и <strong>fop</strong>
+соответственно в директориях с такими же названиями.</p>
+
+<p>Тогда комманды для преобразования могут выглядеть следующим образом:</p>
+
+<pre>java -cp classes\xalan\xalan.jar org.apache.xalan.xslt.Process
+ -IN sonnet.xml -XSL sonnetrules.xsl -OUT sonnet_tesult_html.htm
+</pre>
+
+<pre>java -cp classes\xalan\xalan.jar org.apache.xalan.xslt.Process
+ -IN sonnet.xml -XSL sonnet2fo.xsl -OUT sonnet_result.fo
+</pre>
+
+<p>Получить PDF из XSL-FO можно с помощью комманды:</p>
+
+<pre>call classes\fop\fop.bat sonnet_result.fo sonnet_result.pdf</pre>
+
+<p>Получаем результирующие файлы: html и pdf</p>
+
+</body>
+</html>
