@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" href="/styles.css" type="text/css" />
+<title>Test page</title>
+</head>
+<body>
+
+<textarea class="cpp">
+template class xxx<typename yyy> class zzz {
+};
+</textarea>
+
+<textarea class="xml" readonly>
+<xml>
+    <aaa>ddddddddddd</aaa>
+ddddd dem dlke ke d
+</xml></textarea>
+
+<section class="page-header">
+   <h1 class="project-name">Test page</h1>
+   <h2 class="project-tagline"></h2>
+</section>
+
+<section class="main-content">
+<h1>Welcome h1.</h1>
+<h2>Welcome h2.</h2>
+<h3>Welcome h3.</h3>
+
+<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects.
+Author your page content here <a href="https://guides.github.com/features/mastering-markdown/">using GitHub Flavored Markdown</a>,
+select a template crafted by a designer, and publish. After your page is generated, you can check out the new <dfn>gh-pages</dfn> branch locally.
+If you’re using GitHub Desktop, simply sync your repository and you’ll see the new branch <code>code sample</code>.
+</p>
+
+<textarea class="cpp">#include &lt;iostream.h>
+
+class base {
+public:
+    int xxx;
+    base(int xx) { xxx = xx;  cout << "base" << endl; }
+};
+
+class base2 : virtual public base {
+public:
+    int x;
+
+    base2(int xx):base(xx+1) { x = xx;  cout << "base2" << endl; }
+};
+
+class base3 : virtual public base {
+public:
+    mutable int x;
+
+    base3(int xx):base(xx+1) { x = xx;  cout << "base3" << endl; }
+};
+
+class derived : public base2, public base3 {
+  public:
+    int y;
+    derived(int xx, int yy) : base2(xx+1), base3(xx+3),base(xx+4) { y = yy+10;  cout << "derived" << endl; }
+
+};
+
+int main(void) {
+  derived xxx(8,9);
+
+  cout << xxx.base2::xxx << " " << xxx.base3::xxx << " " << sizeof(xxx) << endl;
+
+  return 0;
+}</textarea>
+
+</section>
+
+</body>
+</html>

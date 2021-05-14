@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<title>Tralfamador</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+  <meta http-equiv="content-language" content="ru"/>
+  <meta http-equiv="Content-Style-Type" content="text/css"/>
+  <meta name="description" content="СуперЗемля"/>
+  <meta name="viewport" content="width=device-width"/>
+  <meta name="language" content="ru"/>
+  <link href="styles.css" rel="stylesheet" type="text/css"/>
+
+<style>
+svg {
+  height: auto;
+  max-width: 100%;
+}
+.line {
+  fill: none;
+  stroke-width: 2px;
+}
+</style>
+</head>
+<body>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+function spline(x, x_begin, x_end, z_begin, z_end) {
+    return ((x_end - x) * z_begin + (x - x_begin) * z_end) / (x_end - x_begin);
+}
+
+function draw(parent, data) {
+    // set the dimensions and margins of the graph
+    const margin = { top: 20, right: 10, bottom: 30, left: 60 },
+    width = 700 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+    // set the ranges
+    let x = d3.scaleLinear().range([0, width]);
+    let y = d3.scaleLinear().range([height, 0]);
+
+    // append the svg obgect to the body of the page
+    // appends a 'group' element to 'svg'
+    // moves the 'group' element to the top left margin
+    let svg = d3.select(parent).append("svg")
+    // .attr("width", width + margin.left + margin.right)
+    .attr("width", "90%")
+    .attr("height", height + margin.top + margin.bottom)
+    .attr("viewBox", "0 0 700 400")
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    function range(data, coord) {
+        let min = d3.min(data[0], coord);
+        let max = d3.max(data[0], coord);
+        for (let i = 1; i < data.length; i++) {
+            min = Math.min(min, d3.min(data[i], coord));
+            max = Math.max(max, d3.max(data[i], coord));
+        }
+        min = Math.min(0.0, min);
+        return [min, max];
+    }
+
+    // Scale the range of the data
+    const [xmin, xmax] = range(data, function(d) { return d.x; });
+    x.domain([xmin, xmax]);
+    const [ymin, ymax] = range(data, function(d) { return d.y; });
+    y.domain([ymin, ymax]);
+
+    const colors = ["steelblue", "red", "green", "black"];
+
+    for (let i = 0; i < data.length; i++) {
+        let valueline = d3.line()
+            .x(function(d) { return x(d.x); })
+            .y(function(d) { return y(d.y); });
+
+        // Add the valueline path.
+        svg.append("path")
+            .data([data[i]])
+            .attr("class", "line")
+            .style("stroke", colors[i % colors.length])
+            .attr("d", valueline);
+    }
+
+    // Add the X Axis
+    svg.append("g")
+        .attr("transform", "translate(0," + (height - spline(0.0, ymin, ymax, 0.0, height)) + ")")
+        .call(d3.axisBottom(x).tickFormat(d3.format(".1f")));
+
+    // Add the Y Axis
+    svg.append("g")
+        .call(d3.axisLeft(y).tickFormat(d3.format(".1f")));
+}
+
+const G = 6.6743e-11;
+const H = 500.0;
+const ATM = 101325.0;
+const molar_mass = 0.0291;
+const atm_temperature = 273.0 + 20.0;
+const R = 8.31446261815324;
+const mercury_pascals_per_mm = 133.322387415;
+const water_pascals_per_mm = 9.80665;
+
+const M_SUN_RADIUS = 6.9551e+8;
+const M_SUN = 1.98847e+30;
+const L_SUN = 3.827e+26;
+const R_SUN = 149597870691;
+
+const Area = (radius) => 4.0 * Math.PI * radius * radius;
+const Volume = (radius) => (4.0 / 3.0) * Math.PI * radius * radius * radius;
+const AngularDiameter = (radius, orbit_radius) => 2.0 * Math.atan(radius / orbit_radius);
+const OrbitalPeriod = (radius, mass) => 2.0 * Math.PI * Math.sqrt(Math.pow(radius, 3) / (G * mass));
+const OrbitalRadius = (period, mass) => Math.cbrt(G * mass * period * period / (4.0 * Math.PI * Math.PI));
+const TidalAcceleration = (mass, orbit_radius, planet_radius) => (2.0 * G * mass * planet_radius) / Math.pow(orbit_radius, 3);
+const SystemImpulseMoment = (p, m) => p.moment_inertia * p.omega + (m.moment_inertia + m.mass * Math.pow(OrbitalRadius(m.period, p.mass), 2.0)) * m.omega;
+
+class Star {
+    constructor(_radius, _mass, _lumen, _orbit_radius) {
+        this.radius = _radius;
+        this.mass = _mass;
+        this.lumen = _lumen;
+        this.orbit_radius = _orbit_radius;
+        this.density = this.mass / Volume(this.radius);
+        this.orbit_lumen = this.lumen / Area(this.orbit_radius);
+        this.angular_diameter = AngularDiameter(this.radius, this.orbit_radius);
+        this.orbit_period = OrbitalPeriod(this.orbit_radius, this.mass);
+        this.tidal_acceleration = TidalAcceleration(this.mass, this.orbit_radius, 1.0);
+    }
+}
+
+class DensityPoint {
+    constructor(radius, density) {
+        this.radius = radius;
+        this.density = density;
+    }
+}
+
+class Planet {
+    constructor(name, radius, period, points, land_part, atmosphere_mass) {
+        while (radius % H > 0.0) radius++;
+
+        this.name = name;
+        this.radius = radius;
+        this.period = period;
+        this.points = points;
+        this.land_part = land_part;
+        this.atmosphere_mass = atmosphere_mass;
+
+        this.area = Area(radius);
+        this.volume = Volume(radius);
+        this.land_area = this.land_part * this.area;
+        this.sea_area = this.area - this.land_part * this.area;
+        this.mass = this.Mass(radius);
+        this.density = this.mass / this.volume;
+        this.g = G * this.mass / (radius * radius);
+        this.center_pressure = this.Pressure(0.0);
+        this.homogeneous_center_pressure = (2.0 * Math.PI / 3.0) * G * Math.pow(this.density * radius, 2.0);
+        this.critical_omega = Math.sqrt(this.g / (1.5 * radius)); // omega^2*R = g, 1.5 - assumed deformation
+        this.critical_period = 2.0 * Math.PI / this.critical_omega;
+
+        this.moment_inertia = this.MomentInertia(radius);
+        this.moment_inertia_normalized = this.moment_inertia / (this.mass * radius * radius);
+
+        this.equator_speed = 2.0 * Math.PI * radius / this.period;
+        this.omega = 2.0 * Math.PI / this.period;
+        this.centrifugal_acceleration = this.omega * this.omega * radius;
+        this.moment_rotation_impulse = this.moment_inertia * this.omega;
+        this.rotation_energy = this.moment_inertia * this.omega * this.omega / 2.0;
+
+        this.stationary_orbit = Math.cbrt(G * this.mass / (this.omega * this.omega));
+        this.s1_speed = Math.sqrt(G * this.mass / radius);
+
+        const moon_density = 3300.0;
+        this.roche_limit = 2.44 * radius * Math.cbrt(this.density / moon_density);
+        this.atm_pressure = this.g * this.atmosphere_mass / this.area;
+        this.atm_density = this.atm_pressure * molar_mass / R / atm_temperature;
+    }
+
+    Density(radius) {
+        if (radius >= 1.0) return 0.0;
+        for (let i = 1; i < this.points.length; i++) {
+            if (radius >= this.points[i].radius) {
+                return spline(radius, this.points[i].radius, this.points[i-1].radius,
+                                      this.points[i].density, this.points[i-1].density);
+            }
+        }
+        throw new Error("Density calculation failed");
+    }
+
+    Mass(r) {
+        let mass = 0.0;
+        for (let radius = 0.0; radius <= r; radius += H) {
+            mass += Area(radius) * H * this.Density(radius / r);
+        }
+        return mass;
+    }
+
+    MomentInertia(r) {
+        let sum = 0.0;
+        for (let radius = 0.0; radius <= r; radius += H) {
+            sum += Area(radius) * H * this.Density(radius / r) * (2.0 / 3.0) * radius * radius;
+        }
+        return sum;
+    }
+
+    Pressure(depth) {
+        let mass = this.Mass(this.radius);
+        let pressure = 0.0;
+        for (let r = this.radius; r > depth; r -= H) {
+            const density = this.Density(r / this.radius);
+            pressure += density * H * G * mass / (r * r);
+            mass -= Area(r) * H * density;
+        }
+        return pressure;
+    }
+} // Planet
+
+/*****************************************************************************
+*****************************************************************************/
+const EarthDensityPoints = [
+    { radius: (6371.0 -    0) / 6371.0, density:   2850.0 },
+    { radius: (6371.0 -  200) / 6371.0, density:   3300.0 },
+    { radius: (6371.0 -  430) / 6371.0, density:   3600.0 },
+    { radius: (6371.0 -  430) / 6371.0, density:   3820.0 },
+    { radius: (6371.0 -  600) / 6371.0, density:   4090.0 },
+    { radius: (6371.0 -  670) / 6371.0, density:   4160.0 },
+    { radius: (6371.0 -  670) / 6371.0, density:   4370.0 },
+    { radius: (6371.0 -  800) / 6371.0, density:   4490.0 },
+    { radius: (6371.0 - 1000) / 6371.0, density:   4610.0 },
+    { radius: (6371.0 - 1200) / 6371.0, density:   4720.0 },
+    { radius: (6371.0 - 1400) / 6371.0, density:   4830.0 },
+    { radius: (6371.0 - 1600) / 6371.0, density:   4940.0 },
+    { radius: (6371.0 - 1800) / 6371.0, density:   5040.0 },
+    { radius: (6371.0 - 2200) / 6371.0, density:   5250.0 },
+    { radius: (6371.0 - 2600) / 6371.0, density:   5450.0 },
+    { radius: (6371.0 - 2886) / 6371.0, density:   5600.0 },
+    { radius: (6371.0 - 2886) / 6371.0, density:   9920.0 },
+    { radius: (6371.0 - 3000) / 6371.0, density:  10060.0 },
+    { radius: (6371.0 - 3400) / 6371.0, density:  10600.0 },
+    { radius: (6371.0 - 3800) / 6371.0, density:  11060.0 },
+    { radius: (6371.0 - 4200) / 6371.0, density:  11430.0 },
+    { radius: (6371.0 - 4600) / 6371.0, density:  11720.0 },
+    { radius: (6371.0 - 5000) / 6371.0, density:  11970.0 },
+    { radius: (6371.0 - 5120) / 6371.0, density:  12040.0 },
+    { radius: (6371.0 - 5125) / 6371.0, density:  13000.0 },
+    { radius: (6371.0 - 5400) / 6371.0, density:  13100.0 },
+    { radius: (6371.0 - 5800) / 6371.0, density:  13230.0 },
+    { radius: (6371.0 - 6000) / 6371.0, density:  13270.0 },
+    { radius: (6371.0 - 6200) / 6371.0, density:  13290.0 },
+    { radius: (6371.0 - 6371) / 6371.0, density:  13290.0 },
+];
+
+const TralfamadorDensityPoints = [
+    { radius: 1.000, density:  2850.0 * 1.000 },
+    { radius: 0.968, density:  3300.0 * 1.000 },
+    { radius: 0.932, density:  3600.0 * 1.001 },
+    { radius: 0.935, density:  3820.0 * 1.002 },
+    { radius: 0.905, density:  4090.0 * 1.003 },
+    { radius: 0.894, density:  4160.0 * 1.005 },
+    { radius: 0.894, density:  4370.0 * 1.030 },
+    { radius: 0.874, density:  4490.0 * 1.060 },
+    { radius: 0.843, density:  4610.0 * 1.090 },
+    { radius: 0.811, density:  4720.0 * 1.100 },
+    { radius: 0.780, density:  4830.0 * 1.110 },
+    { radius: 0.748, density:  4940.0 * 1.120 },
+    { radius: 0.717, density:  5040.0 * 1.130 },
+    { radius: 0.654, density:  5250.0 * 1.140 },
+    { radius: 0.591, density:  5450.0 * 1.150 },
+    { radius: 0.520, density:  5600.0 * 1.160 }, // mantle
+    { radius: 0.521, density:  9920.0 * 1.163 }, // outer core
+    { radius: 0.503, density: 10060.0 * 1.163 },
+    { radius: 0.443, density: 10600.0 * 1.163 },
+    { radius: 0.380, density: 11060.0 * 1.163 },
+    { radius: 0.320, density: 11430.0 * 1.163 },
+    { radius: 0.257, density: 11720.0 * 1.165 },
+    { radius: 0.195, density: 11970.0 * 1.165 },
+    { radius: 0.176, density: 12040.0 * 1.165 },
+    { radius: 0.170, density: 13000.0 * 1.175 }, // inner core
+    { radius: 0.140, density: 13100.0 * 1.175 },
+    { radius: 0.080, density: 13230.0 * 1.175 },
+    { radius: 0.058, density: 13270.0 * 1.175 },
+    { radius: 0.027, density: 13290.0 * 1.175 },
+    { radius: 0.000, density: 13290.0 * 1.175 },
+];
+
+const MoonDensityPoints = [
+    { radius: 1.00, density: 2500.0 },
+    { radius: 0.99, density: 3000.0 },
+    { radius: 0.89, density: 3100.0 },
+    { radius: 0.88, density: 3200.0 },
+    { radius: 0.45, density: 3500.0 },
+    { radius: 0.46, density: 3500.0 },
+    { radius: 0.21, density: 4400.0 },
+    { radius: 0.20, density: 5800.0 },
+    { radius: 0.00, density: 7800.0 },
+];
+
+const Moon2DensityPoints = [
+    { radius: 1.00, density: 2500.0 },
+    { radius: 0.99, density: 2700.0 },
+    { radius: 0.89, density: 3000.0 },
+    { radius: 0.88, density: 3100.0 },
+    { radius: 0.46, density: 3300.0 },
+    { radius: 0.45, density: 3500.0 },
+    { radius: 0.20, density: 4400.0 },
+    { radius: 0.19, density: 5200.0 },
+    { radius: 0.00, density: 6500.0 },
+];
+
+const s1 = new Star(M_SUN_RADIUS, M_SUN, L_SUN, R_SUN);
+const s2 = new Star(M_SUN_RADIUS * 0.892, M_SUN * 0.8013, L_SUN * 0.4658, R_SUN * 0.722);
+
+const T_ROTATE = 10.1212;
+const p1 = new Planet("Земля-1", 6371 * 1000,    24.00 * 3600, EarthDensityPoints,       0.292,  5.301e+18);
+const p2 = new Planet("Земля-2", 7621 * 1000, T_ROTATE * 3600, TralfamadorDensityPoints, 0.284, 13.210e+18);
+
+const m1 = new Planet("Луна-1",  1738 * 1000, 27.321661 * 24.00 * 3600, MoonDensityPoints,  1.0, 0.0);
+const m2 = new Planet("Луна-2",  1338 * 1000, 42.451234 * T_ROTATE * 3600, Moon2DensityPoints, 1.0, 0.0);
+
+const K_base1 = SystemImpulseMoment(p1, m1);
+const K_base2 = SystemImpulseMoment(p2, m2);
+
+function Compare(body, v1, v2, scale, name) {
+   let tr = body.append("tr");
+   tr.append("td").text((v1 / scale).toPrecision(8));
+   tr.append("td").text((v2 / scale).toPrecision(8));
+   tr.append("td").text((v2 / v1).toPrecision(6));
+   tr.append("td").html(name);
+   // console.log( (v1 / scale).toPrecision(8), (v2 / scale).toPrecision(8), (v2 / v1).toFixed(8) );
+}
+
+function ReportTable(parent, caption, p1, p2) {
+    let table = d3.select(parent).append("table");
+    // table.attr("width", "90%");
+    table.append("caption").text(caption);
+    let thead = table.append("thead");
+    let trh = thead.append("tr");
+    trh.append("th").text(p1.name);
+    trh.append("th").text(p2.name);
+    trh.append("th").text("v2/v1");
+    trh.append("th").text("Описание");
+
+    let tbody = table.append("tbody");
+    return tbody;
+}
+
+function ReportPlanet(parent, p1, p2, caption) {
+
+    // console.log("---- main --------------------------------");
+    //for (let i = 0; i < EarthDensityPoints.length; i++) {
+    //    console.log(EarthDensityPoints[i].radius + " " +EarthDensityPoints[i].density);
+    //}
+
+    let tbody = ReportTable(parent, caption, p1, p2);
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("Геометрия");
+    Compare(tbody, p1.radius, p2.radius, 1.0e+3, "радиус (км)");
+    Compare(tbody, p1.area, p2.area, 1.0e+6 * 1.0e+6, "площадь поверхности (миллион км<sup>2</sup>)");
+    Compare(tbody, p1.volume, p2.volume, 1.0e+9 * 1.0e+9, "объём (миллиард км<sup>3</sup>)");
+
+    if (p1.land_part < 1.0 && p2.land_part < 1.0) {
+        Compare(tbody, p1.land_part, p2.land_part, 1.0, "доля суши");
+        Compare(tbody, p1.land_area, p2.land_area, 1.0e+6 * 1.0e+6, "площадь суши (миллион км<sup>2</sup>)");
+        Compare(tbody, p1.sea_area, p2.sea_area, 1.0e+6 * 1.0e+6, "площадь океана (миллион км<sup>2</sup>)");
+    }
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("Масса");
+    Compare(tbody, p1.mass, p2.mass, 1.0e+9 * 1.0e+9 * 1.0e+3, "масса (миллиард миллиардов тонн)");
+    Compare(tbody, p1.density, p2.density, 1.0, "средняя плотность (кг/м<sup>3</sup>)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("Момент инерции");
+    Compare(tbody, p1.moment_inertia, p2.moment_inertia, 1.0, "Момент инерции (кг*м<sup>2</sup>)");
+    Compare(tbody, p1.moment_inertia_normalized, p2.moment_inertia_normalized, 1.0, "нормализованный к точке (1.0)");
+    Compare(tbody, p1.moment_inertia_normalized, p2.moment_inertia_normalized, 0.4, "нормализованный к однородному шару (0.4)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("Гравитация");
+    Compare(tbody, p1.g, p2.g, 1.0, "g (м/с<sup>2</sup>)");
+    Compare(tbody, p1.critical_period, p2.critical_period, 3600.0, "критический период вращения (часы)");
+    Compare(tbody, p1.center_pressure, p2.center_pressure, 1.0e+9, "давление в центре (ГПа)");
+    Compare(tbody, p1.center_pressure, p2.center_pressure, 1.0e+6 * ATM, "давление в центре (миллион атмосфер)");
+    Compare(tbody, p1.homogeneous_center_pressure, p2.homogeneous_center_pressure, 1.0e+9, "давление в центре, однородная плотность (ГПа)");
+    Compare(tbody, p1.roche_limit, p2.roche_limit, 1.0e+3, "предел Роше (км)");
+
+    tbody.append("tr").append("th").attr("colspan", "4").text("Вращение");
+    Compare(tbody, p1.period, p2.period, 3600.0, "период (часы)");
+    Compare(tbody, p1.equator_speed, p2.equator_speed, 1.0, "скорость на экваторе (м/с)");
+    Compare(tbody, p1.omega, p2.omega, 1.0e-3, "угловая скорость (милли-рад/с)");
+    Compare(tbody, p1.moment_rotation_impulse, p2.moment_rotation_impulse, 1.0, "Момент импульса вращения (кг*м<sup>2</sup>*с)");
+    Compare(tbody, p1.rotation_energy, p2.rotation_energy, 1.0, "энергия вращения (Дж)");
+    Compare(tbody, p1.centrifugal_acceleration, p2.centrifugal_acceleration, 1.0, "центробежное ускорение на экваторе (м/с<sup>2</sup>)");
+    Compare(tbody, p1.g - p1.centrifugal_acceleration, p2.g - p2.centrifugal_acceleration, 1.0, "g на экваторе (м/с<sup>2</sup>)");
+    Compare(tbody, p1.s1_speed, p2.s1_speed, 1.0, "К1 скорость (м/с)");
+
+    Compare(tbody, p1.s1_speed - p1.equator_speed, p2.s1_speed - p2.equator_speed, 1.0, "К1 скорость на экваторе (м/с)");
+    Compare(tbody, p1.stationary_orbit, p2.stationary_orbit, 1.0e+3, "радиус стационарной орбиты (км)");
+    Compare(tbody, p1.stationary_orbit - p1.radius, p2.stationary_orbit - p2.radius, 1.0e+3, "высота стационарной орбиты (км)");
+
+    Compare(tbody, p1.stationary_orbit/2, p2.stationary_orbit/2, 1.0e+3, "радиус полусинхронной орбиты GPS (км)");
+    Compare(tbody, p1.stationary_orbit/2 - p1.radius, p2.stationary_orbit/2 - p2.radius, 1.0e+3, "высота полусинхронной орбиты GPS (км)");
+}
+</script>
+
+<h1>Тральфамадор (Земля-2)</h1>
+<div>
+<style onload="ReportPlanet(this.parentElement, p1, p2, 'Сравнение планет')"></style>
+</div>
+
+<h1>Луна-2</h1>
+<div>
+<style onload="ReportPlanet(this.parentElement, m1, m2, 'Сравнение лун')"></style>
+</div>
+
+<h1>Распределение массы</h1>
+
+<p>Плотность вещества планет и лун <math display="inline"><mi>&rho;(r)</mi></math> (тонн/м<sup>3</sup>) в зависимости от внутреннего радиуса (км).
+Для Земли данные взяты из <a href="https://www.gemp.ru/article/227.html">Планета Земля</a> (Сорохтин).
+Для Луны данные подобраны (todo).
+Для СуперЗемли данные построены из учета аналогичного состава.
+По причине большего размера и большего давления,
+фазовые переходы должны происходить на меньшей глубине, плюс большее сжатие в зонах без фазовых переходов.
+</p>
+
+<script>
+let density = function(p) {
+    let data = [];
+    for (let radius = 0.0; radius < p.radius; radius += H) {
+         data.push({ x:radius * 1.0e-3, y:1.0e-3 * p.Density(radius / p.radius) });
+    }
+    return data;
+}
+</script>
+<div>
+<style onload="draw(this.parentElement, [density(p1), density(p2), density(m1), density(m2)])"></style>
+</div>
+
+<p>Масса планеты <math display="inline"><mi>M(r)</mi></math> внутри радиуса r определяется как:</p>
+
+<math display="block">
+<mi>M(r)</mi>
+<mo>=</mo>
+<munderover> <mo>&int;</mo> <mn>0</mn> <mn>r</mn> </munderover>
+<mn>4</mn><mn>&pi;</mn>
+<msup> <mi>x</mi> <mn>2</mn> </msup>
+<mi>&rho;(x)</mi>
+<mo>&dd;</mo><mi>x</mi>
+</math>
+
+<p>Момент инерции планеты <math display="inline"><mi>I(r)</mi></math> внутри радиуса r определяется как:</p>
+
+<math display="block">
+<mi>I(r)</mi>
+<mo>=</mo>
+<munderover> <mo>&int;</mo> <mn>0</mn> <mn>r</mn> </munderover>
+<mn>4</mn><mn>&pi;</mn>
+<msup> <mi>x</mi> <mn>2</mn> </msup>
+<mi>&rho;(x)</mi>
+<mfrac> <mn>2</mn> <mn>3</mn> </mfrac>
+<msup> <mi>x</mi> <mn>2</mn> </msup>
+<mo>&dd;</mo><mi>x</mi>
+</math>
+
+<p>Для однородного шара момент инерции:</p>
+
+<math display="block">
+<mi>I(r)</mi> <mo>=</mo>
+<mfrac> <mn>2</mn> <mn>5</mn> </mfrac>
+<mi>M</mi>
+<msup> <mi>r</mi> <mn>2</mn> </msup>
+</math>
+
+<p>Приведённый момент инерции неоднородной планеты, прошедшей гравитационную дифференциацию, будет меньше чем 0.4. </p>
+
+<p>Ускорение свободного падения внутри планеты/луны (м/с<sup>2</sup>) в зависимости от внутреннего радиуса (км):</p>
+
+<math display="block">
+<mi>g(r)</mi>
+<mo>=</mo>
+<mfrac>
+<mrow> <mi>G</mi> <mi>M(r)</mi> </mrow>
+<msup> <mi>r</mi> <mn>2</mn> </msup>
+</mfrac>
+</math>
+
+<p>Как для Земли так и для СуперЗемли, максимум ускорения (выше чем на поверхности) достигается на границе ядра, и второй раз - в верхней мантии.
+</p>
+
+<script>
+let ggg = function(p) {
+    let data = [];
+    let mass = 0.0;
+    for (let radius = H; radius < p.radius; radius += H) {
+        mass += Area(radius) * H * p.Density(radius / p.radius);
+        data.push({ x: radius * 1.0e-3, y: G * mass / radius / radius });
+    }
+    return data;
+}
+</script>
+<div>
+<style onload="draw(this.parentElement, [ggg(p1), ggg(p2), ggg(m1), ggg(m2)])"></style>
+</div>
+
+<h1>Давление внутри</h1>
+
+<p>Давление внутри планет/лун (гигапаскали) в зависимости от внутреннего радиуса (км).
+Определяется как интеграл по вышележащим слоям.
+</p>
+
+<math display="block">
+<mi>P(r)</mi>
+<mo>=</mo>
+<munderover> <mo>&int;</mo> <mn>r</mn> <mn>R</mn> </munderover>
+<mi>&rho;(x)</mi>
+<mi>g(x)</mi>
+<mo>&dd;</mo><mi>x</mi>
+</math>
+
+<p>Давление в центре однородной планеты:
+</p>
+
+<math display="block">
+<mi>P</mi>
+<mo>=</mo>
+<mrow>
+<mfrac> <mrow><mn>2</mn><mn>&pi;</mn></mrow> <mn>3</mn> </mfrac>
+<mi>G</mi>
+<msup> <mi>&rho;</mi> <mn>2</mn> </msup>
+<msup> <mi>R</mi> <mn>2</mn> </msup>
+</mrow>
+</math>
+
+<p>Давление в центре неоднородной планеты, прошедшей гравитационную дифференциацию, будет больше, чем для однородной.
+</p>
+
+<script>
+function pressure(p) {
+    let data = [];
+    let mass = p.mass;
+    let pressure = 0.0;
+    for (let radius = p.radius; radius > 0.0; radius -= H) {
+        const d = p.Density(radius / p.radius);
+        pressure += d * H * G * mass / (radius * radius);
+        mass -= Area(radius) * H * d;
+        data.push({ x:radius * 1.0e-3, y: pressure * 1.0e-9 });
+    }
+    return data;
+}
+</script>
+<div>
+<style onload="draw(this.parentElement, [pressure(p1), pressure(p2), pressure(m1), pressure(m2)])"></style>
+</div>
+
+
+<h1>Система Планета-Луна</h1>
+
+<script>
+function moon_table(parent, p1, m1, p2, m2) {
+    let tbody = ReportTable(parent, "Сравнение обращения лун", m1, m2);
+
+    Compare(tbody, m1.period, m2.period, p1.period, "период (в сутках " + p1.name + ")");
+    Compare(tbody, m1.period, m2.period, p2.period, "период (в сутках " + p2.name + ")");
+    Compare(tbody, OrbitalRadius(m1.period, p1.mass),
+                   OrbitalRadius(m2.period, p2.mass), 1.0e+3, "орбитальный радиус (км)");
+    Compare(tbody, AngularDiameter(m1.radius, OrbitalRadius(m1.period, p1.mass)),
+                   AngularDiameter(m2.radius, OrbitalRadius(m2.period, p2.mass)), 2.0 * Math.PI / 360.0, "угловой диаметр с планеты (градусы)");
+
+    Compare(tbody, p1.mass / m1.mass, p2.mass / m2.mass, 1.0, "Отношения масс планета/луна");
+
+    Compare(tbody, TidalAcceleration(m1.mass, OrbitalRadius(m1.period, p1.mass), p1.radius),
+                   TidalAcceleration(m2.mass, OrbitalRadius(m2.period, p2.mass), p2.radius), 1.0e-6, "приливное ускорение от луны на планете (10<sup>-6</sup> м/с<sup>2</sup>)");
+
+    Compare(tbody, TidalAcceleration(p1.mass, OrbitalRadius(m1.period, p1.mass), m1.radius),
+                   TidalAcceleration(p2.mass, OrbitalRadius(m2.period, p2.mass), m2.radius), 1.0e-6, "приливное ускорение от планеты на луне (10<sup>-6</sup> м/с<sup>2</sup>)");
+
+    Compare(tbody, K_base1, K_base2, 1.0e+30, "момент импульса системы (10<sup>30</sup> кг*м<sup>2</sup>*с)");
+    Compare(tbody, K_base1 / p1.mass, K_base2 / p2.mass, 1.0e+9, "момент импульса системы на 1 кг (10<sup>9</sup> м<sup>2</sup>*с)");
+}
+</script>
+<div>
+<style onload="moon_table(this.parentElement, p1, m1, p2, m2)"></style>
+</div>
+
+
+<p>Энергия системы Планета+Луна, в предположении что Луна, как меньшее тело, постоянно синхронизирована в приливной блокировке:</p>
+
+<math display="block">
+<mi>E</mi>
+<mo>=</mo>
+<msub> <mi>I</mi> <mi>p</mi> </msub>
+<mfrac>
+    <msubsup> <mi>&omega;</mi> <mi>p</mi> <mn>2</mn> </msubsup>
+    <mn>2</mn>
+</mfrac>
+<mo>+</mo> <mo>(</mo> <msub> <mi>I</mi> <mi>m</mi> </msub>
+<mo>+</mo> <mi>m</mi> <msup> <mi>R</mi> <mn>2</mn> </msup> <mo>)</mo>
+<mfrac>
+    <msubsup> <mi>&omega;</mi> <mi>m</mi> <mn>2</mn> </msubsup>
+    <mn>2</mn>
+</mfrac>
+<mo>-</mo>
+<mfrac>
+    <mrow> <mi>G</mi> <mi>M</mi> <mi>m</mi> </mrow>
+    <msup> <mi>R</mi> <mn>2</mn> </msup>
+</mfrac>
+</math>
+
+<p>Неизменный момент импульса:</p>
+
+<math display="block">
+<msub> <mi>I</mi> <mi>p</mi> </msub>
+<msub> <mi>&omega;</mi> <mi>p</mi> </msub>
+<mo>+</mo>
+<mo>(</mo>
+  <msub> <mi>I</mi> <mi>m</mi> </msub>
+  <mo>+</mo> <mi>m</mi> <mi>R</mi>
+<mo>)</mo>
+<msub> <mi>&omega;</mi> <mi>m</mi> </msub>
+<mo>=</mo>
+<mi>const</mi>
+</math>
+
+<p>Графики энергии (10<sup>30</sup>) для разного радиуса орбиты (10<sup>3</sup> km).
+Эволюция с потерей энергии возможна только в направлении по графику энергии вниз.
+Спутник может упасть на планету, если изначально слишком близок к ней.
+Либо спутник может подниматься до двойной приливной блокировки (минимум энергии).
+Также спутник может быть потерян если орбита двойной приливной блокировки находится за пределами гравитационного доминирования планеты.
+</p>
+
+<script>
+function sync_energy(p, m, K) {
+    let data = [];
+    for (let radius = p.radius; radius < 1.25e+9; radius += 1.0e+5) {
+        const Tm = OrbitalPeriod(radius, p.mass);
+        const OmegaM = 2.0 * Math.PI / Tm;
+        const Lm = (m.moment_inertia + m.mass * radius * radius) * OmegaM;
+        if (Lm > K) continue;
+        const Lp = K - Lm;
+        //console.log("Lm=" + Lm + " Lp=" + Lp);
+        const OmegaP = Lp / p.moment_inertia;
+        const Tp = 2.0 * Math.PI / OmegaP;
+        //if (Tp > 1.25 * Tm) continue;
+        const e = p.moment_inertia * OmegaP * OmegaP / 2.0 + m.mass * radius * radius * OmegaM * OmegaM / 2.0 - G * p.mass * m.mass / (radius);
+        // if (e < 0.0) continue;
+        data.push({ x: radius / 1.e+6, y: e / 10e+30 });
+    }
+    return data;
+}
+</script>
+<div>
+<style onload="draw(this.parentElement, [sync_energy(p1, m1, K_base1), sync_energy(p2, m2, K_base2)])"></style>
+</div>
+
+<script>
+function sync_orbit(p, m, K) {
+    let data_p = [];
+    let data_m = [];
+    for (let radius = p.radius; radius < 4.0e+9; radius += 1.0e+4) {
+        const Tm = OrbitalPeriod(radius, p.mass);
+        const OmegaM = 2.0 * Math.PI / Tm;
+        const Lm = (m.moment_inertia + m.mass * radius * radius) * OmegaM;
+        if (Lm > K) continue;
+        const Lp = K - Lm;
+        //console.log("Lm=" + Lm + " Lp=" + Lp);
+        const OmegaP = Lp / p.moment_inertia;
+        const Tp = 2.0 * Math.PI / OmegaP;
+        if (Tp > 1.05 * Tm) continue;
+        data_p.push({ x: radius / 1.e+6, y: Tp / 24.0 / 3600.0 });
+        data_m.push({ x: radius / 1.e+6, y: Tm / 24.0 / 3600.0 });
+    }
+
+    // console.log(data.length);
+    return [data_p, data_m];
+}
+</script>
+
+<p>Период Земли и Луны (в сутках) при подъеме до двойной приливной блокировки при постоянном моменте импульса (10<sup>3</sup> km).
+Земля находится в процессе (380 тыс. км).
+Финальное состояния для Земли это 558 тысяч км и 47.7 суток.
+</p>
+<div>
+<style onload="draw(this.parentElement, sync_orbit(p1, m1, K_base1))"></style>
+</div>
+
+<p>Период Земли-2 и Луны-2 (в стандартных земных сутках) при подъеме до двойной приливной блокировки при постоянном моменте импульса (10<sup>3</sup> km).
+Финальное состояния для Земли-2 это примерно 3600 тысяч км и 600 земных суток.
+Но это расстояние выходит за пределы гравитационного доминирования планеты, так что Луна-2, скорее всего,
+будет потеряна до наступления взаимной приливной блокировки на дистанции около 900 тысяч километров.
+</p>
+
+<div>
+<style onload="draw(this.parentElement, sync_orbit(p2, m2, K_base2))"></style>
+</div>
+
+<h1>Система Звезда-Планета</h1>
+
+<p>Расчёт светимости и времени жизни солнцеподобной звезды:
+<a href="https://rainman.astro.illinois.edu/ddr/stellar/intermediate.html">rainman.astro.illinois.edu/ddr/stellar/intermediate.html</a>
+Металличность 0.02 (как и у Солнца). Масса 0.8 M<sub>Земли</sub> - долгоживущий оранжевый карлик.
+Ориентировочное время жизни на главной последовательности - 17 миллиардов лет.
+</p>
+
+<script>
+function star_table(parent, p1, s1, p2, s2) {
+    {
+    let tbody = ReportTable(parent, "Сравнение звёзд", p1, p2);
+    Compare(tbody, s1.radius, s2.radius, 1.0e+6 * 1.0e+3, "радиус звезды (миллион км)");
+    Compare(tbody, s1.mass, s2.mass, 1.0, "масса (кг)");
+    Compare(tbody, s1.density, s2.density, 1.0, "плотность (кг/м<sup>3</sup>)");
+    Compare(tbody, s1.lumen, s2.lumen, 1.0, "полная светимость в секунду (ватт)");
+    }
+    {
+    let tbody = ReportTable(parent, "Планетная орбита", p1, p2);
+    Compare(tbody, s1.orbit_radius, s2.orbit_radius, 1.0e+6 * 1.0e+3, "радиус орбиты (миллион км)");
+    Compare(tbody, s1.orbit_lumen, s2.orbit_lumen, 1.0, "светимость на орбите (ватт/м<sup>2</sup>)");
+    Compare(tbody, s1.orbit_period, s2.orbit_period, 24 * 3600, "орбитальный период (в сутках)");
+    Compare(tbody, s1.orbit_period / p1.period, s2.orbit_period / p2.period, 1.0, "орбитальный период (в своих сутках)");
+    Compare(tbody, s1.tidal_acceleration * p1.radius, s2.tidal_acceleration * p2.radius, 1.0e-6, "приливное ускорение на планете (10<sup>-6</sup> м/с<sup>2</sup>)");
+    Compare(tbody, s1.angular_diameter, s2.angular_diameter, 2.0 * Math.PI / 360.0, "угловой диаметр звезды (градусы)");
+
+    function PrevalenceSphereRadius(p, s) {
+        return s.orbit_radius * Math.sqrt(p.mass / s.mass);
+    }
+    Compare(tbody, PrevalenceSphereRadius(p1, s1), PrevalenceSphereRadius(p2, s2), 1.0e+6 * 1.0e+3, "радиус сферы доминирования (миллион км)");
+
+    function InfluenceSphereRadius(p, s) {
+        return s.orbit_radius * Math.pow(p.mass / s.mass, 0.4);
+    }
+    Compare(tbody, InfluenceSphereRadius(p1, s1), InfluenceSphereRadius(p2, s2), 1.0e+6 * 1.0e+3, "радиус сферы влияния (SOI, миллион км)");
+
+    function HillSphereRadius(p, s) {
+        return s.orbit_radius * Math.cbrt(p.mass / (3.0 * (p.mass + s.mass)));
+    }
+    Compare(tbody, HillSphereRadius(p1, s1), HillSphereRadius(p2, s2), 1.0e+6 * 1.0e+3, "радиус сферы Хилла (миллион км)");
+    }
+}
+</script>
+<div>
+<style onload="star_table(this.parentElement, p1, s1, p2, s2)"></style>
+</div>
+
+<h1>Планетная атмосфера</h1>
+
+<script>
+function atm_table(parent, p1, p2) {
+    if (p1.atmosphere_mass > 0.0 && p2.atmosphere_mass > 0.0) {
+        let tbody = ReportTable(parent, "Сравнение атмосфер планет", p1, p2);
+
+        Compare(tbody, p1.atmosphere_mass, p2.atmosphere_mass, 1.0e+12 * 1.0e+3, "масса (тератонн)");
+        Compare(tbody, p1.atmosphere_mass / p1.area,
+                p2.atmosphere_mass / p2.area, 1.0, "масса столба (кг/м<sup>2</sup>)");
+        Compare(tbody, p1.atm_density, p2.atm_density, 1.0, "плотность на поверхности (кг/м<sup>3</sup>)");
+        Compare(tbody, p1.atm_pressure, p2.atm_pressure, mercury_pascals_per_mm, "столб ртути, 0м (мм)");
+        Compare(tbody, p1.atm_pressure, p2.atm_pressure, water_pascals_per_mm, "столб воды, 0м (мм)");
+        Compare(tbody, p1.atm_pressure, p2.atm_pressure, 1.0, "давление (0м, Па)");
+
+        const hhh = [ 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0, 30.0, 50.0, 100.0, 150.0, 200.0 ]; //km
+
+        for (const h of hhh) {
+            const p1_h_atm_pressure = p1.atm_pressure * Math.exp(-p1.g * h * 1.0e+3 * molar_mass / R / atm_temperature);
+            const p2_h_atm_pressure = p2.atm_pressure * Math.exp(-p2.g * h * 1.0e+3 * molar_mass / R / atm_temperature);
+            Compare(tbody, p1_h_atm_pressure, p2_h_atm_pressure, 1.0, "давление (" + h + " км, Па)");
+        }
+    }
+}
+</script>
+<div>
+<style onload="atm_table(this.parentElement, p1, p2)"></style>
+</div>
+
+<p>Атмосферное давление (килопаскали) по высоте (км).
+Без учета изменения температуры и ускорения свободного падения по высоте.</p>
+
+<math display="block">
+<msub> <mi>P</mi> <mi>0</mi> </msub>
+<msup>
+    <mi>e</mi>
+    <mrow>
+       <mo>-</mo>
+       <mfrac>
+       <mrow> <mi>g</mi> <mi>h</mi> <mi>MolarMass</mi> </mrow>
+       <mrow> <mi>R</mi> <mi>T</mi> </mrow>
+       </mfrac>
+    </mrow>
+</msup>
+</math>
+
+<script>
+function atm_pressure(p) {
+    let data = [];
+    for (let h = 10000.0; h < 50000.0; h += H) {
+        const h_atm_pressure = p.atm_pressure * Math.exp(-p.g * h * molar_mass / R / atm_temperature);
+        data.push({ x:h * 1.0e-3, y:h_atm_pressure * 1.0e-3 });
+    }
+    return data;
+}
+</script>
+<div>
+<style onload="draw(this.parentElement, [atm_pressure(p1), atm_pressure(p2)])"></style>
+</div>
+
+</body>
+</html>
