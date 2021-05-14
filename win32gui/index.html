@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="width=device-width"/>
+<meta name="description" content="Win32 GUI"/>
+<link rel="stylesheet" href="/styles.css" type="text/css">
+<title>СК Современные методы программирования</title>
+</head>
+<body>
+
+<h1>СК Современные методы программирования</h1>
+<p>Цель курса - знакомство с основами программирования графики в Windows.
+<p>Среда разработки - любой компилятор C/C++ для ОС Windows версии 2000 года или позже.
+Рекомендуется компилятор Borland для командной строки <dfn>bcc32</dfn> с опцией <dfn>-tW</dfn> для создания оконных приложений.
+
+<h2>Теоретические сведения</h2> 
+<ol>
+
+<li>Стандартный <dfn>Win32s programmer's reference</dfn> входит в комплект Borland C++ Builder.
+<pre>
+<dfn>Start/Programs/Borland C++ Builder 6/Help/
+   MS SDK Help Files/Win32s programmer's reference</dfn>
+</pre>
+
+</ol>
+<h2>Лабораторные работы</h2> 
+<ol>
+
+<li>Написать программу, которая регистрирует оконный класс и создает окно.
+Предусмотреть корректное завершение программы.
+Реализовать обработчики для событий <dfn>WM_CREATE</dfn>, <dfn>WM_DESTROY</dfn>.
+Использовать функции <dfn>RegisterClass</dfn>, <dfn>CreateWindow</dfn>, <dfn>ShowWindow</dfn>, <dfn>PostQuitMessage</dfn>.
+
+<li>Написать программу, которая отображает график функции <dfn>sin(x)</dfn>
+на интервале изменения <dfn>x</dfn> от -&pi; до +&pi;.
+Предусмотреть оси координат, отметки на осях, подписи осей.
+Использовать разные цвета для осей, подписей, графика.
+Предусмотреть масштабирование графика под изменяемый размер окна
+(масштаб должен быть <dfn>одинаковым</dfn> для обеих координат).
+Реализовать обработчики для событий <dfn>WM_SIZE</dfn>, <dfn>WM_PAINT</dfn>.
+Использовать функции <dfn>BeginPaint</dfn> и <dfn>EndPaint</dfn>,
+<dfn>CreateFont</dfn>, <dfn>CreatePen</dfn>, <dfn>CreateHatchBrush</dfn> или <dfn>CreateBrushIndirect</dfn>,
+<dfn>SelectObject</dfn>, <dfn>DrawText</dfn>, <dfn>MoveToEx</dfn>, <dfn>LineTo</dfn>, <dfn>GetClientRect</dfn>,
+<dfn>InvalidateRect</dfn>.
+
+<li>На основе предыдущей программы написать программу,
+которая динамически создает оконное меню и клавиатурный акселератор.
+С помощью меню и акселератора реализовать динамическое изменение свойств графика функции.
+Реализовать обработчики для события <dfn>WM_COMMAND</dfn>.
+Использовать функции <dfn>CreateMenu</dfn>, <dfn>CreatePopup</dfn>, <dfn>InsertMenu</dfn>,
+<dfn>CreateAcceleratorTable</dfn>, <dfn>TranslateAccelerator</dfn>.
+
+<li>На основе предыдущей программы написать программу,
+которая организует анимацию графика нашей функции (волнообразное движение синусоиды).
+С помощью таймера нужно реализовать динамическое изменение свойств графика функции.
+Предусмотреть команды включения и выключения анимации.
+Реализовать обработчик для события <dfn>WM_TIMER</dfn>.
+Использовать функции <dfn>SetTimer</dfn> и <dfn>KillTimer</dfn>.
+
+</ol>
+<h2>Примеры исходного кода</h2> 
+<ol>
+<li class="link"><a href="ex1.c">Пример 1</a></li>
+<li class="link"><a href="ex2.c">Пример 2</a></li>
+<li class="link"><a href="ex3.c">Пример 3</a></li>
+<li class="link"><a href="ex4.c">Пример 4</a></li>
+</ol>
+
+</body>
+</html>
