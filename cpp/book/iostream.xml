@@ -1,0 +1,3041 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="xhtml.xsl"?>
+
+<chapter xmlns="http://www.example.com/postrisc"
+ id="iostream"
+ description="Потоки ввода/вывода"
+>
+<title>Библиотека iostream</title>
+
+<preface>
+
+<p>Частью стандартной библиотеки C++ является библиотека iostream –
+объектно-ориентированная иерархия классов, где используется и
+множественное, и виртуальное наследование. В ней реализована поддержка
+для файлового ввода/вывода данных встроенных типов. Кроме того,
+разработчики классов могут расширять эту библиотеку для чтения и записи
+новых типов данных.</p>
+
+</preface>
+
+<section id="begin">
+<title>Начало</title>
+
+<p>Для использования библиотеки iostream в программе необходимо включить заголовочный файл
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+]]></div>
+
+<p>Операции ввода/вывода выполняются с помощью классов std::istream
+(потоковый ввод) и std::ostream (потоковый вывод). Третий класс, iostream,
+является производным от них и поддерживает двунаправленный ввод/вывод.
+Для удобства в библиотеке определены такие стандартные объекты-потоки:
+</p>
+
+<table width="75%">
+<tr><th width="25%">Стандартный поток</th><th>Описание</th></tr>
+<tr><td>std::cin</td><td>объект класса std::istream, соответствующий стандартному вводу. В общем случае он позволяет читать данные с терминала пользователя;</td></tr>
+<tr><td>std::cout</td><td>объект класса std::ostream, соответствующий стандартному выводу. В общем случае он позволяет выводить данные на терминал пользователя;</td></tr>
+<tr><td>std::cerr</td><td>объект класса std::ostream, соответствующий стандартному выводу для ошибок. В этот поток мы направляем сообщения об ошибках программы.</td></tr>
+<tr><td>std::clog</td><td>объект класса std::ostream, соответствующий стандартному выводу для диагностики и логирования.</td></tr>
+</table>
+
+<p>Вывод осуществляется, как правило, с помощью перегруженного
+оператора сдвига влево (&lt;&lt;), а ввод – с помощью оператора сдвига
+вправо (&gt;&gt;):</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <string>
+
+int main() {
+   string in_string;
+
+   // вывести литерал на терминал пользователя
+   std::cout << "Введите свое имя, пожалуйста: ";
+
+   // прочитать ответ пользователя в in_string
+   std::cin >> in_string;
+
+   if (in_string.empty())
+      // вывести сообщение об ошибке на терминал пользователя
+      std::cerr << "ошибка: введенная строка пуста!\n";
+   else std::cout << "Привет, " << in_string << "!\n";
+}]]></div>
+
+<p>Назначение операторов легче запомнить, если считать, что каждый "указывает" в сторону перемещения данных. Например,</p>
+<div class="lang-cpp"><![CDATA[>> x]]></div>
+<p>перемещает данные в x, а</p>
+<div class="lang-cpp"><![CDATA[<< x]]></div>
+
+<p>перемещает данные из x. (В разделе 20.1 мы покажем, как библиотека
+iostream поддерживает ввод данных, а в разделе 20.5 – как расширить ее
+для ввода данных новых типов. Аналогично раздел 20.2 посвящен поддержке
+вывода, а раздел 20.4 – расширению для вывода данных определенных
+пользователем типов.)</p>
+
+<p>Помимо чтения с терминала и записи на него, библиотека iostream
+поддерживает чтение и запись в файлы. Для этого предназначены следующие
+классы:</p>
+
+<ul>
+<li>ifstream, производный от std::istream, связывает ввод программы с файлом;</li>
+<li>ofstream, производный от std::ostream, связывает вывод программы с файлом;</li>
+<li>fstream, производный от iostream, связывает как ввод, так и вывод программы с файлом.</li>
+</ul>
+
+<p>Чтобы использовать часть библиотеки iostream, связанную с файловым
+вводом/выводом, необходимо включить в программу заголовочный файл</p>
+
+<div class="lang-cpp"><![CDATA[#include <fstream>]]></div>
+
+<p>(Файл fstream уже включает iostream, так что включать оба файла
+необязательно.) Файловый ввод/вывод поддерживается теми же операторами:</p>
+
+<div class="lang-cpp"><![CDATA[#include <fstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+int main()
+{
+   string ifile;
+
+   std::cout <"Введите имя файла для сортировки: ";
+   std::cin >> ifile;
+
+   // сконструировать объект класса ifstream для ввода из файла
+   ifstream infile(ifile.c_str());
+
+   if (! infile) {
+      std::cerr < "ошибка: не могу открыть входной файл: "
+           < ifile < std::endl;
+      return -1;
+   }
+
+   string ofile = ifile + ".sort";
+
+   // сконструировать объект класса ofstream для вывода в файл
+   ofstream outfile(ofile.c_str());
+   if (! outfile) {
+      std::cerr <<"ошибка: не могу открыть выходной файл: "
+           << ofile <<std::endl;
+      return -2;
+   }
+
+   string buffer;
+   std::vector<std::string, allocator > text;
+
+   int cnt = 1;
+   while (infile >> buffer) {
+         text.push_back(buffer);
+         std::cout <<buffer << (cnt++ % 8 ? " " : "\n");
+   }
+
+   sort(text.begin(), text.end());
+
+   // выводим отсортированное множество слов в файл
+   std::vector<string >::iterator iter = text.begin();
+   for (cnt = 1; iter != text.end(); ++iter, ++cnt)
+       outfile << *iter
+               << (cnt % 8 ? " " : "\n");
+
+   return 0;
+}]]></div>
+
+<p>Вот пример сеанса работы с этой программой. Нас просят ввести файл
+для сортировки. Мы набираем alice_emma (набранные на клавиатуре символы
+напечатаны полужирным шрифтом). Затем программа направляет на
+стандартный вывод все, что прочитала из файла:</p>
+<p>Введите имя файла для сортировки: alice_emma</p>
+
+<pre><![CDATA[
+Alice Emma has long flowing red hair. Her
+Daddy says when the wind blows through her
+hair, it looks almost alive, like a fiery
+bird in flight. A beautiful fiery bird, he
+tells her, magical but untamed. "Daddy, shush, there
+is no such creature," she tells him, at
+the same time wanting him to tell her
+more. Shyly, she asks, "I mean, Daddy, is
+there?"
+]]></pre>
+
+<p>Далее программа выводит в файл outfile отсортированную
+последовательность строк. Конечно, на порядок слов влияют знаки
+препинания; в следующем разделе мы это исправим:</p>
+
+<pre><![CDATA[
+"Daddy, "I A Alice Daddy Daddy, Emma Her
+Shyly, a alive, almost asks, at beautiful bird
+bird, blows but creature," fiery fiery flight. flowing
+hair, hair. has he her her her, him
+him, in is is it like long looks
+magical mean, more. no red same says she
+she shush, such tell tells tells the the
+there there?" through time to untamed. wanting when
+wind
+]]></pre>
+
+<p>(В разделе 20.6 мы познакомимся с файловым вводом/выводом более подробно.)
+</p>
+
+<p>Библиотека iostream поддерживает также ввод/вывод в область
+памяти, при этом поток связывается со строкой в памяти программы. С
+помощью потоковых операторов ввода/вывода мы можем записывать данные в
+эту строку и читать их оттуда. Объект для строкового ввода/вывода
+определяется как экземпляр одного из следующих классов:</p>
+
+<ul>
+<li>istringstream, производный от std::istream, читает из строки;</li>
+<li>ostringstream, производный от std::ostream, пишет в строку;</li>
+<li>stringstream, производный от iostream, выполняет как чтение, так и запись.</li>
+</ul>
+
+<p>Для использования любого из этих классов в программу нужно включить заголовочный файл</p>
+
+<div class="lang-cpp"><![CDATA[#include <sstream>]]></div>
+
+<p>(Файл sstream уже включает iostream, так что включать оба файла
+необязательно.) В следующем фрагменте объект класса ostringstream
+используется для форматирования сообщения об ошибке, которое
+возвращается вызывающей программе.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <sstream>
+string program_name("our_program");
+string version(0.01);
+// ...
+
+string mumble(int *array, int size) {
+   if (! array) {
+      ostringstream out_message;
+
+      out_message << "ошибка: "
+                  << program_name << "--" << version
+                  << ": " << __FILE__ << ": " << __LINE__
+                  << " -- указатель равен 0; "
+                  << " а должен адресовать массив.\n";
+
+      // возвращаем строку, в которой находится сообщение
+      return out_message.str();
+   }
+   // ...
+}
+]]></div>
+
+<p>(В разделе 20.8 мы познакомимся со строковым вводом/выводом более подробно.)</p>
+
+<p>Потоки ввода/вывода поддерживают два предопределенных типа: char
+и wchar_t. В этой главе мы расскажем только о чтении и записи в потоки
+данных типа char. Помимо них, в библиотеке iostream имеется набор
+классов и объектов для работы с типом wchar_t. Они отличаются от
+соответствующих классов, использующих тип char, наличием префикса "w".
+Так, объект стандартного ввода называется wcin, стандартного вывода –
+wcout, стандартного вывода для ошибок – wcerr. Но набор заголовочных
+файлов для char и wchar_t один и тот же.</p>
+
+<p>Классы для ввода/вывода данных типа wchar_t называются
+wostream, wistream, wiostream, для файлового ввода/вывода – wofstream,
+wifstream, wfstream, а для строкового – wostringstream, wistringstream,
+wstringstream.</p>
+
+</section>
+
+<section id="operator_output">
+<title>Оператор вывода</title>
+
+<p>Оператор вывода обычно применяется для записи на стандартный вывод std::cout. Например, программа</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    std::cout << "сплетница Анна Ливия\n";
+}
+]]></div>
+
+<p>печатает на терминале строку:</p>
+
+<p>сплетница Анна Ливия</p>
+
+<p>Имеются операторы, принимающие аргументы любого встроенного типа
+данных, включая const char*, а также типов string и complex из
+стандартной библиотеки. Любое выражение, включая вызов функции, может
+быть аргументом оператора вывода при условии, что результатом его
+вычисления будет тип, принимаемый каким-либо вариантом этого оператора.
+Например, программа</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <string.h>
+
+int main() {
+    std::cout << "Длина 'Улисс' равна:\t";
+    std::cout << strlen("Улисс");
+    std::cout << '\n';
+    std::cout << "Размер 'Улисс' равен:\t";
+    std::cout << sizeof("Улисс");
+    std::cout << std::endl;
+}
+]]></div>
+
+<p>выводит на терминал следующее:</p>
+
+<p>Длина 'Улисс' равна:7
+</p>
+
+<p>Размер 'Улисс' равен:8
+</p>
+
+<p>std::endl – это манипулятор вывода, который вставляет в выходной
+поток символ перехода на новую строку, а затем сбрасывает буфер объекта
+std::ostream. (С буферизацией мы познакомимся в разделе 20.9.)</p>
+
+<p>Операторы вывода, как правило, удобнее сцеплять в одну инструкцию. Например, предыдущую программу можно записать таким образом:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <string.h>
+
+int main() {
+    // операторы вывода можно сцеплять
+
+    std::cout << "Длина 'Улисс' равна:\t";
+         << strlen("Улисс") <<'\n';
+
+    std::cout << "Размер 'Улисс' равен:\t"
+         << sizeof("Улисс") << std::endl;
+}
+]]></div>
+
+<p>Сцепление операторов вывода (и ввода тоже) возможно потому, что результатом выражения</p>
+
+<div class="lang-cpp"><![CDATA[std::cout << "некоторая строка";]]></div>
+
+<p>служит левый операнд оператора вывода, т.е. сам объект std::cout. Затем
+этот же объект передается следующему оператору и далее по цепочке (мы
+говорим, что оператор &lt;&lt; левоассоциативен).</p>
+
+<p>Имеется также предопределенный оператор вывода для указательных
+типов, который печатает адрес объекта. По умолчанию адреса отображаются
+в шестнадцатеричном виде. Например, программа</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    int i = 1024;
+    int *pi = &i;
+
+    std::cout << "i:   " <<i
+         << "\t&i:\t" << &i << '\n';
+
+    std::cout << "*pi: "      <<*pi
+         << "\tpi:\t"    <<pi  << std::endl
+         << "\t\t&pi:\t"<< &#960; << std::endl;
+}]]></div>
+
+<p>выводит на терминал следующее:</p>
+
+<div class="lang-cpp"><![CDATA[
+i:   1024  &i: 0x7fff0b4
+*pi: 1024  pi: 0x7fff0b4
+          &pi: 0x7fff0b0
+]]></div>
+
+<p>Позже мы покажем, как напечатать адреса в десятичном виде.</p>
+
+<p>Следующая программа ведет себя странно. Мы хотим напечатать адрес, хранящийся в переменной pstr:</p>
+
+<div class="lang-cpp"><![CDATA[#include  <iostream >
+
+const char *str = "vermeer";
+int main()
+{
+   const char *pstr = str;
+   std::cout  << "Адрес pstr равен: "
+         <<pstr  <<std::endl;
+}]]></div>
+
+<p>Но после компиляции и запуска программа неожиданно выдает такую строку:</p>
+
+<p>Адрес pstr равен: vermeer
+</p>
+
+<p>Проблема в том, что тип const char* интерпретируется как
+C-строка. Чтобы все же напечатать адрес, хранящийся в pstr, необходимо
+подавить обработку типа const char* по умолчанию. Для этого мы сначала
+убираем спецификатор const, а затем приводим pstr к типу void*:</p>
+
+<div class="lang-cpp"><![CDATA[
+ << static_cast <void*>(const_cast <char*>(pstr))
+]]></div>
+
+<p>Теперь программа выводит ожидаемый результат:</p>
+
+<p>Адрес pstr равен: 0x116e8
+</p>
+
+<p>А вот еще одна загадка. Нужно напечатать большее из двух чисел:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include  <iostream>
+
+inline void max_out(int val1, int val2) {
+   std::cout  << (val1 > val2) ? val1 : val2;
+}
+
+int main() {
+    int ix = 10, jx = 20;
+
+    std::cout  << "Большее из "  << ix
+          << ", "  << jx  << " равно ";
+
+    max_out(ix, jx);
+
+    std::cout  << std::endl;
+}]]></div>
+
+<p>Однако программа выдает неправильный результат:</p>
+<p>Большее из 10, 20 равно 0
+</p>
+
+<p>Проблема в том, что оператор вывода имеет более высокий
+приоритет, чем оператор условного выражения, поэтому печатается
+результат сравнения val1 и val2. Иными словами, выражение</p>
+
+<div class="lang-cpp"><![CDATA[std::cout  << (val1 > val2) ? val1 : val2;]]></div>
+
+<p>вычисляется как</p>
+
+<div class="lang-cpp"><![CDATA[(std::cout  << (val1 > val2)) ? val1 : val2;]]></div>
+
+<p>Поскольку val1 не больше val2, то результатом сравнения будет false,
+обозначаемый нулем. Чтобы изменить приоритет операций, весь оператор
+условного выражения следует заключить в скобки:</p>
+
+<div class="lang-cpp"><![CDATA[std::cout  << (val1 > val2  ? val1 : val2);]]></div>
+
+<p>Теперь результат получается правильный:
+</p>
+
+<p>Большее из 10, 20 равно 20
+</p>
+
+<p>Такого рода ошибку было бы проще найти, если бы значения
+литералов true и false типа bool печатались как строки, а не как 1 и 0.
+Тогда мы увидели бы строку:</p>
+
+<p>Большее из 10, 20 равно false
+</p>
+
+<p>и все стало бы ясно. По умолчанию литерал false печатается как
+0, а true – как 1. Это можно изменить, воспользовавшись манипулятором
+boolalpha(), что и сделано в следующей программе:</p>
+
+<div class="lang-cpp"><![CDATA[int main()
+{
+    std::cout << "печать значений типа bool по умолчанию: "
+         <<true << " " <<false
+         << "\nи в виде строк: "
+         << boolalpha()
+         << true <<" " << false
+         << std::endl;
+}]]></div>
+
+<p>Вот результат:</p>
+
+<p>печать значений типа bool по умолчанию: 1 0
+</p>
+
+<p>и в виде строк: true false
+</p>
+
+<p>Для вывода массива, а также вектора или отображения, необходимо обойти все элементы и напечатать каждый из них:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <vector>
+#include <string>
+
+string pooh_pals[] = {
+    "Тигра", "Пятачок", "Иа-Иа", "Кролик"
+};
+
+int main() {
+    std::vector<std::string> ppals(pooh_pals, pooh_pals+4);
+
+     std::vector<std::string>::iterator iter = ppals.begin();
+     std::vector<std::string>::iterator iter_end = ppals.end();
+
+    std::cout << "Это друзья Пуха: ";
+    for (; iter != iter_end; iter++)
+            std::cout << *iter << " ";
+
+    std::cout<< std::endl;
+}]]></div>
+
+<p>Вместо того чтобы явно обходить все элементы контейнера, выводя каждый по очереди,
+можно воспользоваться потоковым итератором ostream_iterator.
+Так выглядит эквивалентная программа, где используется эта техника:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <string>
+
+string pooh_pals[] = {
+    "Тигра", "Пятачок", "Иа-Иа", "Кролик"
+};
+
+int main() {
+    std::vector<std::string> ppals(pooh_pals, pooh_pals+4);
+
+     std::vector<std::string>::iterator iter = ppals.begin();
+     std::vector<std::string>::iterator iter_end = ppals.end();
+
+    std::cout << "Это друзья Пуха: ";
+
+     // копируем каждый элемент в std::cout ...
+    ostream_iterator<string > output(std::cout, " ");
+    copy(iter, iter_end, output);
+
+    std::cout << std::endl;
+}]]></div>
+
+<p>Программа печатает такую строку:
+</p>
+
+<p>Это друзья Пуха: Тигра Пятачок Иа-Иа Кролик
+</p>
+
+<p>Упражнение 20.1
+</p>
+
+<p>Даны следующие определения объектов:</p>
+
+<div class="lang-cpp"><![CDATA[
+string sa[4] = { "пух", "тигра", "пятачок", "иа-иа" };
+std::vector<string > svec(sa, sa+4);
+string robin("кристофер робин");
+const char *pc = robin.c_str();
+int ival = 1024;
+char blank = ' ';
+double dval = 3.14159;
+complex purei(0, 7);
+(a)    Направьте значение каждого объекта в стандартный вывод.
+(b)    Напечатайте значение адреса pc.
+(c)    Напечатайте наименьшее из двух значений ival и dval, пользуясь оператором условного выражения:
+ival < dval ? ival : dval
+]]
+></div>
+
+</section>
+
+<section id="operator_input">
+<title>Ввод</title>
+
+<p>Основное средство реализации ввода – это оператор сдвига вправо
+(&gt;&gt;). Например, в следующей программе из стандартного ввода
+читается последовательность значений типа int и помещается в вектор:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream>
+#include <vector>
+
+int main()
+{
+   std::vector<int> ivec;
+   int ival;
+
+   while (std::cin >> ival)
+           ivec.push_back(ival);
+   // ...
+}]]></div>
+
+<p>Подвыражение</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cin >> ival;
+]]></div>
+
+<p>читает целое число из стандартного ввода и копирует его в переменную
+ival. Результатом является левый операнд – объект класса std::istream, в
+данном случае std::cin. (Как мы увидим, это позволяет сцеплять операторы
+ввода.)
+</p>
+
+<p>Выражение
+</p>
+
+<div class="lang-cpp"><![CDATA[while (std::cin >> ival)]]></div>
+
+<p>читает последовательность значений, пока std::cin не станет равно false.
+Значение std::istream может быть равно false в двух случаях: достигнут конец
+файла (т.е. все значения из файла прочитаны успешно) или встретилось
+неверное значение, скажем 3.14159 (десятичная точка недопустима в целом
+числе), 1e-1 (буква e недопустима) или любой строковый литерал. Если
+вводится неверное значение, объект std::istream переводится в состояние
+ошибки и чтение прекращается. (В разделе 20.7 мы подробнее расскажем о
+таких состояниях.)
+</p>
+
+<p>Есть набор предопределенных операторов ввода, принимающих
+аргументы любого встроенного типа, включая C-строки, а также
+стандартных библиотечных типов string и complex:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <string>
+
+int main() {
+    int item_number;
+    string item_name;
+    double item_price;
+
+    std::cout << "Пожалуйста, введите item_number, item_name и price: "
+         << std::endl;
+
+    std::cin >>item_number;
+    std::cin >> item_name;
+    std::cin >> item_price;
+
+    std::cout << "Введены значения: item# "
+     << item_number << " "
+      << item_name << " @$"
+      << item_price << std::endl;
+}
+]]></div>
+
+<p>Вот пример выполнения этой программы:</p>
+
+<p>Пожалуйста, введите item_number, item_name и price:
+</p>
+
+<div class="lang-cpp"><![CDATA[10247 widget 19.99]]></div>
+<p>Введены значения: item# 10247 widget @$19.99
+</p>
+
+<p>Можно ввести каждый элемент на отдельной строке. По умолчанию
+оператор ввода отбрасывает все разделяющие пустые символы: пробел,
+символ табуляции, символ перехода на новую строку, символ перевода
+страницы и символ возврата каретки. (О том, как отменить это поведение,
+см. в разделе 20.9.)</p>
+
+<p>Пожалуйста, введите item_number, item_name и price:</p>
+
+<div class="lang-cpp"><![CDATA[10247
+widget
+19.99]]></div>
+<p>Введены значения: item# 10247 widget @$19.99
+</p>
+
+<p>При чтении ошибка iostream более вероятна, чем при записи. Если мы вводим такую последовательность:
+</p>
+
+<div class="lang-cpp"><![CDATA[// ошибка: item_name должно быть вторым
+BuzzLightyear 10009 8.99
+]]></div>
+
+<p>то инструкция
+</p>
+
+<div class="lang-cpp"><![CDATA[std::cin >> item_number;]]></div>
+<p>закончится ошибкой ввода, поскольку BuzzLightyear не принадлежит
+типу int. При проверке объекта std::istream будет возвращено false,
+поскольку возникло состояние ошибки. Более устойчивая к ошибкам
+реализация выглядит так:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cin >> item_number;
+if (!std::cin)
+   std::cerr << "ошибка: введено некорректное значение item_number!\n ";
+]]></div>
+
+<p>Хотя сцепление операторов ввода поддерживается, проверить
+корректность каждой отдельной операции нельзя, поэтому пользоваться
+таким приемом следует лишь тогда, когда ошибка невозможна. Наша
+программа теперь выглядит так:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <string>
+
+int main() {
+    int item_number;
+    string item_name;
+    double item_price;
+
+    std::cout << "Пожалуйста, введите item_number, item_name и price:" << std::endl;
+
+    // хорошо, но легче допустить ошибку
+    std::cin >> item_number >> item_name >> item_price;
+
+    std::cout << "Введены значения: item#  "
+        << item_number << " "
+        << item_name <<" @$"
+        << item_price << std::endl;
+}
+]]></div>
+
+<p>Последовательность</p>
+
+<div class="lang-cpp"><![CDATA[ab c
+d     e]]></div>
+
+<p>составлена из девяти символов: 'a', 'b', ' ' (пробел), 'c', '\n'
+(переход на новую строку), 'd', '\t' (табуляция), 'e' и '\n'. Однако
+приведенная программа читает лишь пять букв:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream>
+
+int main()
+{
+   char ch;
+
+   // прочитать и вывести каждый символ
+   while (std::cin >> ch)
+           std::cout << ch;
+   std::cout << std::endl;
+
+   // ...
+}]]></div>
+
+<p>И печатает следующее:</p>
+
+<div class="lang-cpp"><![CDATA[abcde]]></div>
+
+<p>По умолчанию все пустые символы отбрасываются. Если нам нужны и они,
+например для сохранения формата входного текста или обработки пустых
+символов (скажем, для подсчета количества символов перехода на новую
+строку), то можно воспользоваться функцией-членом get() класса std::istream
+(обычно в паре с ней употребляется функция-член put() класса std::ostream;
+они будут рассмотрены ниже). Например:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+   char ch;
+
+   // читать все символы, в том числе пробельные
+   while (std::cin.get(ch))
+           std::cout.put(ch);
+   // ...
+}
+]]></div>
+
+<p>Другая возможность сделать это – использовать манипулятор noskipws.
+</p>
+
+<p>Каждая из двух данных последовательностей считается составленной
+из пяти строк, разделенных пробелами, если для чтения используются
+операторы ввода с типами const char* или string:</p>
+
+<div class="lang-cpp"><![CDATA[A fine and private place
+"A fine and private place"]]></div>
+
+<p>Наличие кавычек не делает пробелы внутри закавыченной строки ее
+частью. Просто открывающая кавычка становится начальным символом
+первого слова, а закрывающая – конечным символом последнего.</p>
+
+<p>Вместо того чтобы читать из стандартного ввода по одному символу,
+можно воспользоваться потоковым итератором istream_iterator:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <iostream>
+
+int main() {
+    istream_iterator<std::string> in(std::cin), eos ;
+    std::vector<std::string> text ;
+    // копировать прочитанные из стандартного ввода значения в вектор text
+    std::copy(in, eos, back_inserter(text));
+
+    std::sort(text.begin(), text.end());
+
+    // удалить дубликаты
+    std::vector<std::string>::iterator it;
+    it = std::unique(text.begin(), text.end());
+    text.erase(it, text.end());
+
+    // вывести получившийся вектор
+    int line_cnt = 1;
+    for (std::vector<std::string>::iterator iter = text.begin(); iter != text.end(); ++iter, ++line_cnt)
+        std::cout << *iter << (line_cnt % 9 ? " "  : " \n");
+
+    std::cout << std::endl;
+}
+]]></div>
+
+<p>Пусть входом для этой программы будет файл istream_iter.cpp с исходным
+текстом. В системе UNIX мы можем перенаправить стандартный ввод на файл
+следующим образом (istream_iter – имя исполняемого файла программы):</p>
+
+<div class="lang-cpp"><![CDATA[istream_iter < istream_iter.cpp]]></div>
+
+<p>(Для других систем необходимо изучить документацию.) В результате программа выводит:</p>
+
+<div class="lang-cpp"><![CDATA[
+!= "  "  " \n"  #include % () *iter ++iter
+++line_cnt , 1 9 : ; <<  <  algorithm> <  iostream>
+< string> <  std::vector> = > >::difference_type >::iterator ? allocator
+back_inserter(
+std::cin copy(std::cout diff_type eos for in in(int
+istream_iterator<   it iter line_cnt main() sort(string test test.begin()
+test.end() test.erase(typedef unique(std::vector<   { }
+]]></div>
+
+<p>Помимо предопределенных операторов ввода, можно определить и
+собственные перегруженные экземпляры для считывания в пользовательские
+типы данных. (Подробнее мы расскажем об этом в разделе 20.5.)
+</p>
+
+</section>
+
+<section id="operator_input_string">
+<title>Строковый ввод</title>
+
+<p>Считывание можно производить как в C-строки, так и в объекты класса
+string. Мы рекомендуем пользоваться последними. Их главное преимущество
+– автоматическое управление памятью для хранения символов. Чтобы
+прочитать данные в C-строку, т.е. массив символов, необходимо сначала
+задать его размер, достаточный для хранения строки. Обычно мы читаем
+символы в буфер, затем выделяем из хипа ровно столько памяти, сколько
+нужно для хранения прочитанной строки, и копируем данные из буфера в
+эту память:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <cstring>
+
+char inBuf[1024];
+
+try {
+   while (std::cin >> inBuf) {
+       char *str = new char[strlen(inBuf) + 1];
+       strcpy(str, inBuf);
+       // ... сделать что-то с массивом символов str
+       delete [] str;
+   }
+}
+catch(...) {
+    delete [] str;
+    throw;
+}
+]]></div>
+
+<p>Работать с типом string значительно проще:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <cstring>
+
+string str;
+while (std::cin > str)
+        // ... сделать что-то со строкой
+]]></div>
+
+<p>Рассмотрим операторы ввода в C-строки и в объекты класса string. В
+качестве входного текста по-прежнему будет использоваться рассказ об
+Алисе Эмме:</p>
+
+<div class="lang-cpp"><![CDATA[Alice Emma has long flowing red hair. Her Daddy says
+when the wind blows through her hair, it looks almost
+alive, like a fiery bird in flight. A beautiful fiery
+bird, he tells her, magical but untamed. " Daddy, shush,
+there is no such creature,"  she tells him, at the same time
+wanting him to tell her more. Shyly, she asks, " I mean,
+Daddy, is there?"]]></div>
+
+<p>Поместим этот текст в файл alice_emma, а затем перенаправим на него
+стандартный вход программы. Позже, когда мы познакомимся с файловым
+вводом, мы откроем и прочтем этот файл непосредственно. Следующая
+программа помещает прочитанные со стандартного ввода слова в C-строку и
+находит самое длинное слово:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <cstring>
+
+int main() {
+    const int bufSize = 24;
+    char buf[bufSize], largest[bufSize];
+
+    // для хранения статистики
+    int curLen, max = -1, cnt = 0;
+    while (std::cin >> buf) {
+        curLen = strlen(buf);
+        ++cnt;
+
+        // новое самое длинное слово? сохраним его
+        if (curLen >  max) {
+            max = curLen;
+            strcpy(largest, buf);
+        }
+    }
+
+    std::cout <<" Число прочитанных слов "
+         << cnt << std::endl;
+
+     std::cout << " Длина самого длинного слова "
+         << max << std::endl;
+
+    std::cout << " Самое длинное слово" 
+         << largest << std::endl;
+}
+]]></div>
+
+<p>После компиляции и запуска программа выводит следующие сведения:</p>
+
+<p>Число прочитанных слов 65
+</p>
+
+<p>Длина самого длинного слова 10
+</p>
+
+<p>Самое длинное слово creature,"
+</p>
+
+<p>На самом деле этот результат неправилен: самое длинное слово
+beautiful, в нем девять букв. Однако выбрано creature, потому что
+программа сочла его частью запятую и кавычку. Следовательно, необходимо
+отфильтровать небуквенные символы.</p>
+
+<p>Но прежде чем заняться этим, рассмотрим программу внимательнее.
+В ней каждое слово помещается в массив buf, длина которого равна 24.
+Если бы в тексте попалось слово длиной 24 символа (или более), то буфер
+переполнился бы и программа, вероятно, закончилась бы крахом. Чтобы
+предотвратить переполнение входного массива, можно воспользоваться
+манипулятором setw(). Модифицируем предыдущую программу:</p>
+
+<div class="lang-cpp"><![CDATA[
+while (std::cin >> std::setw(bufSize) >> buf)
+]]></div>
+
+<p>Здесь bufSize – размер массива символов buf. setw() разбивает строку
+длиной bufSize или больше на несколько строк, каждая из которых не
+длиннее, чем bufSize - 1.</p>
+
+<p>Завершается такая частичная строка двоичным нулем. Для
+использования setw() в программу необходимо включить заголовочный файл
+iomanip:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iomanip>]]></div> 
+
+<p>Если в объявлении массива buf размер явно не указан:</p>
+
+<div class="lang-cpp"><![CDATA[char buf[] = "Нереалистичный пример";]]></div>
+
+<p>то программист может применить оператор sizeof, но при условии, что
+идентификатор является именем массива и находится в области видимости
+выражения:</p>
+
+<div class="lang-cpp"><![CDATA[
+while (std::cin >> std::setw(sizeof(buf)) >> buf)
+]]></div>
+
+<p>Применение оператора sizeof в следующем примере дает неожиданный результат:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <iomanip>
+
+int main() {
+    const int bufSize = 24;
+    char buf[bufSize];
+    char *pbuf = buf;
+
+    // если строка длиннее, чем sizeof(char*),
+    // она разбивается на несколько строк
+
+    while (std::cin >> std::setw(sizeof(pbuf)) >> pbuf)
+        std::cout << pbuf << std::endl;
+}
+]]></div>
+
+<p>Программа печатает:</p>
+
+<div class="lang-cpp"><![CDATA[$ a.out]]></div>
+<div class="lang-cpp"><![CDATA[The winter of our discontent
+The
+win
+ter
+of
+our
+dis
+con
+ten
+t]]></div>
+
+<p>Функции setw() вместо размера массива передается размер указателя,
+длина которого на нашей машине равна четырем байтам, поэтому вывод
+разбит на строки по три символа.</p>
+
+<p>Попытка исправить ошибку приводит к еще более серьезной проблеме:</p>
+
+<div class="lang-cpp"><![CDATA[
+while (std::cin >> std::setw(sizeof(*pbuf)) >> pbuf)
+]]></div>
+
+<p>Мы хотели передать setw() размер массива, адресуемого pbuf. Но выражение</p>
+
+<div class="lang-cpp"><![CDATA[*pbuf]]></div>
+
+<p>дает только один символ, т.е. объект типа char. Поэтому setw()
+передается значение 1. На каждой итерации цикла while в массив, на
+который указывает pbuf, помещается только нулевой символ. До чтения из
+стандартного ввода дело так и не доходит, программа зацикливается.</p>
+
+<p>При использовании класса string все проблемы управления памятью
+исчезают, об этом заботится сам string. Вот как выглядит наша программа
+в данном случае:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream>
+#include <string>
+int main()
+{
+    string buf, largest;
+    // для хранения статистики
+    int curLen,   // длина текущего слова
+        max = -1, // максимальная длина слова
+        cnt = 0;  // счетчик прочитанных слов
+    while (std::cin > >buf)
+    {
+         curLen = buf.size();
+         ++cnt;
+
+         // новое самое длинное слово? сохраним его
+         if (curLen > max)
+        {
+              max = curLen;
+              largest = buf;
+         }
+    }
+
+    std::cout << "Число прочитанных слов " << cnt << std::endl;
+     std::cout << "Длина самого длинного слова " << max << std::endl;
+    std::cout << "Самое длинное слово " << largest << std::endl;
+}]]></div>
+
+<p>Однако запятая и кавычка по-прежнему считаются частью слова. Напишем функцию для удаления этих символов из слова:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <string>
+void filter_string(string & str) {
+     // элементы, подлежащие фильтрации
+     string filt_elems("\",?.");
+     string::size_type pos = 0;
+     while ((pos = str.find_first_of(filt_elems, pos))
+                != string::npos)
+               str.erase(pos, 1);
+}
+]]></div>
+
+<p>Эта функция работает правильно, но множество символов, которые мы
+собираемся отбрасывать, "зашито" в код. Лучше дать пользователю
+возможность самому передать строку, содержащую такие символы. Если он
+согласен на множество по умолчанию, то может передать пустую строку.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <string>
+void filter_string(string& str,
+     string filt_elems = string("\",."))
+{
+     string::size_type pos = 0;
+     while ((pos = str.find_first_of(filt_elems, pos))
+                != string::npos)
+               str.erase(pos, 1);
+}
+]]></div>
+
+<p>Более общая версия filter_string() принимает пару итераторов, обозначающих диапазон, где производится фильтрация:</p>
+
+<div class="lang-cpp"><![CDATA[template <class InputIterator>
+void filter_string(InputIterator first, InputIterator last,
+                    string filt_elems = string("\",."))
+{
+    for (; first != last; first++)
+    {
+        string::size_type pos = 0;
+        while ((pos = (*first).find_first_of(filt_elems, pos))
+                       != string::npos)
+                       (*first).erase(pos, 1);
+    }
+}]]></div>
+
+<p>С использованием этой функции программа будет выглядеть так:</p>
+
+<div class="lang-cpp"><![CDATA[#include string>
+#include <algorithm>
+#include <iterator>
+#include <vector>
+#include <iostream>
+
+bool length_less(string s1, string s2)
+    { return s1.size() < s2.size(); }
+
+int main()
+{
+     istream_iterator<std::string> input(std::cin), eos;
+
+    std::vector<std::string> text;
+    // copy - это обобщенный алгоритм
+    std::copy(input, eos, back_inserter(text));
+
+    string filt_elems("\",.;:");
+    std::filter_string(text.begin(), text.end(), filt_elems);
+
+    int cnt = text.size();
+    // max_element - это обобщенный алгоритм
+    string *max = std::max_element(text.begin(), text.end(), length_less);
+    int len = max->size();
+
+    std::cout << "Число прочитанных слов " << cnt << std::endl;
+    std::cout << "Длина самого длинного слова " << len << std::endl;
+    std::cout << "Самое длинное слово " << *max << std::endl;
+}
+]]></div>
+
+<p>Когда мы применили в алгоритме max_element() стандартный оператор
+"меньше", определенный в классе string, то были удивлены полученным
+результатом:</p>
+
+<p>Число прочитанных слов 65
+</p>
+
+<p>Длина самого длинного слова 4
+</p>
+
+<p>Самое длинное слово wind
+</p>
+
+<p>Очевидно, что wind – это не самое длинное слово. Оказывается,
+оператор "меньше" в классе string сравнивает строки не по длине, а в
+лексикографическом порядке. И в этом смысле wind – действительно
+максимальный элемент. Для того чтобы найти слово максимальной длины, мы
+должны заменить оператор "меньше" предикатом length_less(). Тогда
+результат будет таким:</p>
+
+<p>Число прочитанных слов 65
+</p>
+
+<p>Длина самого длинного слова 9
+</p>
+
+<p>Самое длинное слово beautiful
+</p>
+
+<p>Упражнение 20.2:
+Прочитайте из стандартного ввода последовательность данных таких
+типов: string, double, string, int, string. Каждый раз проверяйте, не
+было ли ошибки чтения.
+</p>
+
+<p>Упражнение 20.3:
+Прочитайте из стандартного ввода заранее неизвестное число
+строк. Поместите их в список. Найдите самую длинную и самую короткую
+строку.
+</p>
+
+</section>
+
+<section id="operator_additional">
+<title>Дополнительные операторы ввода/вывода</title>
+
+<p>Иногда необходимо прочитать из входного потока последовательность не
+интерпретируемых байтов, а типов данных, таких, как char, int, string и
+т.д. Функция-член get() класса std::istream читает по одному байту, а
+функция getline() читает строку, завершающуюся либо символом перехода
+на новую строку, либо каким-то иным символом, определяемым
+пользователем. У функции-члена get() есть три формы:
+</p>
+
+<p>1. get(char&amp; ch) читает из входного потока один символ (в
+том числе и пустой) и помещает его в ch. Она возвращает объект
+iostream, для которого была вызвана. Например, следующая программа
+собирает статистику о входном потоке, а затем копирует входной поток в
+выходной:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream>
+
+int main() {
+   char ch;
+   int  tab_cnt = 0, nl_cnt = 0, space_cnt = 0,
+        period_cnt = 0, comma_cnt = 0;
+   while (std::cin.get(ch)) {
+           switch(ch) {
+              case ' ':  space_cnt++;  break;
+              case '\t': tab_cnt++;    break;
+              case '\n': nl_cnt++;     break;
+              case '.':  period_cnt++; break;
+              case ',':  comma_cnt++;  break;
+        }
+        std::cout.put(ch);
+   }
+
+   std::cout << "\nнаша статистика:\n\t"
+        << "пробелов: "    << space_cnt  << '\t'
+        << "символов новой строки: " << nl_cnt    << '\t'
+        << "табуляций: "      << tab_cnt    << "\n\t"
+        << "точек: "   << period_cnt << '\t'
+        << "запятых: "    << comma_cnt << std::endl;
+}]]></div>
+
+<p>Функция-член put() класса std::ostream дает альтернативный метод вывода
+символа в выходной поток: put() принимает аргумент типа char и
+возвращает объект класса std::ostream, для которого была вызвана.</p>
+
+<p>После компиляции и запуска программа печатает следующий результат:</p>
+
+<div class="lang-cpp"><![CDATA[Alice Emma has long flowing red hair. Her Daddy says
+when the wind blows through her hair, it looks almost alive,
+like a fiery bird in flight. A beautiful fiery bird, he tells her,
+magical but untamed. "Daddy, shush, there is no such creature,"
+she tells him, at the same time wanting him to tell her more.
+Shyly, she asks, "I mean, Daddy, is there?"
+
+наша статистика:
+       пробелов: 59      символов новой строки: 6     табуляций: 0
+       точек: 4          запятых: 12
+]]></div>
+
+<p>2. вторая форма get() также читает из входного потока по одному
+символу, но возвращает не поток std::istream, а значение прочитанного
+символа. Тип возвращаемого значения равен int, а не char, поскольку
+необходимо возвращать еще и признак конца файла, который обычно равен
+-1, чтобы отличаться от кодов реальных символов. Для проверки на конец
+файла мы сравниваем полученное значение с константой EOF, определенной
+в заголовочном файле iostream. Переменная, в которой сохраняется
+значение, возвращенное get(), должна быть объявлена как int, чтобы в
+ней можно было представить не только код любого символа, но и EOF:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    int ch;
+
+    // альтернатива:
+     // while (ch = std::cin.get() && ch != EOF)
+    while ((ch = std::cin.get()) != EOF)
+              std::cout.put(ch);
+
+    return 0;
+}
+]]></div>
+
+<p>При использовании любой из этих форм get() для чтения данной последовательности нужно семь итераций:</p>
+
+<div class="lang-cpp"><![CDATA[a b c
+d]]></div>
+
+<p>Читаются следующие символы: ('a', пробел, 'b', пробел, 'c', символ
+новой строки, 'd'). На восьмой итерации читается EOF. Оператор ввода
+(&gt;&gt;) по умолчанию пропускает пустые символы, поэтому на ту же
+последовательность потребуется четыре итерации, на которых возвращаются
+символы: 'a', 'b', 'c', 'd'. А вот следующая форма get() может прочесть
+всю последовательность всего за две итерации;</p>
+
+<p>сигнатура третьей формы get() такова:</p>
+
+<p>get(char *sink, streamsize size, char delimiter='\n')
+</p>
+
+<p>sink – это массив, в который помещаются символы. size – это
+максимальное число символов, читаемых из потока std::istream. delimiter –
+это символ-ограничитель, при обнаружении которого чтение прекращается.
+Сам ограничитель не читается, а оставляется в потоке и будет прочитан
+следующим. Программисты часто забывают удалить его из потока перед
+вторым обращением к get(). Чтобы избежать этой ошибки, в показанной
+ниже программе мы воспользовались функцией-членом ignore() класса
+std::istream. По умолчанию ограничителем является символ новой строки.</p>
+
+<p>Символы читаются из потока, пока одно из следующих условий не
+окажется истинным. Как только это случится, в очередную позицию массива
+помещается двоичный нуль.</p>
+
+<ul>
+<li>прочитано size-1 символов;</li>
+<li>встретился конец файла;</li>
+<li>встретился символ-ограничитель (еще раз напомним, что он остается в потоке и будет считан следующим).</li>
+</ul>
+
+<p>Эта форма get() возвращает объект std::istream, для которого была вызвана
+(функция-член gcount() позволяет узнать количество прочитанных
+символов). Вот простой пример ее применения:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    const int max_line = 1024;
+    char line[max_line];
+
+    while (std::cin.get(line, max_line)) {
+        // читается не больше max_line - 1 символов,
+        // чтобы оставить место для нуля
+        int get_count = std::cin.gcount();
+        std::cout << "фактически прочитано символов: "
+             << get_count << std::endl;
+
+        // что-то сделать со строкой
+
+        // если встретился символ новой строки,
+        // удалить его, прежде чем приступать к чтению следующей
+        if (get_count < max_line-1)
+              std::cin.ignore();
+    }
+}]]></div>
+
+<p>Если на вход этой программы подать текст о юной Алисе Эмме, то результат будет выглядеть так:
+</p>
+
+<samp>фактически прочитано символов: 52
+фактически прочитано символов: 60
+фактически прочитано символов: 66
+фактически прочитано символов: 63
+фактически прочитано символов: 61
+фактически прочитано символов: 43</samp>
+
+<p>Чтобы еще раз протестировать поведение программы, мы создали
+строку, содержащую больше max_line символов, и поместили ее в начало
+текста. Получили:</p>
+
+<samp>фактически прочитано символов: 1023
+фактически прочитано символов: 528
+фактически прочитано символов: 52
+фактически прочитано символов: 60
+фактически прочитано символов: 66
+фактически прочитано символов: 63
+фактически прочитано символов: 61
+фактически прочитано символов: 43</samp>
+
+<p>По умолчанию ignore() читает и удаляет один символ из потока,
+для которого вызвана, но можно и явно задать ограничитель и количество
+пропускаемых символов. В общем виде ее сигнатура такова:</p>
+
+<div class="lang-cpp"><![CDATA[ignore(streamsize length = 1, int delim = traits::eof)]]></div>
+
+<p>ignore() читает и отбрасывает length символов из потока или все
+символы до ограничителя включительно или до конца файла и возвращает
+объект std::istream, для которого вызвана.</p>
+
+<p>Мы рекомендуем пользоваться функцией getline(), а не get(),
+поскольку она автоматически удаляет ограничитель из потока. Сигнатура
+getline() такая же, как у get() с тремя аргументами (и возвращает она
+тоже объект std::istream, для которого вызвана):</p>
+
+<div class="lang-cpp"><![CDATA[getline(char *sink, streamsize size, char delimiter='\n')]]></div>
+
+<p>Поскольку и getline(), и get() с тремя аргументами могут читать size символов или меньше,
+то часто нужно <q>спросить</q> у объекта std::istream, сколько символов было фактически прочитано.
+Это позволяет сделать функция-член gcount(): она возвращает число символов, прочитанных при последнем обращении к get() или getline().</p>
+
+<p>Функция-член write() класса std::ostream дает альтернативный метод
+вывода массива символов. Вместо того чтобы выводить символы до
+завершающего нуля, она выводит указанное число символов, включая и
+внутренние нули, если таковые имеются. Вот ее сигнатура:</p>
+
+<div class="lang-cpp"><![CDATA[write(const char *sink, streamsize length)]]></div>
+
+<p>Здесь length определяет, сколько символов выводить. write() возвращает объект класса std::ostream, для которого она вызвана.
+</p>
+
+<p>Парной для функции write() из класса std::ostream является функция read() из класса std::istream с такой сигнатурой:</p>
+
+<div class="lang-cpp"><![CDATA[read(char* addr, streamsize size)]]></div>
+
+<p>read() читает size соседних байт из входного потока и помещает их,
+начиная с адреса addr. Функция gcount() возвращает число байт,
+прочитанных при последнем обращении к read(). В свою очередь read()
+возвращает объект класса std::istream, для которого она вызвана. Вот пример
+использования getline(), gcount() и write():</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream>
+int main()
+{
+    const int lineSize = 1024;
+    int lcnt = 0; // сколько строк прочитано
+    int max = -1; // длина самой длинной строки
+
+    char inBuf[lineSize];
+
+    // читается до конца строки, но не более 1024 символов
+    while (std::cin.getline(inBuf, lineSize))
+    {
+        // сколько символов фактически прочитано
+        int readin = std::cin.gcount();
+
+        // статистика: счетчик строк, самая длинная строка
+        ++lcnt;
+        if (readin >max)
+              max = readin;
+
+        std::cout << "Строка #" << lcnt
+             << "\tПрочитано символов: " << readin << std::endl;
+
+        std::cout.write(inBuf, readin).put('\n').put('\n');
+    }
+
+    std::cout << "Всего прочитано строк: " << lcnt<< std::endl;
+    std::cout << "Самая длинная строка: "<< max << std::endl;
+}]]></div>
+
+<p>Когда на вход было подано несколько фраз из романа Германа Мелвилла "Моби Дик", программа напечатала следующее:</p>
+
+<samp>Строка #1 Прочитано символов: 45
+Call me Ishmael.  Some years ago, never mind
+Строка #2 Прочитано символов: 46
+how long precisely, having little or no money
+Строка #3 Прочитано символов: 48
+in my purse, and nothing particular to interest
+Строка #4 Прочитано символов: 51
+me on shore, I thought I would sail about a little
+Строка #5 Прочитано символов: 47
+and see the watery part of the world.  It is a
+Строка #6 Прочитано символов: 43
+way I have of driving off the spleen, and
+Строка #7 Прочитано символов: 28
+regulating the circulation.
+Всего прочитано строк: 7
+Самая длинная строка: 51</samp>
+
+<p>Функция-член getline() класса std::istream поддерживает только ввод в
+массив символов. Однако в стандартной библиотеке есть обычная функция
+getline(), которая помещает символы в объект класса string:</p>
+
+<div class="lang-cpp"><![CDATA[getline(std::istream& is, string str, char delimiter);]]></div>
+
+<p>Эта функция читает не более str::max_size()-1 символов. Если входная
+последовательность длиннее, то операция завершается неудачно и объект
+переводится в ошибочное состояние. В противном случае ввод
+прекращается, когда прочитан ограничитель (он удаляется из потока, но в
+строку не помещается) либо достигнут конец файла.</p>
+
+<p>Вот еще три необходимые нам функции-члена класса std::istream:</p>
+
+<div class="lang-cpp"><![CDATA[// возвращает символ в поток
+putback(char class);
+// устанавливает "указатель на следующий символ потока
+// std::istream на один символ назад
+unget();
+// возвращает следующий символ (или EOF),
+// но не извлекает его из потока
+peek();]]></div>
+
+<p>Следующий фрагмент иллюстрирует использование некоторых из них:</p>
+
+<div class="lang-cpp"><![CDATA[
+char ch, next, lookahead;
+while (std::cin.get(ch)) {
+   switch (ch) {
+   case '/':
+      // это комментарий? посмотрим с помощью peek()
+      // если да, пропустить остаток строки
+      next = std::cin.peek();
+      if (next == '/')
+         std::cin.ignore(lineSize, '\n');
+      break;
+   case '>':
+      // проверка на лексему >>=
+      next = std::cin.peek();
+      if (next == '>') {
+         lookahead = std::cin.get();
+         next = std::cin.peek();
+         if (next != '=')
+            std::cin.putback(lookahead);
+      }
+      // ...
+}
+]]></div>
+
+<p>Упражнение 20.4
+</p>
+
+<p>Прочитайте из стандартного ввода следующую последовательность
+символов, включая все пустые, и скопируйте каждый символ на стандартный
+вывод (эхо-копирование):</p>
+
+<div class="lang-cpp"><![CDATA[
+a  b c d     e f
+]]></div>
+
+<p>Упражнение 20.5:
+Прочитайте фразу "riverrun, from bend of bay to swerve of shore"
+сначала как последовательность из девяти строк, а затем как одну
+строку.
+</p>
+
+<p>Упражнение 20.6:
+С помощью функций getline() и gcount() прочитайте
+последовательность строк из стандартного ввода и найдите самую длинную
+(не забудьте, что строку, прочитанную за несколько обращений к
+getline(), нужно считать одной).
+</p>
+
+</section>
+
+<section id="operator_output_overloading">
+<title>Перегрузка оператора вывода</title>
+
+<p>Если мы хотим, чтобы наш тип класса поддерживал операции
+ввода/вывода, то необходимо перегрузить оба соответствующих оператора.
+В этом разделе мы рассмотрим, как перегружается оператор вывода.
+(Перегрузка оператора ввода – тема следующего раздела.) Например, для
+класса WordCount он выглядит так:</p>
+
+<div class="lang-cpp"><![CDATA[
+class WordCount {
+    friend std::ostream& operator<<(std::ostream&, const WordCount&);
+
+public:
+    WordCount(string word, int cnt=1);
+    // ...
+private:
+    string word;
+    int occurs;
+};
+
+std::ostream& operator<<(std::ostream& os, const WordCount& wd) {
+     // формат: <счетчик> слово
+     os << "< " << " >  " >  "
+        << wd.word;
+     return os;
+}
+]]></div>
+
+<p>Проектировщик должен решить, следует ли выводить завершающий символ
+новой строки. Лучше этого не делать: поскольку операторы вывода для
+встроенных типов такой символ не печатают, пользователь ожидает
+аналогичного поведения и от операторов в других классах. Определенный
+нами в классе WordCount оператор вывода можно использовать вместе с
+любыми другими операторами:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream> 
+#include "WordCount.h"
+
+int main()
+{
+   WordCount wd(" sadness" , 12);
+   std::cout << " wd:\n"  << wd << std::endl;
+   return 0;
+}]]></div>
+
+<p>Программа печатает на терминале строки:</p>
+
+<samp>wd:
+&lt;12> sadness</samp>
+
+<p>Оператор вывода – это бинарный оператор, который возвращает ссылку
+на объект класса std::ostream. В общем случае структура определения
+перегруженного оператора вывода выглядит так:</p>
+
+<div class="lang-cpp"><![CDATA[
+// структура перегруженного оператора вывода
+std::ostream& operator<<(std::ostream& os, const ClassType& object) {
+   // произвольный код для подготовки объекта
+
+   // фактическое число членов
+   os << // ...
+
+   // возвращается объект std::ostream
+   return os;
+}
+]]></div>
+
+<p>Первый его аргумент – это ссылка на объект std::ostream, а второй – ссылка (обычно константная) на объект некоторого класса.
+Возвращается ссылка на std::ostream.
+Значением всегда является объект std::ostream, для которого оператор вызывался.
+</p>
+
+<p>Поскольку первым аргументом является ссылка на стандартный класс std::ostream, изменить который смы не можем,
+оператор вывода должен быть определен как обычная функция, а не член класса.
+Если оператору необходим доступ к неоткрытым членам, то следует объявить его другом класса.
+</p>
+
+<p>Пусть Location – это класс, в котором хранятся номера строки и колонки вхождения слова.
+Вот его определение:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+class Location {
+    friend std::ostream& operator<<(std::ostream&, const Location&);
+private:
+    short _line;
+    short _col;
+};
+std::ostream& operator<<(std::ostream& os, const Location& lc) {
+    // объект Loc выводится в виде:  < 10,37 > 
+    os << " <"  <<lc._line
+       << " ,"  << lc._col << " >  " ;
+
+    return os;
+}
+]]></div>
+
+<p>Изменим определение класса WordCount, включив в него вектор occurList объектов Location и объект word класса string:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <vector>
+#include <string>
+#include <iostream>
+#include "Location.h"
+
+class WordCount {
+    friend std::ostream& operator<<(std::ostream&, const WordCount&);
+
+public:
+    WordCount() {}
+    WordCount(const string & word) : _word(word) {}
+    WordCount(const string & word, int ln, int col)
+        : _word(word){ insert_location(ln, col); }
+
+    string word()   const { return _word; }
+    int    occurs() const { return _occurList.size(); }
+    void   found(int ln, int col)
+        { insert_location(ln, col); }
+
+private:
+    void insert_location(int ln, int col)
+        { _occurList.push_back(Location(ln, col)); }
+
+    std::string           _word;
+    std::vector<Location> _occurList;
+};
+]]></div>
+
+<p>В классах string и Location определен оператор вывода
+operator&lt;&lt;(). Так выглядит измененное определение оператора
+вывода в WordCount:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ostream& operator<<(std::ostream& os, const WordCount& wd) {
+    os << "<" << wd._occurList.size() << "> "
+       << wd._word << std::endl;
+
+    int cnt = 0, onLine = 6;
+    std::vector<Location>::const_iterator first = wd._occurList.begin();
+    std::vector<Location>::const_iterator last  = wd._occurList.end();
+
+    for (; first != last; ++first) {
+        // os << Location
+        os << *first << " ";
+        // форматирование: по 6 в строке
+        if (++cnt >= onLine)
+            { os << "\n"; cnt = 0;  }
+    }
+    return os;
+}
+]]></div>
+
+<p>А вот небольшая программа для тестирования нового определения класса WordCount; позиции вхождений для простоты <q>зашиты</q> в код:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+int main() {
+    WordCount search("rosebud");
+
+    // для простоты явно введем 8 вхождений
+    search.found(11,3);  search.found(11,8);
+    search.found(14,2);  search.found(34,6);
+    search.found(49,7);  search.found(67,5);
+    search.found(81,2);  search.found(82,3);
+    search.found(91,4);  search.found(97,8);
+
+    std::cout << "Вхождения: " << "\n"
+         << search << std::endl;
+
+    return 0;
+}
+]]></div>
+
+<p>После компиляции и запуска программа выводит следующее:</p>
+
+<p>Вхождения:</p>
+<samp>&lt;10&gt; rosebud
+&lt;11,3&gt;   &lt;11,8&gt;   &lt;14,2&gt;   &lt;34,6&gt;   &lt;49,7&gt;   &lt;67,5&gt; 
+&lt;81,2&gt;   &lt;82,3&gt;   &lt;91,4&gt;   &lt;97,8&gt; </samp>
+
+<p>Полученный результат сохранен в файле output. Далее мы определим
+оператор ввода, с помощью которого прочитаем данные из этого файла.</p>
+
+<p>Упражнение 20.7
+</p>
+
+<p>Дано определение класса Date:</p>
+
+<div class="lang-cpp"><![CDATA[class Date {
+public:
+   // ...
+private:
+   int month, day, year;
+};]]></div>
+
+<p>Напишите перегруженный оператор вывода даты в формате:</p>
+
+<div class="lang-cpp"><![CDATA[(a)
+// полное название месяца
+September 8th, 1997
+(b)
+9 / 8 / 97
+(c) Какой формат лучше? Объясните.
+(d) Должен ли оператор вывода Date быть функцией-другом? Почему?]]></div>
+
+<p>Упражнение 20.8
+</p>
+
+<p>Определите оператор вывода для следующего класса CheckoutRecord:</p>
+
+<div class="lang-cpp"><![CDATA[
+class CheckoutRecord {      // запись о выдаче
+public:
+   // ...
+private:
+   double book_id;          // идентификатор книги
+   string title;            // название
+   Date date_borrowed;      // дата выдачи
+   Date date_due;           // дата возврата
+   pair<string,string> borrower;  // кому выдана
+   std::vector pair<string,string> wait_list;   // очередь на книгу
+};
+]]></div>
+
+</section>
+
+<section id="operator_input_overloading">
+<title>Перегрузка оператора ввода</title>
+
+<p>Перегрузка оператора ввода (&gt;&gt;) похожа на перегрузку оператора
+вывода, но, к сожалению, возможностей для ошибок гораздо больше. Вот,
+например, его реализация для класса WordCount:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iostream>
+#include "WordCount.h"
+
+/* необходимо модифицировать определение класса WordCount, чтобы
+   оператор ввода был другом
+   class WordCount {
+      friend std::ostream& operator<<(std::ostream&, const WordCount&);
+      friend std::istream& operator>>(std::istream&, const WordCount&);
+*/
+
+std::istream& operator>>(std::istream& is, WordCount& wd) {
+    /* формат хранения объекта WordCount:
+     * <2>> строка
+     * <7,3>> <12,36>
+     */
+
+    int ch;
+
+    /* прочитать знак '<'. Если его нет,
+     * перевести поток в ошибочное состояние и выйти
+     */
+    if ((ch = is.get()) != '<') {
+        // is.setstate(ios_base::badbit);
+        return is;
+    }
+
+    // прочитать длину
+    int occurs;
+    is >> occurs;
+
+    // читать до обнаружения >; ошибки не контролируются
+    while (is && (ch = is.get()) != '>') ;
+
+    is >> wd._word;
+
+    // прочитать позиции вхождений;
+    // каждая позиция имеет формат: < строка, колонка >
+    for (int ix = 0; ix < occurs; ++ix) {
+        int line, col;
+        // извлечь значения
+        while (is && (ch = is.get())!= '<') ;
+        is >> line;
+
+        while (is && (ch = is.get())!= ',') ;
+        is >> col;
+
+        while (is && (ch = is.get())!= '>') ;
+
+        wd._occurList.push_back(Location(line, col));
+    }
+    return is;
+}
+]]></div>
+
+<p>На этом примере показан целый ряд проблем, имеющих отношение к возможным ошибочным состояниям входного потока:
+</p>
+
+<ul>
+<li>поток, чтение из которого невозможно из-за неправильного формата, переводится в состояние fail:
+<div class="lang-cpp"><![CDATA[is.setstate(ios_base::failbit);]]></div>
+</li>
+
+<li>операции вставки и извлечения из потока, находящегося в ошибочном состоянии, не работают:
+<div class="lang-cpp"><![CDATA[while ((ch = is.get()) != lbrace)]]></div>
+</li>
+</ul>
+
+<p>Инструкция зациклится, если объект std::istream будет находиться в
+ошибочном состоянии. Поэтому перед каждым обращением к get()
+проверяется отсутствие ошибки:</p>
+
+<div class="lang-cpp"><![CDATA[
+// проверить, находится ли поток "is" в "хорошем" состоянии
+while (is && (ch = is.get()) != lbrace)
+]]></div>
+
+<p>Если объект std::istream не в "хорошем" состоянии, то его значение будет
+равно false. (О состояниях потока мы расскажем в разделе 20.7.)</p>
+
+<p>Данная программа считывает объект класса WordCount, сохраненный оператором вывода из предыдущего раздела:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include "WordCount.h"
+
+int main() {
+    WordCount readIn;
+
+    // operator>>(std::cin, readIn)
+    std::cin >> readIn;
+
+    if (!std::cin) {
+        std::cerr << "Ошибка ввода WordCount" << std::endl;
+        return -1;
+    }
+
+    // operator<< (std::cout, readIn)
+    std::cout << readIn << std::endl;
+}
+]]></div>
+
+<p>Выводится следующее:</p>
+
+<samp>&lt;10&gt; rosebud
+&lt;11,3&gt;   &lt;11,8&gt;   &lt;14,2&gt;   &lt;34,6&gt;   &lt;49,7&gt;   &lt;67,5&gt; 
+&lt;81,2&gt;   &lt;82,3&gt;   &lt;91,4&gt;   &lt;97,8&gt; </samp>
+
+<p>Упражнение 20.9:
+Оператор ввода класса WordCount сам читает объекты класса
+Location. Вынесите этот код в отдельный оператор ввода класса Location.
+</p>
+
+<p>Упражнение 20.10:
+Реализуйте оператор ввода для класса Date из упражнения 20.7 в разделе 20.4.
+</p>
+
+<p>Упражнение 20.11:
+Реализуйте оператор ввода для класса CheckoutRecord из упражнения 20.8 в разделе 20.4.
+</p>
+
+</section>
+
+<section id="file_io">
+<title>Файловый ввод/вывод</title>
+
+<p>Если программе необходимо работать с файлом, то следует включить в
+нее заголовочный файл fstream (который в свою очередь включает
+iostream):</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+]]></div>
+
+<p>Если файл будет использоваться только для вывода, мы определяем объект класса ofstream. Например:</p>
+
+<div class="lang-cpp"><![CDATA[
+ofstream outfile("copy.out", ios::base::out);
+]]></div>
+
+<p>Передаваемые конструктору аргументы задают имя открываемого файла и
+режим открытия. Файл типа ofstream может быть открыт либо – по
+умолчанию – в режиме вывода (ios_base::out), либо в режиме дозаписи
+(ios_base::app). Такое определение файла outfile2 эквивалентно
+приведенному выше:</p>
+
+<div class="lang-cpp"><![CDATA[
+// по умолчанию открывается в режиме вывода
+ofstream outfile2("copy.out");
+]]></div>
+
+<p>Если в режиме вывода открывается существующий файл, то все
+хранившиеся в нем данные пропадают. Если же мы хотим не заменить, а
+добавить данные, то следует открывать файл в режиме дозаписи: тогда
+новые данные помещаются в конец. Если указанный файл не существует, то
+он создается в любом режиме.</p>
+
+<p>Прежде чем пытаться прочитать из файла или записать в него, нужно проверить, что файл был успешно открыт:</p>
+
+<div class="lang-cpp"><![CDATA[
+if (! outfile) { // открыть файл не удалось
+   std::cerr <<"не могу открыть "copy.out" для записи\n";
+   exit(-1);
+}
+]]></div>
+
+<p>Класс ofstream является производным от std::ostream. Все определенные в std::ostream операции применимы и к ofstream. Например, инструкции</p>
+
+<div class="lang-cpp"><![CDATA[
+char ch = ' ';
+outFile.put('1').put(')').put(ch);
+outFile <<"1 + 1 = " << (1 + 1) << std::endl;
+]]></div>
+
+<p>выводят в файл outFile последовательность символов:</p>
+
+<samp>1) 1 + 1 = 2</samp>
+
+<p>Следующая программа читает из стандартного ввода символы и копирует их в стандартный вывод:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+
+int main() {
+    // открыть файл copy.out для вывода
+    ofstream outFile("copy.out");
+
+    if (! outFile) {
+        std::cerr << "Не могу открыть 'copy.out' для вывода\n";
+        return -1;
+    }
+
+    char ch;
+    while (std::cin.get(ch))
+        outFile.put(ch);
+}]]></div>
+
+<p>К объекту класса ofstream можно применять и определенные
+пользователем экземпляры оператора вывода. Данная программа вызывает
+оператор вывода класса WordCount из предыдущего раздела:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include "WordCount.h"
+
+int main() {
+    // открыть файл word.out для вывода
+    ofstream oFile("word.out");
+    // здесь проверка успешности открытия ...
+
+    // создать и вручную заполнить объект WordCount
+    WordCount artist("Renoir");
+    artist.found(7, 12); artist.found(34, 18);
+
+    // вызывается оператор<<(std::ostream&, const WordCount&);
+    oFile <<artist;
+}
+]]></div>
+
+<p>Чтобы открыть файл только для чтения, применяется объект класса
+ifstream, производного от std::istream. Следующая программа читает указанный
+пользователем файл и копирует его содержимое на стандартный вывод:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include <string>
+
+int main() {
+    std::cout << "filename: ";
+    string file_name;
+
+    std::cin>> file_name;
+
+    // открыть файл для ввода
+    ifstream inFile(file_name.c_str());
+
+    if (!inFile) {
+         std::cerr << "не могу открыть входной файл: "
+              << file_name << " -- аварийный останов!\n";
+         return -1;
+    }
+
+    char ch;
+    while (inFile.get(ch))
+            std::cout.put(ch);
+}]]></div>
+
+<p>Программа, показанная ниже, читает наш текстовый файл alice_emma,
+фильтрует его с помощью функции filter_string() (см. раздел 20.2.1, где
+приведены текст этой функции и содержимое файла), сортирует строки,
+удаляет дубликаты и записывает результат на стандартный вывод:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include <iterator>
+#include <vector>
+#include <algorithm>
+template <class InputIterator>
+void filter_string(InputIterator first, InputIterator last,
+                    string filt_elems = string("\",?."))
+{
+    for (; first != last; first++) {
+       string::size_type pos = 0;
+       while ((pos = (*first).find_first_of(filt_elems, pos))
+                   != string::npos)
+             (*first).erase(pos, 1);
+    }
+}
+
+int main() {
+    ifstream infile("alice_emma");
+
+    istream_iterator<string> ifile(infile);
+    istream_iterator<string> eos;
+
+    std::vector<std::string> text;
+    copy(ifile, eos, inserter(text, text.begin()));
+
+    string filt_elems("\",.?;:");
+    filter_string(text.begin(), text.end(), filt_elems);
+
+    std::vector<std::string>::iterator iter;
+
+    sort(text.begin(), text.end());
+    iter = unique(text.begin(), text.end());
+    text.erase(iter, text.end());
+
+    ofstream outfile("alice_emma_sort");
+
+    iter = text.begin();
+    for (int line_cnt = 1; iter != text.end(); ++iter, ++line_cnt) {
+        outfile << *iter <<" ";
+        if (! (line_cnt % 8))
+           outfile << '\n';
+    }
+     outfile << std::endl;
+}
+]]></div>
+
+<p>После компиляции и запуска программа выводит следующее:</p>
+
+<samp>A Alice Daddy Emma Her I Shyly a
+alive almost asks at beautiful bird blows but
+creature fiery flight flowing hair has he her
+him in is it like long looks magical
+mean more no red same says she shush
+such tell tells the there through time to
+untamed wanting when wind</samp>
+
+<p>Объекты классов ofstream и ifstream разрешено определять и без
+указания имени файла. Позже к этому объекту можно присоединить файл с
+помощью функции-члена open():</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+
+ifstream curFile;
+// ...
+curFile.open(filename.c_str());
+if (! curFile)  // открытие успешно?
+   // ...
+Чтобы закрыть файл (отключить от программы), вызываем функцию-член close():
+
+const int fileCnt = 5;
+string fileTabl[fileCnt] = {
+    "Melville", "Joyce", "Musil", "Proust", "Kafka"
+};
+// ...
+int main() {
+    ifstream inFile; // не связан ни с каким файлом
+
+    for (int ix = 0; ix < fileCnt; ++ix) {
+        inFile.open(fileTabl[ix].c_str());
+        // ... проверить успешность открытия
+        // ... обработать файл
+        inFile.close();
+    }
+}
+]]></div>
+
+<p>бъект класса fstream (производного от iostream) может открывать файл
+для ввода или вывода. В следующем примере файл word.out сначала
+считывается, а затем записывается с помощью объекта типа fstream.
+Созданный ранее в этом разделе файл word.out содержит объект WordCount:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include "WordCount.h"
+
+int main() {
+    WordCount wd;
+    fstream file;
+
+    file.open("word.out", ios::in);
+    file >> wd;
+    file.close();
+
+    std::cout << "Прочитано: " << wd << std::endl;
+
+    // операция ios_base::out стерла бы текущие данные
+    file.open("word.out", ios::app);
+    file << std::endl << wd << std::endl;
+    file.close();
+}
+]]></div>
+
+<p>Объект класса fstream может также открывать файл одновременно для
+ввода и вывода. Например, приведенная инструкция открывает файл
+word.out для ввода и дозаписи:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+fstream io("word.out", ios_base::in|ios_base::app);
+]]></div>
+
+<p>Для задания нескольких режимов используется оператор побитового ИЛИ.
+Объект класса fstream можно позиционировать с помощью функций-членов
+seekg() или seekp(). Здесь буква g обозначает позиционирование для
+чтения (getting) символов (используется с объектом класса ofstream), а
+p – для записи (putting) символов (используется с объектом класса
+ifstream). Эти функции делают текущим тот байт в файле, который имеет
+указанное абсолютное или относительное смещение. У них есть два
+варианта:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+// установить абсолютное смещение в файле
+seekg(pos_type current_position)
+
+// смещение от текущей позиции в том или ином направлении
+seekg(off_type offset_position, ios_base::seekdir dir);
+]]></div>
+
+<p>В первом варианте текущая позиция устанавливается в некоторое
+абсолютное значение, заданное аргументом current_position, причем
+значение 0 соответствует началу файла. Например, если файл содержит
+такую последовательность символов:
+</p>
+
+<samp>abc def ghi jkl</samp>
+
+<p>то вызов</p>
+
+<div class="lang-cpp"><![CDATA[io.seekg(6);]]></div>
+
+<p>позиционирует io на шестой символ, т.е. на f. Второй вариант
+устанавливает указатель рабочей позиции файла на заданное расстояние от
+текущей, от начала файла или от его конца в зависимости от аргумента
+dir, который может принимать следующие значения:</p>
+
+<ul>
+<li>ios_base::beg – от начала файла;</li>
+<li>ios_base::cur – от текущей позиции;</li>
+<li>ios_base::end – от конца файла.</li>
+</ul>
+
+<p>В следующем примере каждый вызов seekg() позиционирует файл на i-ую запись:</p>
+
+<div class="lang-cpp"><![CDATA[
+for (int i = 0; i < recordCnt; ++i)
+    readFile.ssekg(i * sizeof(Record), ios_base::beg);
+]]></div>
+
+<p>С помощью первого аргумента можно задавать отрицательное значение. Переместимся на 10 байтов назад от текущей позиции:</p>
+
+<div class="lang-cpp"><![CDATA[readFile.seekg(-10, ios_base::cur);]]></div>
+
+<p>Текущая позиция чтения в файле типа fstream возвращается любой из
+двух функций-членов tellg() или tellp(). Здесь 'p' означает запись
+(putting) и используется с объектом ofstream, а 'g' говорит о чтении
+(getting) и обслуживает объект ifstream:</p>
+
+<div class="lang-cpp"><![CDATA[
+// сохранить текущую позицию
+ios_base::pos_type mark = writeFile.tellp();
+// ...
+if (cancelEntry)
+   // вернуться к сохраненной позиции
+   writeFile.seekp(mark);
+]]></div>
+
+<p>Если необходимо сместиться вперед от текущей позиции на одну запись
+типа Record, то можно воспользоваться любой из данных инструкций:</p>
+
+<div class="lang-cpp"><![CDATA[
+// эквивалентные вызовы seekg
+readFile.seekg(readFile.tellg() + sizeof(Record));
+
+// данный вызов считается более эффективным
+readFile.seekg(sizeof(Record), ios_base::cur);
+]]></div>
+
+<p>Разберем реальный пример. Дан текстовый файл, нужно вычислить его
+длину в байтах и сохранить ее в конце файла. Кроме того, каждый раз при
+встрече символа новой строки требуется сохранить текущее смещение в
+конце файла. Вот наш текстовый файл:
+</p>
+
+<samp>abcd
+efg
+hi
+j</samp>
+
+<p>Программа должна создать файл, модифицированный следующим образом:</p>
+
+<samp>abcd
+efg
+hi
+j
+5 9 12 14 24</samp>
+
+<p>Так выглядит первая попытка реализации:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <fstream>
+
+int main() {
+    // открыть файл для ввода и дозаписи
+    fstream inOut("copy.out", ios_base::in|ios_base::app);
+    int cnt = 0;   // счетчик байтов
+    char ch;
+
+    while (inOut.get(ch)) {
+        std::cout.put(ch); // скопировать на терминал
+        ++cnt;
+        if (ch == '\n') {
+            inOut << cnt ;
+            inOut.put(' '); // пробел
+        }
+    }
+
+    // вывести окончательное значение счетчика байтов
+    inOut << cnt << std::endl;
+    std::cout << "[" << cnt << "]" << std::endl;
+    return 0;
+}
+]]></div>
+
+<p>inOut – это объект класса fstream, связанный с файлом copy.out,
+открытым для ввода и дозаписи. Если файл открыт в режиме дозаписи, то
+все новые данные записываются в конец.</p>
+
+<p>При чтении любого (включая пробельные) символа, кроме конца
+файла, мы увеличиваем переменную cnt на 1 и копируем прочитанный символ
+на терминал, чтобы вовремя заметить ошибки в работе программы.</p>
+
+<p>Встретив символ новой строки, мы записываем текущее значение
+cnt в inOut. Как только будет достигнут конец файла, цикл прекращается.
+Окончательное значение cnt выводится в файл и на экран.</p>
+
+<p>Программа компилируется без ошибок и кажется правильной. Но
+если подать на вход несколько фраз из романа "Моби Дик" Германа Мелвилла:</p>
+
+<samp>Call me Ishmael.  Some years ago, never mind
+how long precisely, having little or no money
+in my purse, and nothing particular to interest
+me on shore, I thought I would sail about a little
+and see the watery part of the world.  It is a
+way I have of driving off the spleen, and
+regulating the circulation.</samp>
+
+<p>то получим такой результат:</p>
+
+<div class="lang-cpp"><![CDATA[[0]]]></div>
+
+<p>Программа не вывела ни одного символа, видимо, полагая, что файл
+пуст. Проблема в том, что файл открыт для дозаписи и потому
+позиционирован на конец. При выполнении инструкции</p>
+
+<div class="lang-cpp"><![CDATA[inOut.get(ch);]]></div>
+
+<p>мы читаем конец файла, цикл while завершается и выводится значение 0.</p>
+
+<p>Хотя мы допустили серьезную ошибку, исправить ее совсем
+несложно, поскольку причина понятна. Надо лишь перед чтением
+переустановить файл на начало. Это делается с помощью обращения:</p>
+
+<div class="lang-cpp"><![CDATA[inOut.seekg(0);]]></div>
+
+<p>Запустим программу заново. На этот раз она печатает:</p>
+
+<samp>Call me Ishmael.  Some years ago, never mind
+[45]</samp>
+
+<p>Как видим, выводится лишь первая строка текста и счетчик для нее, а
+оставшиеся шесть строк проигнорированы. Ну что ж, исправление ошибок –
+неотъемлемая часть профессии программиста. А проблема опять в том, что
+файл открыт в режиме дозаписи. Как только мы в первый раз вывели cnt,
+файл оказался позиционирован на конец. При следующем обращении к get()
+читается конец файла, и цикл while снова завершается преждевременно.</p>
+
+<p>Нам необходимо встать на ту позицию в файле, где мы были перед выводом cnt. Для этого понадобятся еще две инструкции:</p>
+
+<div class="lang-cpp"><![CDATA[
+// запомнить текущую позицию
+ios_base::pos_type mark = inOut.tellg();
+inOut << cnt << sp;
+inOut.seekg(mark);   // восстановить позицию
+]]></div>
+
+<p>После повторной компиляции программа выводит на экран ожидаемый
+результат. Но посмотрев на выходной файл, мы обнаружим, что она все еще
+не вполне правильна: окончательное значение счетчика есть на экране, но
+не в файле. Оператор вывода, следующий за циклом while, не был
+выполнен.</p>
+
+<p>Дело в том, что inOut находится в состоянии "конец файла", в
+котором операции ввода и вывода не выполняются. Для решения проблемы
+необходимо сбросить это состояние с помощью функции-члена clear():</p>
+
+<div class="lang-cpp"><![CDATA[inOut.clear();   // обнулить флаги состояния]]></div>
+
+<p>Окончательный вариант программы выглядит так:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <fstream>
+
+int main() {
+    fstream inOut("copy.out", ios_base::in|ios_base::app);
+    int cnt=0;
+    char ch;
+
+    inOut.seekg(0);
+
+    while (inOut.get(ch)) {
+        std::cout.put(ch);
+        cnt++;
+
+        if (ch == '\n') {
+            // запомнить текущую позицию
+            ios_base::pos_type mark = inOut.tellg();
+            inOut << cnt << ' ';
+            inOut.seekg(mark); // восстановить позицию
+        }
+    }
+    inOut.clear();
+    inOut << cnt << std::endl;
+
+    std::cout << "[ " << cnt << " ]\n";
+
+    return 0;
+}
+]]></div>
+
+<p>Вот теперь – наконец-то! – все правильно. При реализации этой
+программы было необходимо явно сформулировать поведение, которое мы
+собирались поддержать. А каждое наше исправление было реакцией на
+выявившуюся ошибку вместо анализа проблемы в целом.</p>
+
+<p>Упражнение 20.12:
+Пользуясь операторами вывода для класса Date, которые вы определили в упражнении 20.7,
+или для класса CheckoutRecord из упражнения 20.8 (см. раздел 20.4), напишите программу, позволяющую создать файл и писать в него.
+</p>
+
+<p>Упражнение 20.13:
+Напишите программу для открытия и чтения файла, созданного в упражнении 20.12. Выведите содержимое файла на стандартный вывод.
+</p>
+
+<p>Упражнение 20.14:
+Напишите программу для открытия файла, созданного в упражнении
+20.12, для чтения и дозаписи. Выведите экземпляр класса Date или
+CheckoutRecord:</p>
+
+<ul>
+<li>в начало файла</li>
+<li>после второго из существующих объектов</li>
+<li>в конец файла</li>
+</ul>
+
+</section>
+
+<section id="stream_state">
+<title>Состояния потока</title>
+
+<p>Пользователей библиотеки iostream, разумеется, интересует, находится ли поток в ошибочном состоянии. Например, если мы пишем</p>
+
+<div class="lang-cpp"><![CDATA[
+int ival;
+std::cin >>ival;
+]]></div>
+
+<p>и вводим слово "Borges", то std::cin переводится в состояние ошибки после
+неудачной попытки присвоить строковый литерал целому числу. Если бы мы
+ввели число 1024, то чтение прошло бы успешно и поток остался бы в
+нормальном состоянии.
+</p>
+
+<p>Чтобы выяснить, в каком состоянии находится поток, достаточно проверить его значение на истину:</p>
+
+<div class="lang-cpp"><![CDATA[if (!std::cin)
+   // операция чтения не прошла или встретился конец файла]]></div>
+
+<p>Для чтения заранее неизвестного количества элементов мы обычно пишем цикл while:</p>
+
+<div class="lang-cpp"><![CDATA[while (std::cin >> word)
+      // операция чтения завершилась успешно ...]]></div>
+
+<p>Условие в цикле while будет равно false, если достигнут конец файла
+или произошла ошибка при чтении. В большинстве случаев такой проверки
+потокового объекта достаточно. Однако при реализации оператора ввода
+для класса WordCount из раздела 20.5 нам понадобился более точный
+анализ состояния.</p>
+
+<p>У любого потока есть набор флагов, с помощью которых можно
+следить за состоянием потока. Имеются четыре предикатные функции-члена:</p>
+
+<ul>
+<li>eof() возвращает true, если достигнут конец файла:
+<div class="lang-cpp"><![CDATA[if (inOut.eof())
+   // отлично: все прочитано ...]]></div>
+</li>
+<li>bad() возвращает true при попытке выполнения некорректной операции,
+например при установке позиции за концом файла. Обычно это
+свидетельствует о том, что поток находится в состоянии ошибки;</li>
+<li>fail() возвращает true, если операция завершилась неудачно,
+например не удалось открыть файл или передан некорректный формат ввода:
+
+<div class="lang-cpp"><![CDATA[ifstream iFile(filename, ios_base::in);
+if (iFile.fail())    // не удалось открыть
+   error_message(...);]]></div>
+</li>
+<li>good() возвращает true, если все вышеперечисленные условия ложны:
+<div class="lang-cpp"><![CDATA[if (inOut.good())]]></div>
+</li>
+</ul>
+
+<p>Существует два способа явно изменить состояние потока iostream. С
+помощью функции-члена clear() ему явно присваивается указанное
+значение. Функция setstate() не сбрасывает состояние, а устанавливает
+один из флагов, не меняя значения остальных. Например, в коде оператора
+ввода для класса WordCount при обнаружении неверного формата мы
+используем setstate() для установки флага fail в состоянии объекта
+std::istream:</p>
+
+<div class="lang-cpp"><![CDATA[
+if ((ch = is.get()) != '<') {
+   is.setstate(ios_base::failbit);
+   return is;
+}
+]]></div>
+
+<p>Имеются следующие значения флагов состояния:</p>
+
+<div class="lang-cpp"><![CDATA[
+ios_base::badbit
+ios_base::eofbit
+ios_base::failbit
+ios_base::goodbit
+]]></div>
+
+<p>Для установки сразу нескольких флагов используется побитовый оператор ИЛИ:</p>
+<div class="lang-cpp"><![CDATA[is.setstate(ios_base::badbit | ios_base::failbit);]]></div>
+
+<p>При тестировании оператора ввода в классе WordCount (см. раздел 20.5) мы писали:</p>
+
+<div class="lang-cpp"><![CDATA[
+if (!std::cin) {
+   std::cerr << "Ошибка ввода WordCount" << std::endl;
+   return -1;
+}
+]]></div>
+
+<p>Возможно, вместо этого мы предпочли бы продолжить выполнение
+программы, предупредив пользователя об ошибке и попросив повторить
+ввод. Но перед чтением нового значения из потока std::cin необходимо
+перевести его в нормальное состояние. Это можно сделать с помощью
+функции-члена clear():</p>
+<div class="lang-cpp"><![CDATA[std::cin.clear(); // сброс ошибок]]></div>
+
+<p>В более общем случае clear() используется для сброса текущего
+состояния и установки одного или нескольких флагов нового. Например:</p>
+<div class="lang-cpp"><![CDATA[std::cin.clear(ios_base::goodbit);]]></div>
+<p>восстанавливает нормальное состояние потока. (Оба вызова
+эквивалентны, поскольку goodbit является для clear() аргументом по
+умолчанию.)</p>
+<p>Функция-член rdstate() позволяет получить текущее состояние объекта:</p>
+
+<div class="lang-cpp"><![CDATA[ios_base::iostate old_state = std::cin.rdstate();
+
+std::cin.clear();
+process_input();
+
+// перевести поток std::cin в прежнее состояние
+std::cin.clear(old_state);]]></div>
+
+<p>Упражнение 20.15:
+Измените один (или оба) оператор ввода для класса Date из
+упражнения 20.7 и/или класса CheckoutRecord из упражнения 20.8 (см.
+раздел 20.4) так, чтобы они устанавливали состояние объекта std::istream.
+Модифицируйте программы, которыми вы пользовались для тестирования этих
+операторов, для проверки явно установленного состояния, вывода его на
+печать и сброса в нормальное. Протестируйте программы, подав на вход
+правильные и неправильные данные.</p>
+
+</section>
+
+<section id="stringstream">
+<title>Строковые потоки</title>
+
+<p>Библиотека iostream поддерживает операции над строковыми объектами в
+памяти. Класс ostringstream вставляет символы в строку, istringstream
+читает символы из строкового объекта, а stringstream может
+использоваться как для чтения, так и для записи. Чтобы работать со
+строковым потоком, в программу необходимо включить заголовочный файл</p>
+
+<div class="lang-cpp"><![CDATA[#include <sstream>]]></div>
+
+<p>Например, следующая функция
+читает весь файл alice_emma в объект buf класса ostringstream. Размер
+buf увеличивается по мере необходимости, чтобы вместить все символы:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <string>
+#include <fstream>
+#include <sstream>
+
+string read_file_into_string() {
+    ifstream ifile("alice_emma");
+    ostringstream buf;
+    char ch;
+    while (buf && ifile.get(ch))
+         buf.put(ch);
+    return buf.str();
+}
+]]></div>
+
+<p>Функция-член str() возвращает строку – объект класса string,
+ассоциированный со строковым потоком ostringstream. Этой строкой можно
+манипулировать так же, как и <q>обычным</q> объектом класса string.
+Например, в следующей программе text почленно инициализируется строкой,
+ассоциированной с buf:</p>
+
+<div class="lang-cpp"><![CDATA[
+int main() {
+    string text = read_file_into_string();
+
+    // запомнить позиции каждого символа новой строки
+    std::vector<std::string::size_type> lines_of_text;
+    string::size_type pos = 0;
+
+    while (pos != string::npos) {
+        pos = text.find('\n' pos);
+        lines_of_text.push_back(pos);
+    }
+
+    // ...
+}
+]]></div>
+
+<p>Объект класса ostringstream можно использовать для автоматического
+форматирования составной строки, т.е. строки, составленной из данных
+разных типов. Так, следующий оператор вывода автоматически преобразует
+любой арифметический тип в соответствующее строковое представление,
+поэтому заботиться о выделении нужного количества памяти нет
+необходимости:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <sstream>
+
+int main() {
+    int    ival  = 1024;     int   *pival = &ival;
+    double  dval  = 3.14159; double *pdval = &dval;
+
+    ostringstream format_message;
+
+    // преобразование значений в строковое представление
+    format_message << "ival: " << ival
+                   <<" адрес ival: " << pival << 'n'
+                   << "dval: " << dval
+                   << " адрес dval: " << pdval << std::endl;
+
+    string msg = format_message.str();
+    std::cout << " размер строки сообщения: " << msg.size()
+         <<" сообщение:"<<msg <<std::endl;
+}
+]]></div>
+
+<p>Иногда лучше собрать все диагностические сообщения об ошибках, а не выводить их по мере возникновения.
+Это легко сделать с помощью перегруженного множества функций форматирования:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+string format(string msg, int expected, int received) {
+   ostringstream message;
+   message << msg << " ожидалось: " << expected
+           << " принято: " << received << "\n";
+   return message.str();
+}
+
+string format(string msg, std::vector<int> *values);
+// ... и так далее
+]]></div>
+
+<p>Приложение может сохранить такие строки для последующего отображения
+и даже рассортировать их по серьезности. Обобщить эту идею помогают
+классы Notify (извещение), Log (протокол) и Error (ошибка).</p>
+
+<p>Поток istringstream читает из объекта класса string, с помощью
+которого был сконструирован. В частности, он применяется для
+преобразования строкового представления числа в его арифметическое
+значение:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <sstream>
+#include <string>
+
+int main() {
+    int    ival = 1024;    int *pival = &ival;
+    double dval = 3.14159; double *pdval = &dval;
+
+    // создает строку, в которой значения разделены пробелами
+    ostringstream format_string;
+
+    format_string << ival << " " << pival << " "
+                   << dval <<" " << pdval << std::endl;
+
+    // извлекает сохраненные значения в коде ASCII
+    // и помещает их в четыре разных объекта
+    istringstream input_istring(format_string.str());
+
+    input_istring >> ival >> pival >> dval >> pdval;
+}
+]]></div>
+
+<p>Упражнение 20.16:
+В языке Си форматирование выходного сообщения производится с помощью функций семейства printf().
+Например, следующий фрагмент
+</p>
+
+<div class="lang-cpp"><![CDATA[
+int    ival = 1024;
+double dval = 3.14159;
+char   cval = 'a';
+char  *sval = "the end";
+
+printf("ival: %d\tdval% %g\tcval: %c\tsval: %s",
+         ival, dval, cval, sval);
+печатает:
+
+ival: 1024   dval: 3.14159  cval: a   sval: the end
+]]></div>
+
+<p>Первым аргументом printf() является форматная строка.
+Каждый символ <q>%</q> показывает, что вместо него должно быть подставлено значение аргумента,
+а следующий за ним символ определяет тип этого аргумента.
+Вот некоторые из поддерживаемых типов (полное описание см. в [KERNIGHAN88]):
+</p>
+
+<div class="lang-cpp"><![CDATA[
+%d        целое число
+%g        число с плавающей точкой
+%c        char
+%s        C-строка
+]]></div>
+
+<p>Дополнительные аргументы printf() на позиционной основе
+сопоставляются со спецификаторами формата, начинающимися со знака %.
+Все остальные символы в форматной строке рассматриваются как литералы и выводятся буквально.
+</p>
+
+<p>Основные недостатки семейства функций printf() таковы:
+во-первых, форматная строка не обобщается на определенные пользователем
+типы, и, во-вторых, если типы или число аргументов не соответствуют
+форматной строке, компилятор не заметит ошибки, а вывод будет
+отформатирован неверно. Однако у функций printf() есть и достоинство –
+компактность записи.
+</p>
+
+<ol>
+<li>Получите так же отформатированный результат с помощью объекта класса ostringstream.</li>
+<li>Сформулируйте достоинства и недостатки обоих подходов.</li>
+</ol>
+
+</section>
+
+<section id="format_state">
+<title>Состояние формата</title>
+
+<p>Каждый объект класса из библиотеки iostream поддерживает состояние
+формата, которое управляет выполнением операций форматирования,
+например основание системы счисления для целых значений или точность
+для значений с плавающей точкой. Для модификации состояния формата
+объекта в распоряжении программиста имеется предопределенный набор
+манипуляторов.1 Манипулятор применяется к потоковому объекту так же,
+как к данным. Однако вместо чтения или записи данных манипулятор
+модифицирует внутреннее состояние потока. Например, по умолчанию объект
+типа bool, имеющий значение true (а также литеральная константа true),
+выводится как целая "1":</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    bool illustrate = true;
+    std::cout << "объект illustrate типа bool установлен в true: " << illustrate << '\n';
+}
+]]></div>
+
+<p>Чтобы поток std::cout выводил переменную illustrate в виде слова true, мы применяем манипулятор boolalpha:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    bool illustrate = true;
+    std::cout << "объект illustrate типа bool установлен в true: ";
+
+    // изменяет состояние std::cout так, что булевские значения
+    // печатаются в виде строк true и false
+    std::cout << std::boolalpha;
+    std::cout << illustrate <<'\n';
+}
+]]></div>
+
+<p>Поскольку манипулятор возвращает потоковый объект, к которому он
+применялся, то допустимо прицеплять его к выводимым данным и другим
+манипуляторам. Вот как можно перемежать данные и манипуляторы в нашей
+программе:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    bool illustrate = true;
+    std::cout << "объект illustrate типа bool: "
+         << illustrate
+         << "\nс использованием boolalpha: "
+         << std::boolalpha << illustrate <<'\n';
+
+
+    // ...
+}]]></div>
+
+<p>Вывод данных и манипуляторов вперемежку может сбить пользователя с
+толку. Применение манипулятора изменяет не только представление
+следующего за ним объекта, но и внутреннее состояние потока. В нашем
+примере все значения типа bool в оставшейся части программы также будут
+выводиться в виде строк.</p>
+
+<p>Чтобы отменить сделанную модификацию потока std::cout, необходимо использовать манипулятор noboolalpha:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cout << std::boolalpha   // устанавливает внутреннее состояние std::cout
+     << illustrate
+     << std::noboolalpha  // сбрасывает внутреннее состояние std::cout
+]]></div>
+
+<p>Как мы покажем, для многих манипуляторов имеются парные.
+</p>
+
+<p>По умолчанию значения арифметических типов читаются и
+записываются в десятичной системе счисления. Программист может изменить
+ее на восьмеричную или шестнадцатеричную, а затем вернуться к
+десятичной (это распространяется только на целые типы, но не на типы с
+плавающей точкой), пользуясь манипуляторами hex, oct и dec:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    int ival = 16;
+    double dval = 16.0;
+
+    std::cout << "ival: " << ival
+         << " установлен oct: " << std::oct << ival << "\n";
+
+    std::cout << "dval: " << dval
+         << " установлен hex: " << std::hex << dval << "\n";
+
+    std::cout << "ival: " << ival
+         << " установлен dec: " << std::dec << ival << "\n";
+}
+]]></div>
+
+<p>Эта программа печатает следующее:
+</p>
+
+<pre>ival: 16 установлен oct: 20
+dval: 16 установлен hex: 16
+ival: 10 установлен dec: 16</pre>
+
+<p>Но, глядя на значение, мы не можем понять, в какой системе счисления
+оно записано. Например, 20 – это действительно 20 или восьмеричное
+представление 16? Манипулятор showbase выводит основание системы
+счисления вместе со значением с помощью следующих соглашений:</p>
+
+<ul>
+<li>0x в начале обозначает шестнадцатеричную систему (если мы
+хотим, чтобы вместо строчной буквы 'x' печаталась заглавная, то можем
+применить манипулятор uppercase, а для отмены – манипулятор
+nouppercase);</li>
+<li>0 в начале обозначает восьмеричную систему;</li>
+<li>отсутствие того и другого обозначает десятичную систему.</li>
+</ul>
+
+<p>Вот та же программа, но и с использованием std::showbase:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+
+int main() {
+    int ival = 16;
+    double dval = 16.0;
+
+    std::cout << std::showbase;
+
+    std::cout << "ival: " << ival
+          << " установлен oct: " << std::oct << ival << "\n";
+
+    std::cout << "dval: " <<dval
+          << " установлен hex: " << std::hex << dval << "\n";
+
+    std::cout << "ival: " << ival
+          << " установлен dec: " << std::dec << ival << "\n";
+
+     std::cout << std::noshowbase;
+}
+]]></div>
+
+<p>Результат:
+</p>
+
+<samp>ival: 16 установлен oct: 020
+dval: 16 установлен hex: 16
+ival: 0x10 установлен dec: 16</samp>
+
+<p>Манипулятор noshowbase восстанавливает состояние std::cout, при котором основание системы счисления не выводится.</p>
+
+<p>По умолчанию значения с плавающей точкой выводятся с точностью
+6. Эту величину можно модифицировать с помощью функции-члена
+precision(int) или манипулятора setprecision(); для использования
+последнего необходимо включить заголовочный файл iomanip. precision()
+возвращает текущее значение точности. Например:</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+
+int main() {
+    std::cout << "Точность: "
+         << std::cout.precision() << std::endl
+         << sqrt(2.0) << std::endl;
+
+    std::cout.precision(12);
+    std::cout << "\nТочность: "
+         << std::cout.precision() << std::endl
+         << sqrt(2.0) << std::endl;
+
+    std::cout << "\nТочность:"  << std::setprecision(3)
+         << std::cout.precision() << std::endl
+         << sqrt(2.0) << std::endl;
+
+    return 0;
+}
+]]></div>
+
+<p>После компиляции и запуска программа печатает следующее:</p>
+
+<samp>
+Точность: 6  1.41421
+Точность: 12   1.41421356237
+Точность: 3  1.41</samp>
+
+<p>Манипуляторы, принимающие аргумент, такие, как setprecision() и setw(), требуют включения заголовочного файла iomanip:</p>
+
+<div class="lang-cpp"><![CDATA[#include <iomanip>]]></div>
+
+<p>Кроме описанных аспектов, setprecision() имеет еще два: на целые
+значения он не оказывает никакого влияния; значения с плавающей точкой
+округляются, а не обрезаются. Таким образом, при точности 4 значение
+3.14159 печатается как 3.142, а при точности 3 – как 3.14.</p>
+
+<p>По умолчанию десятичная точка не печатается, если дробная часть значения равна 0. Например:</p>
+
+<div class="lang-cpp"><![CDATA[std::cout << 10.00]]></div>
+
+<p>выводит</p>
+
+<samp>10</samp>
+
+<p>Чтобы точка выводилась, воспользуйтесь манипулятором std::showpoint:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cout << std::showpoint
+     << 10.0
+     << std::noshowpoint << '\n';
+]]></div>
+
+<p>Манипулятор noshowpoint восстанавливает поведение по умолчанию.</p>
+
+<p>По умолчанию значения с плавающей точкой выводятся в нотации с
+фиксированной точкой. Для перехода на научную нотацию используется
+идентификатор std::scientific, а для возврата к прежней нотации –
+модификатор std::fixed:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cout << "научная: " << std::scientific
+     << 10.0
+     <<"с фиксированной точкой: " << std::fixed
+     << 10.0 << '\n';
+]]></div>
+
+<p>В результате печатается:
+</p>
+
+<samp>
+научная: 1.0e+01
+с фиксированной точкой: 10</samp>
+
+<p>Если бы мы захотели вместо буквы 'e' выводить 'E', то следовало
+бы употребить манипулятор uppercase, а для возврата к 'e' –
+nouppercase. (Манипулятор uppercase не приводит к переводу букв в
+верхний регистр при печати.)</p>
+
+<p>По умолчанию перегруженные операторы ввода пропускают пустые
+символы (пробелы, знаки табуляции, новой строки и возврата каретки).
+Если дана последовательность:</p>
+
+<samp>a bc
+d</samp>
+
+<p>то цикл</p>
+
+<div class="lang-cpp"><![CDATA[
+char ch;
+while (std::cin >> ch)
+     // ...
+]]></div>
+
+<p>читает все буквы от 'a' до 'd' за четыре итерации, а пробельные
+разделители оператором ввода игнорируются. Манипулятор noskipws
+отменяет такой пропуск пробельных символов:</p>
+
+<div class="lang-cpp"><![CDATA[
+char ch;
+std::cin >> std::noskipws;
+while (std::cin >> ch)
+     // ...
+std::cin >> std::skipws;
+]]></div>
+
+<p>Теперь цикл while будет выполняться семь раз. Чтобы восстановить
+поведение по умолчанию, к потоку std::cin применяется манипулятор skipws.
+</p>
+
+<p>Когда мы пишем:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cout << "пожалуйста, введите значение: ";
+]]></div>
+
+<p>то в буфере потока std::cout сохраняется литеральная строка. Есть ряд
+условий, при которых буфер сбрасывается (т.е. опустошается), – в нашем
+случае в стандартный вывод:</p>
+
+<ul>
+<li>буфер может заполниться. Тогда перед чтением следующего значения его необходимо сбросить;</li>
+<li>буфер можно сбросить явно с помощью любого из манипуляторов flush, ends или std::endl:</li>
+</ul>
+
+<div class="lang-cpp"><![CDATA[
+// сбрасывает буфер
+std::cout << "hi!" << std::flush;
+// вставляет нулевой символ, затем сбрасывает буфер
+char ch[2]; ch[0] = 'a'; ch[1] = 'b';
+std::cout << ch << std::endl;
+// вставляет символ новой строки, затем сбрасывает буфер
+std::cout << "hi!" << std::endl;
+]]></div>
+
+<ul>
+<li>при установлении внутренней переменной состояния потока unitbuf буфер сбрасывается после каждой операции вывода;</li>
+<li>объект std::ostream может быть связан (tied) с объектом std::istream. Тогда
+буфер std::ostream сбрасывается каждый раз, когда std::istream читает из входного
+потока. std::cout всегда связан с std::cin:</li>
+</ul>
+
+<div class="lang-cpp"><![CDATA[std::cin.tie(&std::cout);]]></div>
+
+<p>Инструкция</p>
+<div class="lang-cpp"><![CDATA[std::cin >>ival;]]></div>
+
+<p>приводит к сбросу буфера std::cout.
+</p>
+
+<p>В любой момент времени объект std::ostream разрешено связывать только
+с одним объектом std::istream. Чтобы разорвать существующую связь, мы
+передаем функции-члену tie() значение 0:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::istream is;
+std::ostream new_os;
+
+// ...
+
+// tie() возвращает существующую связь
+std::ostream *old_tie = is.tie();
+
+is.tie(0);   // разорвать существующую связь
+is.tie(&new_os);  // установить новую связь
+
+// ...
+
+is.tie(0);   // разорвать существующую связь
+is.tie(old_tie);  // восстановить прежнюю связь
+]]></div>
+
+<p>Мы можем управлять шириной поля, отведенного для печати числового
+или строкового значения, с помощью манипулятора std::setw(). Например,
+программа</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <iostream>
+#include <iomanip>
+
+int main() {
+    int ival = 16;
+    double dval = 3.14159;
+
+    std::cout << "ival: " << std::setw(12) << ival << '\n'
+              << "dval: " << std::setw(12) << dval << '\n';
+}
+]]></div>
+
+<p>печатает:</p>
+
+<samp>ival:           16
+dval:      3.14159</samp>
+
+<p>Второй модификатор setw() необходим потому, что, в отличие от других
+манипуляторов, setw() не изменяет состояние формата объекта std::ostream.</p>
+
+<p>Чтобы выровнять значение по левой границе, мы применяем
+манипулятор left (соответственно манипулятор right восстанавливает
+выравнивание по правой границе). Если мы хотим получить такой
+результат:</p>
+
+<samp>    16
+-    3</samp>
+
+<p>то пользуемся манипулятором internal, который выравнивает знак по
+левой границе, а значение – по правой, заполняя пустое пространство
+пробелами. Если же нужен другой символ, то можно применить манипулятор
+setfill(). Так</p>
+
+<div class="lang-cpp"><![CDATA[
+std::cout << std::setw(6) << std::setfill('%') << 100 << std::endl;
+]]></div>
+
+<p>печатает:</p>
+<samp>%%%100</samp>
+
+</section>
+
+</chapter>

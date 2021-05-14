@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="description" content="C++ двоичные файлы"/>
+<meta name="viewport" content="width=device-width"/>
+<link rel="stylesheet" type="text/css" href="/styles.css" />
+<title>Лабораторная работа №6</title>
+</head>
+<body>
+
+<h1>Лабораторная работа №6: Работа с файловыми потоками в С++. Двоичные файлы</h1>
+
+<p>Цель работы: получить практические навыки решения задач с использованием двоичных файлов на языке С++.
+Теоретические сведения
+Cохранение данных в двоичных файлах
+Сохранение в двоичных файлах данных стандартных типов.
+Для того, чтобы открыть двоичный файл, необходимо задать режим доступа ios::binary (в некоторых компиляторах С++ - ios::bin).
+Двоичные файлы более компактны и в некоторых случаях более удобны для обработки.
+Для создания выходного файла создают объект</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ofstream out_fil ("Outfil.dat", std::ios::out | std::ios::binary);
+if (!out_fil) {
+   std::cerr << "Error: Outfil.dat" << std::endl;
+   exit(1);
+}
+]]></div>
+
+<p>Для того, чтобы открыть существующий двоичный файл для чтения, нужно создать объект</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ifstream in_fil ("Infil.dat", std::ios::in | std::ios::binary);
+if (!in_fil) {
+    std::cerr << "Error: Infil.dat" << std::endl;
+    exit(2);
+}
+]]></div>
+
+<p>К сожалению, созданные объекты in_fil и out_fil не слишком приспособлены для работы с двоичными файлами и требуют некоторых дополнительных действий, необходимых для корректной работы.
+Пример 16.1. Запись значения типа double в двоичный файл.
+</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include <iostream>
+
+# include <stdlib.h>
+
+class bin_outstream : public std::ofstream {
+ public:
+    bin_outstream(const char *fn) : std::ofstream(fn, std::ios::out | std::ios::binary) {}
+    void writeOurDate(const void*, int);
+    std::ofstream &operator<<(double d) {
+        writeOurDate(&d, sizeof(d));
+        return *this;
+    }
+};
+
+int main() {
+    bin_outstream bin_out("B_out.dat");
+    if (! bin_out)  {  std::cerr << "Unable to write to B_out.dat" << std::endl;
+    exit(1);
+    }
+    double d = 5.252;
+    bin_out << d;
+    bin_out << d*d;
+    d = 5.2E-5;
+    bin_out << d;
+    return 0;
+}
+
+void bin_outstream::writeOurDate(const void *Ptr, int len) {
+    if (! Ptr)  return;
+    if (len<=0)  return;
+    write((char*)Ptr, len);
+}
+]]></div>
+
+<p>Пример 16.2. Чтение значений типа double из двоичного файла.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include <iostream>
+#include <cstdlib>
+
+class bin_instream: public std::ifstream {
+public:
+    bin_instream(const char *fn) : std::ifstream(fn, std::ios::in | std::ios::binary) {}
+    void readOurDate(void*, int);
+
+    bin_instream &operator>>(double &d) {
+        readOurDate(&d, sizeof(d));
+        return *this;
+    }
+};
+
+int main() {
+    bin_instream bin_in("B_in.dat");
+    if (! bin_in) {
+        std::cerr << "Unable to open B_in.dat" << std::endl;
+        exit(1);
+    }
+    double d;
+    long count = 0;
+    bin_in >> d;
+    while (!bin_in.eof()) {
+        std::cout << ++count << ":" << d << std::endl;
+        bin_in >> d;
+    }
+    return 0;
+}
+
+void bin_instream::readOurDate(void *p, int len) {
+    if (! p) return;
+    if (len <= 0) return;
+    read((char*)p, len);
+}
+]]></div>
+
+<p>Для работы с файловыми потоками любого из стандартных типов, нужно перегрузить операторы ввода и вывода под требуемый тип данных или воспользоваться шаблоном класса, задаваемым с помощью ключевого слова template. 
+Сохранение в двоичных файлах данных, имеющих тип, создаваемый пользователем.
+Иногда возникает необходимость сохранить в файле данные, структура которых задается программистом. В этих случаях задают класс, содержащий данные и функции, перегруженные операторы ввода и вывода под эти данные.
+</p>
+
+<p>Пример 16.3.
+Объявим структуру
+</p>
+
+<div class="lang-cpp"><![CDATA[
+struct mountine {
+    char name[20];    //название горы
+    int altitude;     //высота над уровнем моря
+    int complicate;   //сложность
+};
+mountine mount;
+]]></div>
+
+<p>Для сохранения информации в двоичном файле выполняют следующее:</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ofstream fil_out("mountines.txt", std::ios_base::app);
+fil_out << mount.name << " " << mount.altitude << ' ' << mount.complicate << "\n";
+]]></div>
+
+<p>Для сохранения той же информации в двоичном файле выполняют следующее:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ofstream fil_out("mountines.dat", std::ios_base::app | std::ios_base::bynary);
+fil_out.write((char *) &mount, sizeof(mountine));
+]]></div>
+
+<p>Метод write копирует указанное число байтов (в данном случае – sizeof(mountine)) в файл из памяти ЭВМ. Несмотря на то, что сохранение данных происходит в двоичном файле, адрес переменной преобразуется к указателю на тип char.
+Для чтения данных из двоичного файла используют метод read:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ifstream fil_in("mountines.dat", std::ios_base::binary);
+fil_in.read((char *) &mount, sizeof(mountine));
+]]></div>
+
+<p>При записи или чтении классов, не содержащих виртуальных функций, можно использовать тот же самый подход. Чтобы сделать класс потоковым, нужно перегрузить операторы &lt;&lt; и &gt;&gt;:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+friend std::ostream &operator<<(std::ostream&, const AnyClass&);
+friend std::istream &operator>>(std::istream&, AnyClass &);
+]]></div>
+
+<p>Произвольный доступ к элементам файлов
+Файловый указатель.
+Каждый файл имеет два связанных с ним значения: указатель чтения и указатель записи, по-другому называемые файловым указателем или текущей позицией.
+При последовательном доступе к элементам файлов перемещение файлового указателя происходит автоматически. Но иногда бывает нужно контролировать его состояние. Для этого используются следующие функции:
+seekg()    – установить текущий указатель чтения;
+tellg()    – проверить текущий указатель чтения;
+seekp()    – установить текущий указатель записи;
+tellp()    – проверить текущий указатель записи.
+Организация доступа к элементам двоичных файлов.
+Благодаря наличию файлового указателя, в двоичных файлах допустим произвольный доступ к их элементам, который можно реализовать с помощью перегруженных функций – элементов, унаследованных из класса istream:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+istream &seekg(streampos)
+]]></div>
+
+<p>или</p>
+
+<div class="lang-cpp"><![CDATA[
+istream &seekg(streamoff, ios::seek_dir);
+]]></div>
+
+<p>Типы данных streampos и streamoff эквивалентны значениям типа long, но использовать long в явном виде не рекомендуется из-за неоднозначности работы различных компиляторов. Поэтому их определяют как
+typedef long streampos;
+typedef long streamoff;
+Первая из перегруженных форм функции seekg позиционирует входной поток на заданном байте, вторая – на смещении относительно одной из трех позиций, определенных значением константы ios::seek_dir (табл.)
+Таблица1
+Константа
+значение
+описание
+beg
+0
+поиск от начала файла
+cur
+1
+поиск от текущей позиции файла
+end
+2
+поиск от конца файла
+Для позиционирования внутреннего указателя файла для выходных потоков используют перегруженные функции выходных файловых потоков, унаследованных из класса std::ostream:
+</p>
+
+<div class="lang-cpp"><![CDATA[
+std::ostream &seekp(std::streampos);
+std::ostream &seekp(std::streamoff, std::ios::seek_dir);
+]]></div>
+
+<p>Пример 16.4. В двоичном файле, содержащем целые числа, заменить максимальное значение файла суммой его четных элементов.</p>
+
+<div class="lang-cpp"><![CDATA[
+#include <fstream>
+#include <iostream>
+#include <cstdlib>
+class bin_stream : public std::fstream
+{
+public:
+    bin_stream(const char *fn): std::fstream(fn, std::ios::out | std::ios::in | std::ios::binary) {}
+    void doneOurDate(const void*, int, int);
+    bin_stream &operator<<(int d) {
+        doneOurDate(&d, sizeof(d),0);
+        return *this;
+    }
+    bin_stream &operator>>(int &d) {
+        doneOurDate(&d, sizeof(d),1);
+        return *this;
+    }
+};
+
+int main() {
+    int i, d, max, i_max, sum_even = 0;
+    randomize();
+    bin_stream bin_out("Bin.dat");
+    if (!bin_out) {
+        std::cerr << "Unable to write to Bin.dat" << std::endl;
+        exit(1);
+    }
+    for (i = 0; i < 10; i++) {  d = random(100);
+        bin_out << d;
+        if (d % 2 == 0) sum_even += d;
+    }
+    bin_out.seekp(0, ios::beg);
+    bin_out >> max;
+    i_max = 0;
+    for (i = 1; i < 10; i++) {
+        bin_out >> d;
+        if (d > max) { max = d; i_max = i; }
+    }
+    bin_out.seekp(sizeof(int) * i_max, ios::beg);
+    bin_out << sum_even;
+    bin_out.seekp(0, ios::beg);
+    for (i = 0; i < 10; i++) {
+        bin_out >> d;
+        std::cout << d << ' ';
+    }
+    bin_out.close();
+    return 0;
+}
+void bin_stream:: doneOurDate(const void *Ptr, int len, int sign)
+{    if (!Ptr)   return;
+    if (len <= 0)   return;
+     if (sign==0) write((char*)Ptr, len);
+    else  read((char*)Ptr, len);
+}
+]]></div>
+
+<h2>Контрольные вопросы</h2>
+<ol>
+<li>Что такое поток?</li>
+<li>Особенности работы с двоичными файлами.</li>
+<li>Что представляет собой файловый указатель?</li>
+<li>Как организовать доступ к произвольному месту двоичного файла?</li>
+</ol>
+
+<h2>Варианты заданий</h2>
+<ol>
+<li>В двоичном файле целого типа заменить максимальный элемент суммой предыдущих элементов, минимальный – суммой последующих элементов.</li>
+<li>В конец двоичного файла целого типа дописать четные элементы этого файла</li>
+<li>В начало двоичного файла целого типа дописать нечетные элементы этого файла.</li>
+<li>В середину двоичного файла целого типа поместить элементы этого файла, кратные пяти.</li>
+<li>В двоичном файле целого типа поменять местами элементы, стоящие на четных местах с элементами, стоящими на нечетных местах.</li>
+<li>В начало двоичного файла целого типа дописать его минимальное значение, в середину – максимальное.</li>
+<li>В начало двоичного файла целого типа записать элементы, являющиеся делителями максимального элемента этого файла.</li>
+<li>В середину двоичного файла целого типа записать элементы этого файла, меньшие числа, введенного с клавиатуры.</li>
+<li>Даны двоичные файлы f и g целого типа. Записать в начало файла f положительные компоненты файла g, а в конец файла g – отрицательные компоненты файла f с сохранением порядка их следования.</li>
+<li>Дан двоичный файл с целыми числами. Удалить из него число, записанное после первого нуля (принять, что нули в файле имеются). Результат записать в другой файл.</li>
+<li>Дан двоичный файл с целыми числами. Все его четные элементы заменить нулями. Рассмотреть 2 варианта: исходный файл содержит 13 чисел; размер исходного файла неизвестен.</li>
+<li>Дан двоичный файл с целыми числами. Заменить все его элементы, порядковый номер которых кратен 7, на новые значения, которые вводятся с клавиатуры.
+Рассмотреть 2 варианта: исходный файл содержит 20 чисел; размер исходного файла неизвестен.</li>
+<li>Дан двоичный файл с положительными и отрицательными целыми числами. Записать в другой файл сначала отрицательные элементы, а затем положительные.</li>
+<li>В двоичном файле целого типа заменить каждый элемент суммой предыдущих элементов. В конце дописать общую сумму всех элементов.</li>
+<li>В конец двоичного файла целого типа дописать все его элементы кратные 16.</li>
+</ol>
+
+</body>
+</html>
