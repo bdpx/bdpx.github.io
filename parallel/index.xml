@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="width=device-width"/>
+<meta name="description" content="Параллельное программирование и распределенные вычисления, MPI"/>
+<link rel="stylesheet" href="/styles.css" type="text/css"/>
+<title>Параллельное программирование и распределенные вычисления</title>
+</head>
+<body>
+
+<h1>Параллельное программирование и распределенные вычисления</h1>
+
+<ul>
+<li class="link"><a href="parallel.html">методическое пособие</a></li>
+<li class="link"><a href="labs.html">лабораторные работы</a></li>
+<li class="link"><a href="http://www.cslab.ntua.gr/courses/common/mpi-book.pdf">MPI The Complete Reference, 1991, 350p</a>, edited by Janusz Kowalik</li>
+<li class="link"><a href="https://www.mpi-forum.org/docs/mpi-4.1/mpi41-report.pdf">MPI 4.1 official version</a> (2023-11-02)</li>
+<li class="link"><a href="https://www.mpich.org">https://www.mpich.org</a></li>
+</ul>
+
+<h2>Литература</h2>
+<ul>
+<li class="link"><a href="https://parallel.ru/info/parallel/voevodin">Воеводин В.В., Вычислительная математика и структура алгоритмов</a></li>
+<li class="link"><a href="https://parallel.ru/sites/default/files/tech/tech_dev/MPI/mpibook.pdf">A.С.Aнmоноʙ Параллельное программирование с использованием технологии MPI</a></li>
+<li class="link">"Using MPI", Gropp, Lusk and Skjellum. MIT Press, 1994. </li>
+<li class="link"><a href="http://www.epm.ornl.gov/~walker/mpi/SLIDES/mpi-tutorial.html">"MPI: From Fundamentals To Applications", WWW documents by David W. Walker. Mathematical Sciences Section, Oak Ridge National Laboratory.</a></li>
+<li class="link"><a href="http://www.erc.msstate.edu/mpi">"Message Passing Interface", WWW documents from the Mississippi State University server.</a></li>
+<li class="link"><a href="http://www.rs6000.ibm.com/resource/aix_resource/sp_books/p">IBM Parallel Environment Manuals</a></li>
+<li class="link"><a href="http://www.tc.cornell.edu/Edu/Talks/MPI/toc.html">"MPI (Message-Passing Interface)" WWW documents by Shennon Shen and John Zollweg from the Cornell Theory Center server:</a></li>
+<li class="link"><a href="ftp://math.usfca.edu/pub/MPI/mpi.guide.ps">"A User's Guide to MPI", Peter S. Pacheco. Department of Mathematics, University of San Francisco.</a></li>
+<li class="link"><a href="http://www.mcs.anl.gov/mpi">Argonne National Laboratory</a></li>
+<li class="link"><a href="http://www.tc.cornell.edu/Edu">Cornell Theory Center</a></li>
+<li class="link"><a href="http://www.mhpcc.edu/doc/mpi/mpi.html">Maui High Performance Computing Center</a></li>
+<li class="link"><a href="http://WWW.ERC.MsState.Edu/mpi">Mississippi State University</a></li>
+<li class="link"><a href="http://www.epm.ornl.gov/~walker/mpi">Oak Ridge National Laboratory</a></li>
+<li class="link"><a href="http://www.osc.edu/lam.html#MPI">Ohio Supercomputing Center</a></li>
+</ul>
+</body>
+</html>
